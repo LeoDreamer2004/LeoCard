@@ -1,5 +1,6 @@
 # Runtime asset roots, relative to the workspace `assets` directory.
 # A trailing slash includes a directory recursively; other entries name one file.
+# Prefix ! excludes a file or directory from the selected runtime assets.
 # Keep source packs, previews and unused vendor files out of the release binary.
 
 audio/
@@ -17,6 +18,8 @@ icons/list-menu.png
 icons/robot-2-fill.png
 shaders/
 ui/
+!ui/mc_guess/background/panoramas/panorama.py
+!ui/mc_guess/background/panoramas/__pycache__/
 
 vendor/kenney/boardgame/PNG/Cards/
 vendor/kenney/boardgame/PNG/Chips/

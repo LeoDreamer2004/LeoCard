@@ -40,12 +40,7 @@ pub(crate) fn mahjong_win_effect_visual(
     let elapsed = mahjong_win_effect_elapsed(summary_elapsed, reveal_duration, tier)?;
     let duration = tier.duration();
     let focus = ease_out_cubic((elapsed / 0.26).clamp(0.0, 1.0));
-    let impact = match tier {
-        MahjongWinEffectTier::Normal => 0.72,
-        MahjongWinEffectTier::HighTotal => 1.02,
-        MahjongWinEffectTier::MajorFan => 1.28,
-    };
-    let scale = 1.0 + (1.0 - focus) * impact + (focus * consts::PI).sin() * 0.08;
+    let scale = 1.0 + (1.0 - focus) * 0.18 + (focus * consts::PI).sin() * 0.025;
     let fade_in = (elapsed / 0.07).clamp(0.0, 1.0);
     let fade_out = ((duration - elapsed) / 0.26).clamp(0.0, 1.0);
     Some((scale, fade_in * fade_out, 9.0 * (1.0 - focus)))

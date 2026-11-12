@@ -14,15 +14,8 @@ mod rating;
 mod rules;
 mod squid;
 mod statistics;
-pub use rating::reference_point_deltas;
-pub use squid::{
-    DEEPSEEK_SQUID_VARIANTS, TexasSquidAwardStatistics, TexasSquidState, TexasSquidTransfer,
-    deepseek_squid_marker,
-};
-pub use statistics::{TexasActionStatistics, TexasHandStatistics, TexasMatchStatistics};
 
 pub use auto_play::{TexasPassiveAutoPlay, TexasPassiveAutoPlayRequest};
-
 pub use bot::{TexasBot, TexasBotObservation};
 pub use card::{TexasCard, TexasRank, TexasSuit, build_deck};
 pub use game::{
@@ -34,6 +27,11 @@ pub use hand::{
     TexasEvaluatedHand, TexasHandCategory, TexasHandError, evaluate_best, evaluate_omaha,
     evaluate_player_hand,
 };
-pub use rules::{TexasRuleError, TexasRuleSet};
-
 pub use profile::TexasProfileStats;
+pub use rating::reference_point_deltas;
+pub use rules::{TexasRuleError, TexasRuleSet};
+pub use squid::{
+    DEEPSEEK_SQUID_VARIANTS, TexasSquidAwardStatistics, TexasSquidState, TexasSquidTransfer,
+    deepseek_squid_marker,
+};
+pub use statistics::{TexasActionStatistics, TexasHandStatistics, TexasMatchStatistics};

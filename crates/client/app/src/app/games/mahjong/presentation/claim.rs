@@ -6,12 +6,15 @@ use super::super::{
     MahjongClaimPresentationState, MahjongFlowerLabel, MahjongTableRoot, MahjongTileHighlight,
     MahjongTileMaterial, MahjongTileSurface, mahjong_claim_landing_time,
 };
-use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
+use super::{
+    MahjongCalligraphy, MahjongCalligraphyKind, MahjongTileSize, MahjongTileVisual,
+    add_mahjong_tile_material,
+};
 use crate::app::presentation::mahjong::{
     MahjongProjectionViewport, WORLD_ORIGIN, camera_canvas, ground_from_layout, overlay_tile_scale,
     project_logical, projected_overlay, world_layout,
 };
-use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic};
+use crate::app::presentation::{TEXT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -26,12 +29,12 @@ pub(crate) struct MahjongClaimLandingSlot {
     pub player: PlayerId,
 }
 
-fn mahjong_claim_label(claim: MahjongClaim) -> &'static str {
+fn mahjong_claim_label(claim: MahjongClaim) -> Option<MahjongCalligraphyKind> {
     match claim {
-        MahjongClaim::Chow { .. } => "吃",
-        MahjongClaim::Pung => "碰",
-        MahjongClaim::Kong => "杠",
-        MahjongClaim::Pass | MahjongClaim::Win => "",
+        MahjongClaim::Chow { .. } => Some(MahjongCalligraphyKind::Chow),
+        MahjongClaim::Pung => Some(MahjongCalligraphyKind::Pung),
+        MahjongClaim::Kong => Some(MahjongCalligraphyKind::Kong),
+        MahjongClaim::Pass | MahjongClaim::Win => None,
     }
 }
 
@@ -94,7 +97,7 @@ fn mahjong_claim_flight_pose(elapsed: f32, flight: &MahjongClaimFlight) -> (Vec2
 fn mahjong_claim_label_visual(elapsed: f32) -> (f32, f32, f32) {
     let focus = (elapsed / 0.24).clamp(0.0, 1.0);
     let focus = ease_out_cubic(focus);
-    let scale = 1.0 + (1.0 - focus) * 0.78 + (focus * consts::PI).sin() * 0.06;
+    let scale = 1.0 + (1.0 - focus) * 0.14 + (focus * consts::PI).sin() * 0.025;
     let fade_in = (elapsed / 0.08).clamp(0.0, 1.0);
     let fade_out = ((MAHJONG_CLAIM_PRESENTATION_DURATION - elapsed) / 0.32).clamp(0.0, 1.0);
     (scale, fade_in * fade_out, 7.0 * (1.0 - focus))
@@ -118,14 +121,12 @@ pub(super) fn mahjong_claim_held_tile_visual(elapsed: f32) -> (f32, f32) {
     (0.06 + progress * 0.94, 5.0 * (1.0 - progress))
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn render_mahjong_claim_presentation(
     commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
     presentation: &MahjongClaimPresentationState,
-    assets: &UiAssets,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
@@ -135,6 +136,9 @@ pub(crate) fn render_mahjong_claim_presentation(
         .as_ref()
         .filter(|active| active.match_id == game.match_id)
     else {
+        return;
+    };
+    let Some(kind) = mahjong_claim_label(active.claim) else {
         return;
     };
     let Some(target_relative) = geometry.relative_player(game, active.player) else {
@@ -218,37 +222,12 @@ pub(crate) fn render_mahjong_claim_presentation(
     let overlay = projected_overlay(commands, table);
     let label_position = MahjongSeatGeometry::river_anchor(target_relative);
     let (scale, alpha, offset_y) = mahjong_claim_label_visual(active.elapsed);
-    let holder = spawn_node(
-        commands,
-        overlay,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(label_position.x - 55.0),
-            top: px(label_position.y - 34.0),
-            width: px(110),
-            height: px(68),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        None,
-    );
-    let text = add_text(
-        commands,
-        holder,
-        mahjong_claim_label(active.claim),
-        42.0,
-        ACCENT.with_alpha(alpha),
-        assets,
-    );
-    commands.entity(text).insert(TextShadow {
-        offset: Vec2::new(1.5, 3.0),
-        color: Color::BLACK.with_alpha(0.72 * alpha),
-    });
+    let holder = game_assets
+        .calligraphy
+        .spawn(commands, overlay, kind, label_position, alpha);
     commands.entity(holder).insert((
         MahjongClaimLabel {
             player: active.player,
-            text,
         },
         UiTransform {
             translation: Val2::px(0.0, offset_y),
@@ -381,7 +360,12 @@ pub(crate) fn animate_mahjong_claim_presentation(
         ),
     >,
     mut labels: Query<
-        (&MahjongClaimLabel, &mut UiTransform, &mut Visibility),
+        (
+            &MahjongClaimLabel,
+            &MahjongCalligraphy,
+            &mut UiTransform,
+            &mut Visibility,
+        ),
         (
             Without<MahjongClaimFlight>,
             Without<MahjongClaimHandShift>,
@@ -404,7 +388,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
             Without<MahjongClaimHandShift>,
         ),
     >,
-    mut texts: Query<(&mut TextColor, &mut TextShadow)>,
+    mut images: Query<&mut ImageNode>,
 ) {
     let active = presentation.active.as_ref();
     for (mut flight, mut node, mut transform, material_node, mut visibility) in &mut flights {
@@ -471,7 +455,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
         }
         *visibility = Visibility::Visible;
     }
-    for (label, mut transform, mut visibility) in &mut labels {
+    for (label, calligraphy, mut transform, mut visibility) in &mut labels {
         let Some(active) = active.filter(|active| active.player == label.player) else {
             *visibility = Visibility::Hidden;
             continue;
@@ -479,10 +463,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
         let (scale, alpha, offset_y) = mahjong_claim_label_visual(active.elapsed);
         transform.translation = Val2::px(0.0, offset_y);
         transform.scale = Vec2::splat(scale);
-        if let Ok((mut color, mut shadow)) = texts.get_mut(label.text) {
-            color.0 = ACCENT.with_alpha(alpha);
-            shadow.color = Color::BLACK.with_alpha(0.72 * alpha);
-        }
+        calligraphy.set_alpha(alpha, &mut images);
         *visibility = if alpha > 0.0 {
             Visibility::Visible
         } else {

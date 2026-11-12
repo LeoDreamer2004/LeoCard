@@ -1,19 +1,16 @@
 use super::super::super::{
-    MahjongAssets, MahjongTileMaterial, MahjongWinEffect, MahjongWinEffectText,
-    MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_reveal_duration,
+    MahjongAssets, MahjongCalligraphyKind, MahjongTileMaterial, MahjongWinEffect,
+    mahjong_win_effect_tier, mahjong_win_reveal_duration,
 };
 use super::super::claim::MahjongSeatGeometry;
-use super::{
-    WinStageContext, add_win_aura, mahjong_win_effect_color, mahjong_win_effect_visual,
-    render_win_stage,
-};
+use super::{WinStageContext, mahjong_win_effect_visual, render_win_stage};
+use crate::app::presentation::GameSummaryAnimation;
 use crate::app::presentation::mahjong::projected_overlay;
-use crate::app::presentation::{GameSummaryAnimation, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::UiComposer;
 
 pub(crate) struct MahjongWinVisuals<'a> {
     pub assets: &'a UiAssets,
@@ -62,43 +59,14 @@ pub(crate) fn render_mahjong_win_effects(
         };
         let position = MahjongSeatGeometry::river_anchor(relative);
         let overlay = projected_overlay(commands, table);
-        let holder = spawn_node(
-            commands,
-            overlay,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(position.x - 55.0),
-                top: px(position.y - 43.0),
-                width: px(110),
-                height: px(86),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                overflow: Overflow::visible(),
-                ..default()
-            },
-            None,
-        );
-        add_win_aura(commands, holder, tier, reveal_duration);
-        let self_draw = winner.from.is_none();
-        let text = add_text(
-            commands,
-            holder,
-            if self_draw { "自摸" } else { "和" },
-            win_label_size(tier, self_draw),
-            mahjong_win_effect_color(tier, false, alpha),
-            assets,
-        );
-        commands.entity(text).insert((
-            MahjongWinEffectText {
-                tier,
-                reveal_duration,
-            },
-            TextShadow {
-                offset: Vec2::new(2.0, 4.0),
-                color: Color::BLACK.with_alpha(0.76 * alpha),
-            },
-            ZIndex(1),
-        ));
+        let kind = if winner.from.is_none() {
+            MahjongCalligraphyKind::SelfDraw
+        } else {
+            MahjongCalligraphyKind::Win
+        };
+        let holder = game_assets
+            .calligraphy
+            .spawn(commands, overlay, kind, position, alpha);
         commands.entity(holder).insert((
             MahjongWinEffect {
                 tier,
@@ -112,16 +80,5 @@ pub(crate) fn render_mahjong_win_effects(
             ZIndex(95),
             Pickable::IGNORE,
         ));
-    }
-}
-
-fn win_label_size(tier: MahjongWinEffectTier, self_draw: bool) -> f32 {
-    match (tier, self_draw) {
-        (MahjongWinEffectTier::Normal, true) => 42.0,
-        (MahjongWinEffectTier::HighTotal, true) => 46.0,
-        (MahjongWinEffectTier::MajorFan, true) => 50.0,
-        (MahjongWinEffectTier::Normal, false) => 54.0,
-        (MahjongWinEffectTier::HighTotal, false) => 60.0,
-        (MahjongWinEffectTier::MajorFan, false) => 66.0,
     }
 }

@@ -21,12 +21,10 @@ mod view;
 pub(crate) use actions::McGuessUiAction;
 pub(crate) use assets::McGuessAssets;
 pub(crate) use feedback::GuessFeedback;
+pub(crate) use graph::GraphArt;
 pub(crate) use lobby::render_guess_lobby;
 pub(crate) use plugin::McGuessPlugin;
 pub(crate) use scores::GuessScorePlayback;
+pub(super) use screen::McGuessScreen;
 pub(crate) use state::McGuessUiState;
 pub(crate) use view::{GuessTable, render_guess_table};
-
-pub(crate) use graph::GraphArt;
-
-pub(super) use screen::McGuessScreen;

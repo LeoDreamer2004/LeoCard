@@ -4,9 +4,9 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 const VERSIONS: &str =
-    include_str!("../../../../../../../../assets/ui/minecraft_guess/background/versions.tsv");
+    include_str!("../../../../../../../../assets/ui/mc_guess/background/versions.tsv");
 const BLOCK_FRONTS: &str =
-    include_str!("../../../../../../../../assets/ui/minecraft_guess/background/block-fronts.tsv");
+    include_str!("../../../../../../../../assets/ui/mc_guess/background/block-fronts.tsv");
 
 #[derive(Resource)]
 pub(super) struct BackgroundAssets {
@@ -18,8 +18,8 @@ pub(super) struct BackgroundAssets {
 impl FromWorld for BackgroundAssets {
     fn from_world(world: &mut World) -> Self {
         let server = world.resource::<AssetServer>();
-        let tiles = load_tiles(server, "ui/minecraft_guess/background/block-fronts.png");
-        let dirt = load_tiles(server, "ui/minecraft_guess/background/dirt.png");
+        let tiles = load_tiles(server, "ui/mc_guess/background/block-fronts.png");
+        let dirt = load_tiles(server, "ui/mc_guess/background/dirt.png");
         let material =
             world
                 .resource_mut::<Assets<GuessBackgroundMaterial>>()

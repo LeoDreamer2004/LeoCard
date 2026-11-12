@@ -11,7 +11,7 @@ use leocard_mahjong::MahjongWind;
 pub(super) struct MahjongWindLabelMaterial {
     #[uniform(0)]
     color: LinearRgba,
-    /// Measured visible ink bounds in source pixels, before equalizing the margins.
+    /// Visible ink bounds in normalized texture coordinates (x, y, width, height).
     #[uniform(0)]
     ink_bounds: Vec4,
     #[texture(1)]
@@ -55,7 +55,8 @@ impl MahjongWindLabels {
                         TEXT
                     }
                     .to_linear(),
-                    ink_bounds,
+                    // Normalize measurements from the original 1254px masks.
+                    ink_bounds: ink_bounds / 1254.0,
                     texture,
                 })
             }),

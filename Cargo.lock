@@ -192,9 +192,9 @@ dependencies = [
 
 [[package]]
 name = "annotate-snippets"
-version = "0.12.17"
+version = "0.12.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2a5b0a5ab8561c603f16c3b78c24a386b1f70e7fc1b1b1e8c15738828e4a176"
+checksum = "0258346f92c78dbc5b336b9a5b27c64447aa10643bc64e651db2edb145361564"
 dependencies = [
  "anstyle",
  "memchr",
@@ -2198,9 +2198,9 @@ dependencies = [
 
 [[package]]
 name = "crc32fast"
-version = "1.5.4"
+version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f97d3416d5337d15c4b0d78c8c91df922ca143f57ec20e2d1c188333047ef04"
+checksum = "2b929dd2a135771f40afabd1073f85eed59c800b7c61901e5c254270497dad64"
 dependencies = [
  "cfg-if",
 ]
@@ -3283,11 +3283,22 @@ checksum = "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104"
 dependencies = [
  "bytemuck",
  "byteorder-lite",
+ "image-webp",
  "moxcms",
  "num-traits",
  "png",
  "zune-core",
  "zune-jpeg",
+]
+
+[[package]]
+name = "image-webp"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "525e9ff3e1a4be2fbea1fdf0e98686a6d98b4d8f937e1bf7402245af1909e8c3"
+dependencies = [
+ "byteorder-lite",
+ "quick-error",
 ]
 
 [[package]]
@@ -3459,7 +3470,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3467,7 +3478,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-android"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "bevy",
  "jni 0.22.4",
@@ -3476,11 +3487,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-assets"
-version = "0.12.4"
+version = "0.12.5"
 
 [[package]]
 name = "leocard-blackjack"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3488,7 +3499,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3536,7 +3547,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-doudizhu"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "half",
  "leocard-achievements",
@@ -3547,14 +3558,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-guandan"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3562,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-host"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3584,7 +3595,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3593,7 +3604,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong-link"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3601,7 +3612,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
@@ -3621,7 +3632,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3630,7 +3641,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-sakura-frp"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "md-5",
  "reqwest",
@@ -3640,7 +3651,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3649,7 +3660,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3669,7 +3680,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3680,14 +3691,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-ui"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3697,7 +3708,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-update"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "fastrand",
  "leocard-protocol",
@@ -3710,7 +3721,7 @@ dependencies = [
 
 [[package]]
 name = "leocard_mc_guess"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "csv",
  "fastrand",
@@ -5015,6 +5026,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
+name = "quick-error"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3"
+
+[[package]]
 name = "quick-xml"
 version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5431,9 +5448,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.15.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96"
+checksum = "102f35f7de7b06d8c61f1cff6592f5253e0dea431c74867aad5dfd70f44663fb"
 dependencies = [
  "web-time",
  "zeroize",
@@ -6171,9 +6188,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.25.17+spec-1.1.0"
+version = "0.25.19+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3641d5bbb5349a79e1020a242d251efbc546ad8048d133958323ce9c40a9c9c"
+checksum = "dd43688c4858d7264ae1cf9a9f874a67c3feb74a883b1cd7bebd6a4ea8307218"
 dependencies = [
  "indexmap",
  "toml_datetime",
@@ -6726,9 +6743,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-root-certs"
-version = "1.0.11"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e49d0e65abc00c142e8f9428da991da9f1a250c39be97459901eb12b9b49f62a"
+checksum = "293198dcebfb821155b5092ab94b5a82ff180eddd7241df3bd6e66a4ffd1a585"
 dependencies = [
  "rustls-pki-types",
 ]

@@ -100,13 +100,6 @@ fn choose_automatic_action(
     {
         return None;
     }
-    // A manual call/kong/win opportunity takes priority over automatic discards.
-    // Reuse the prompt rules so a visible decision cannot race the draw-discard command.
-    if ui.auto_draw_discard
-        && (game.can_legal_self_draw || MahjongActionPrompt::from_snapshot(game, ui).is_some())
-    {
-        return None;
-    }
     if let Some(pending) = &game.pending_claim {
         if pending.your_response.is_some() {
             return None;
@@ -138,6 +131,10 @@ fn choose_automatic_action(
             MahjongAutomaticActionKey::SelfDraw(game.match_id, game.sequence_index, drawn),
             MahjongCommand::DeclareSelfDraw,
         ));
+    }
+    // 自动和牌已优先处理，剩余的手动吃碰杠和和牌机会仍须暂停自动摸打。
+    if game.can_legal_self_draw || MahjongActionPrompt::from_snapshot(game, ui).is_some() {
+        return None;
     }
     ui.auto_draw_discard.then_some((
         MahjongAutomaticActionKey::Discard(game.match_id, game.sequence_index, drawn),
@@ -205,10 +202,9 @@ mod tests {
     }
 
     #[test]
-    fn draw_discard_pauses_for_calls_kongs_and_wins() {
+    fn draw_discard_pauses_for_manual_calls_kongs_and_wins() {
         let mut game = snapshot();
         let mut ui = MahjongUiState {
-            auto_win: true,
             auto_draw_discard: true,
             ..default()
         };
@@ -221,12 +217,16 @@ mod tests {
         assert!(choose_automatic_action(&game, &ui).is_none());
         game.can_legal_self_draw = true;
         assert!(choose_automatic_action(&game, &ui).is_none());
-        ui.auto_draw_discard = false;
-        assert_eq!(
-            choose_automatic_action(&game, &ui).map(|(_, command)| command),
-            Some(MahjongCommand::DeclareSelfDraw)
-        );
-        ui.auto_draw_discard = true;
+        ui.auto_win = true;
+        for no_claim in [false, true] {
+            ui.no_claim = no_claim;
+            assert_eq!(
+                choose_automatic_action(&game, &ui).map(|(_, command)| command),
+                Some(MahjongCommand::DeclareSelfDraw)
+            );
+        }
+        ui.auto_win = false;
+        ui.no_claim = false;
         game.can_self_draw = false;
         game.can_legal_self_draw = false;
         game.concealed_kong_options.push(drawn.kind());
@@ -261,6 +261,7 @@ mod tests {
         let ui = MahjongUiState {
             auto_win: true,
             no_claim: true,
+            auto_draw_discard: true,
             ..default()
         };
         let tile = MahjongTile::new(MahjongTileKind::suited(MahjongSuit::Dots, 3), 0);

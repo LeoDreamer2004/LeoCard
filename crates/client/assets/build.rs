@@ -39,10 +39,16 @@ fn main() {
         )
     });
     let mut assets = BTreeMap::<String, PathBuf>::new();
+    let mut exclusions = Vec::new();
 
     for (index, raw_line) in entries.lines().enumerate() {
         let entry = raw_line.trim();
         if entry.is_empty() || entry.starts_with('#') {
+            continue;
+        }
+        if let Some(excluded) = entry.strip_prefix('!') {
+            validate_manifest_entry(excluded, index + 1);
+            exclusions.push(excluded);
             continue;
         }
         validate_manifest_entry(entry, index + 1);
@@ -57,6 +63,11 @@ fn main() {
         }
     }
 
+    assets.retain(|path, _| {
+        !exclusions.iter().any(|&excluded| {
+            path.as_str() == excluded || (excluded.ends_with('/') && path.starts_with(excluded))
+        })
+    });
     assert!(
         !assets.is_empty(),
         "runtime asset manifest selected no files"

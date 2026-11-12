@@ -1,14 +1,11 @@
 use super::super::{
-    MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSurface,
-    MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect, MahjongWinEffectText,
-    MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake, MahjongWinStageKind,
-    MahjongWinStagePart, MahjongWinningHand, mahjong_win_effect_tier, mahjong_win_reveal_duration,
-    mahjong_win_stage_start,
+    MahjongCalligraphy, MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation,
+    MahjongTileSurface, MahjongWinEffect, MahjongWinEffectTier, MahjongWinFanGlyph,
+    MahjongWinScreenShake, MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
+    mahjong_win_effect_tier, mahjong_win_reveal_duration, mahjong_win_stage_start,
 };
 use super::MAHJONG_WIN_PUSH_DURATION;
-use super::win_view::{
-    mahjong_win_effect_color, mahjong_win_effect_elapsed, mahjong_win_effect_visual,
-};
+use super::win_view::{mahjong_win_effect_color, mahjong_win_effect_visual};
 use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_mahjong::MahjongWinRecord;
@@ -145,31 +142,15 @@ fn mahjong_win_tile_pose(cue: MahjongWinTileCue, local: f32) -> (f32, f32) {
 pub(crate) fn animate_mahjong_win_effects(
     animation: Res<GameSummaryAnimation>,
     mut effects: Query<
-        (&MahjongWinEffect, &mut UiTransform, &mut Visibility),
         (
-            Without<MahjongWinDecoration>,
-            Without<MahjongWinStagePart>,
-            Without<MahjongWinFanGlyph>,
-        ),
-    >,
-    mut decorations: Query<
-        (
-            &MahjongWinDecoration,
+            &MahjongWinEffect,
+            &MahjongCalligraphy,
             &mut UiTransform,
             &mut Visibility,
-            &mut BackgroundColor,
-            &mut BorderColor,
         ),
-        (
-            Without<MahjongWinEffect>,
-            Without<MahjongWinStagePart>,
-            Without<MahjongWinFanGlyph>,
-        ),
-    >,
-    mut texts: Query<
-        (&MahjongWinEffectText, &mut TextColor, &mut TextShadow),
         (Without<MahjongWinStagePart>, Without<MahjongWinFanGlyph>),
     >,
+    mut images: Query<&mut ImageNode>,
     mut glyphs: Query<
         (
             &MahjongWinFanGlyph,
@@ -178,12 +159,7 @@ pub(crate) fn animate_mahjong_win_effects(
             &mut TextColor,
             &mut TextShadow,
         ),
-        (
-            Without<MahjongWinEffect>,
-            Without<MahjongWinDecoration>,
-            Without<MahjongWinEffectText>,
-            Without<MahjongWinStagePart>,
-        ),
+        (Without<MahjongWinEffect>, Without<MahjongWinStagePart>),
     >,
     mut stages: Query<
         (
@@ -193,35 +169,20 @@ pub(crate) fn animate_mahjong_win_effects(
             Option<&mut BackgroundColor>,
             Option<&mut BorderColor>,
         ),
-        (
-            Without<MahjongWinEffect>,
-            Without<MahjongWinDecoration>,
-            Without<MahjongWinEffectText>,
-            Without<MahjongWinFanGlyph>,
-        ),
+        (Without<MahjongWinEffect>, Without<MahjongWinFanGlyph>),
     >,
 ) {
-    for (effect, mut transform, mut visibility) in &mut effects {
-        let Some((scale, _, offset_y)) =
+    for (effect, calligraphy, mut transform, mut visibility) in &mut effects {
+        let Some((scale, alpha, offset_y)) =
             mahjong_win_effect_visual(animation.elapsed, effect.reveal_duration, effect.tier)
         else {
             *visibility = Visibility::Hidden;
             continue;
         };
+        calligraphy.set_alpha(alpha, &mut images);
         transform.translation = Val2::px(0.0, offset_y);
         transform.scale = Vec2::splat(scale);
         *visibility = Visibility::Visible;
-    }
-    for (effect, mut color, mut shadow) in &mut texts {
-        let Some((_, alpha, _)) =
-            mahjong_win_effect_visual(animation.elapsed, effect.reveal_duration, effect.tier)
-        else {
-            color.0 = Color::NONE;
-            shadow.color = Color::NONE;
-            continue;
-        };
-        color.0 = mahjong_win_effect_color(effect.tier, false, alpha);
-        shadow.color = Color::BLACK.with_alpha(0.76 * alpha);
     }
     for (glyph, mut transform, mut visibility, mut color, mut shadow) in &mut glyphs {
         let local = animation.elapsed + glyph.reveal_duration - glyph.start - glyph.delay;
@@ -245,88 +206,6 @@ pub(crate) fn animate_mahjong_win_effects(
         color.0 = mahjong_win_effect_color(MahjongWinEffectTier::MajorFan, false, fade_out);
         shadow.color = Color::BLACK.with_alpha(0.88 * fade_out);
         *visibility = Visibility::Visible;
-    }
-    for (decoration, mut transform, mut visibility, mut background, mut border) in &mut decorations
-    {
-        let Some(elapsed) = mahjong_win_effect_elapsed(
-            animation.elapsed,
-            decoration.reveal_duration,
-            decoration.tier,
-        ) else {
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-        let duration = decoration.tier.duration();
-        let (translation, scale, rotation, alpha, secondary, ring) = match decoration.kind {
-            MahjongWinDecorationKind::Halo => {
-                let progress = ease_out_cubic((elapsed / duration).clamp(0.0, 1.0));
-                let fade_in = (elapsed / 0.10).clamp(0.0, 1.0);
-                let fade_out = ((duration - elapsed) / 0.30).clamp(0.0, 1.0);
-                let strength = match decoration.tier {
-                    MahjongWinEffectTier::Normal => 0.13,
-                    MahjongWinEffectTier::HighTotal => 0.20,
-                    MahjongWinEffectTier::MajorFan => 0.28,
-                };
-                (
-                    Vec2::ZERO,
-                    0.72 + progress * 0.56,
-                    0.0,
-                    fade_in * fade_out * strength,
-                    false,
-                    false,
-                )
-            }
-            MahjongWinDecorationKind::Ring {
-                delay,
-                start_scale,
-                end_scale,
-                max_alpha,
-            } => {
-                let progress = ((elapsed - delay) / (duration - delay).max(0.01)).clamp(0.0, 1.0);
-                let motion = ease_out_cubic(progress);
-                (
-                    Vec2::ZERO,
-                    start_scale + (end_scale - start_scale) * motion,
-                    0.0,
-                    (progress * consts::PI).sin().max(0.0) * max_alpha,
-                    delay > 0.0,
-                    true,
-                )
-            }
-            MahjongWinDecorationKind::Ray {
-                direction,
-                distance,
-                delay,
-                secondary,
-            } => {
-                let progress = ((elapsed - delay) / 0.55).clamp(0.0, 1.0);
-                let motion = ease_out_cubic(progress);
-                (
-                    direction * distance * motion,
-                    0.55 + motion * 0.65,
-                    direction.y.atan2(direction.x),
-                    (progress * consts::PI).sin().max(0.0) * 0.82,
-                    secondary,
-                    false,
-                )
-            }
-        };
-        transform.translation = Val2::px(translation.x, translation.y);
-        transform.scale = Vec2::splat(scale);
-        transform.rotation = Rot2::radians(rotation);
-        let color = mahjong_win_effect_color(decoration.tier, secondary, alpha);
-        if ring {
-            background.0 = Color::NONE;
-            *border = BorderColor::all(color);
-        } else {
-            background.0 = color;
-            *border = BorderColor::all(Color::NONE);
-        }
-        *visibility = if alpha > 0.0 {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
     }
     for (stage, mut transform, mut visibility, background, border) in &mut stages {
         let elapsed = animation.elapsed + stage.reveal_duration - stage.start;

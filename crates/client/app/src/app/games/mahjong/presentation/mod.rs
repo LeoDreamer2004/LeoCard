@@ -1,3 +1,4 @@
+mod calligraphy;
 mod claim;
 mod hand_tiles;
 mod meld;
@@ -6,6 +7,7 @@ mod timing;
 mod win_animation;
 mod win_view;
 
+pub(crate) use calligraphy::*;
 pub(crate) use claim::*;
 pub(crate) use hand_tiles::*;
 pub(crate) use meld::*;

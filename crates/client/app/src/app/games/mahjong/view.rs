@@ -141,7 +141,6 @@ pub(crate) struct MahjongClaimFlight {
 #[derive(Component)]
 pub(crate) struct MahjongClaimLabel {
     pub player: PlayerId,
-    pub text: Entity,
 }
 
 #[derive(Component)]
@@ -226,36 +225,6 @@ pub(super) fn mahjong_win_stage_start(result: &MahjongHandResultView, winner_ind
 
 fn mahjong_win_hand_start(result: &MahjongHandResultView, winner_index: usize) -> f32 {
     mahjong_win_stage_start(result, winner_index) - MAHJONG_WIN_PUSH_DURATION
-}
-
-#[derive(Component)]
-pub(crate) struct MahjongWinEffectText {
-    pub tier: MahjongWinEffectTier,
-    pub reveal_duration: f32,
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum MahjongWinDecorationKind {
-    Halo,
-    Ring {
-        delay: f32,
-        start_scale: f32,
-        end_scale: f32,
-        max_alpha: f32,
-    },
-    Ray {
-        direction: Vec2,
-        distance: f32,
-        delay: f32,
-        secondary: bool,
-    },
-}
-
-#[derive(Component)]
-pub(crate) struct MahjongWinDecoration {
-    pub tier: MahjongWinEffectTier,
-    pub reveal_duration: f32,
-    pub kind: MahjongWinDecorationKind,
 }
 
 #[derive(Clone, Copy)]
@@ -871,7 +840,6 @@ pub(crate) fn render_mahjong_table(
         game,
         own_seat,
         claim_presentation,
-        assets,
         game_assets,
         tile_materials,
     );

@@ -11,15 +11,14 @@ struct MahjongWindLabelMaterial {
 
 @fragment
 fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
-    let dimensions = vec2<f32>(textureDimensions(glyph_texture));
     let center = material.ink_bounds.xy + material.ink_bounds.zw * 0.5;
     // All four glyphs have the same visible extent and are centered by their ink.
     let extent = max(material.ink_bounds.z, material.ink_bounds.w) / 0.875;
-    let uv = (center + (in.uv - 0.5) * extent) / dimensions;
+    let uv = center + (in.uv - 0.5) * extent;
     let dx = dpdx(uv);
     let dy = dpdy(uv);
     var coverage = 0.0;
-    // Integrate the mask over a pixel so the original large glyph stays crisp at 38px.
+    // Integrate the coverage mask so glyphs retain smooth edges at 38px.
     for (var y = 0; y < 4; y += 1) {
         for (var x = 0; x < 4; x += 1) {
             let offset = vec2<f32>(f32(x), f32(y)) * 0.25 - 0.375;

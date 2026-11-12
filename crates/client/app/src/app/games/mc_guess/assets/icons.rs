@@ -5,38 +5,35 @@ use leocard_mc_guess::{McGuessEntry, McGuessEntryKind};
 use leocard_ui::UiComposer;
 use std::collections::HashMap;
 
-const LAYOUTS: &str =
-    include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/layouts.tsv");
+const LAYOUTS: &str = include_str!("../../../../../../../../assets/ui/mc_guess/icons/layouts.tsv");
 const INDEXES: [(&str, &str); 7] = [
     (
         "entries",
-        include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/entries.tsv"),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/entries.tsv"),
     ),
     (
         "mobs",
-        include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/mobs.tsv"),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/mobs.tsv"),
     ),
     (
         "enchantments",
-        include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/enchantments.tsv"),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/enchantments.tsv"),
     ),
     (
         "effects",
-        include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/effects.tsv"),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/effects.tsv"),
     ),
     (
         "villager-professions",
-        include_str!(
-            "../../../../../../../../assets/ui/minecraft_guess/icons/villager-professions.tsv"
-        ),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/villager-professions.tsv"),
     ),
     (
         "landscapes",
-        include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/landscapes.tsv"),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/landscapes.tsv"),
     ),
     (
         "biomes",
-        include_str!("../../../../../../../../assets/ui/minecraft_guess/icons/biomes.tsv"),
+        include_str!("../../../../../../../../assets/ui/mc_guess/icons/biomes.tsv"),
     ),
 ];
 
@@ -105,7 +102,7 @@ impl EntryIconAtlas {
             .with_settings(|settings: &mut ImageLoaderSettings| {
                 settings.sampler = ImageSampler::nearest();
             })
-            .load(format!("ui/minecraft_guess/icons/{name}.png"));
+            .load(format!("ui/mc_guess/icons/{name}.png"));
         Self {
             image,
             layout,

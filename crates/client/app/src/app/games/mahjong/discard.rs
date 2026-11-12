@@ -17,7 +17,7 @@ use leocard_mahjong::MahjongTile;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::UiComposer;
 
-const DISCARD_DURATION: f32 = 0.48;
+pub(super) const DISCARD_DURATION: f32 = 0.48;
 const HAND_TILE_ADVANCE: f32 = Layout::OWN_STEP;
 
 #[derive(Clone, Debug)]

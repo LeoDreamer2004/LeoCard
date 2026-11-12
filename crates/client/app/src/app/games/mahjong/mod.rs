@@ -3,6 +3,7 @@
 mod action_prompt;
 pub(crate) mod actions;
 mod assets;
+mod audio;
 mod auto;
 mod catalog;
 mod controls;
@@ -36,6 +37,7 @@ use crate::app::presentation::{
 use action_prompt::*;
 pub(crate) use actions::*;
 pub(crate) use assets::*;
+use audio::*;
 use auto::*;
 use controls::*;
 use discard::*;

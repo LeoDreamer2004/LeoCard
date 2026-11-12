@@ -1,3 +1,4 @@
+use super::super::audio::ShowcaseAudioStage;
 use super::super::context::WinShowcaseContext;
 use super::super::tile_motion::{MahjongShowcaseTile, ShowcaseTileStyle};
 use super::motion::{MahjongMajorShowcase, MajorShowcaseGlyph};
@@ -59,9 +60,15 @@ pub(in crate::app::games::mahjong::presentation::win_view) fn render_major_win_s
         },
         0,
     );
-    commands
-        .entity(root)
-        .insert((GlobalZIndex(1050), Visibility::Hidden));
+    commands.entity(root).insert((
+        GlobalZIndex(1050),
+        Visibility::Hidden,
+        ShowcaseAudioStage::major(
+            (game.match_id, game.sequence_index),
+            timing,
+            art.spec.glyphs.len(),
+        ),
+    ));
     let backdrop = layer(commands, root, full_layer(), 0);
     commands
         .entity(backdrop)

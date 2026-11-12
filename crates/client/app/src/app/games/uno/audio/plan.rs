@@ -50,12 +50,7 @@ fn card_played_plan(played: CardPlayedSound, you: PlayerId, seed: u64) -> Vec<Un
                 0.48,
                 seed + 2,
             ));
-            cues.push(UnoAudioCue::new(
-                UnoSoundKind::Penalty,
-                0.10,
-                0.43,
-                seed + 3,
-            ));
+            cues.push(UnoAudioCue::new(penalty_sound(face), 0.30, 0.43, seed + 3));
         }
         UnoFace::ReverseSkip => {
             cues.push(UnoAudioCue::new(
@@ -98,12 +93,7 @@ fn card_played_plan(played: CardPlayedSound, you: PlayerId, seed: u64) -> Vec<Un
         | UnoFace::StackTwo
         | UnoFace::WildStackThree
         | UnoFace::WildStackNumber => {
-            cues.push(UnoAudioCue::new(
-                UnoSoundKind::Penalty,
-                0.10,
-                0.43,
-                seed + 2,
-            ));
+            cues.push(UnoAudioCue::new(penalty_sound(face), 0.10, 0.43, seed + 2));
         }
         UnoFace::Flip
         | UnoFace::Number(_)
@@ -122,7 +112,23 @@ fn card_played_plan(played: CardPlayedSound, you: PlayerId, seed: u64) -> Vec<Un
     if player == you {
         cues[0].volume = 0.33;
     }
+    if cues.iter().any(|cue| !cue.kind.is_card()) {
+        // The authored action clips include their own card transients.
+        for cue in &mut cues[..2] {
+            cue.volume *= 0.55;
+        }
+    }
     cues
+}
+
+fn penalty_sound(face: UnoFace) -> UnoSoundKind {
+    let count = match face {
+        UnoFace::StackOne => 1,
+        UnoFace::ReverseDrawTwo | UnoFace::StackTwo => 2,
+        UnoFace::WildStackThree => 3,
+        _ => u16::from(face.draw_value().unwrap_or(4)),
+    };
+    UnoSoundKind::Penalty(count)
 }
 
 fn draw_plan(count: u16, delay: f32, penalty: bool, seed: u64) -> Vec<UnoAudioCue> {
@@ -220,9 +226,6 @@ impl GameFeedback<(PlayerId, u64)> for UnoEvent {
             ),
             UnoEvent::CardsDrawn { count, penalty, .. } => {
                 let mut cues = Vec::new();
-                if *penalty {
-                    cues.push(UnoAudioCue::new(UnoSoundKind::Penalty, 0.0, 0.48, seed));
-                }
                 append_draw_cues_with_interval(
                     &mut cues,
                     *count,
@@ -235,7 +238,7 @@ impl GameFeedback<(PlayerId, u64)> for UnoEvent {
             }
             UnoEvent::DrawPenaltyReflected { count, .. } => {
                 let mut cues = vec![UnoAudioCue::new(
-                    UnoSoundKind::Penalty,
+                    UnoSoundKind::Penalty(*count),
                     UNO_PLAY_CARD_DURATION * 0.72,
                     0.56,
                     seed,
@@ -263,15 +266,12 @@ impl GameFeedback<(PlayerId, u64)> for UnoEvent {
                 append_draw_cues(&mut cues, *count, 0.18, true, seed + 2);
                 cues
             }
-            UnoEvent::UnoCalled { player } => vec![
-                UnoAudioCue::new(
-                    UnoSoundKind::UnoCall,
-                    0.0,
-                    if *player == you { 0.78 } else { 0.68 },
-                    seed,
-                ),
-                UnoAudioCue::new(UnoSoundKind::UnoAccent, 0.13, 0.48, seed + 1).with_speed(1.08),
-            ],
+            UnoEvent::UnoCalled { player } => vec![UnoAudioCue::new(
+                UnoSoundKind::UnoCall,
+                0.0,
+                if *player == you { 0.78 } else { 0.68 },
+                seed,
+            )],
             UnoEvent::UnoReported { target, .. } => vec![
                 UnoAudioCue::new(
                     UnoSoundKind::Report,
@@ -279,7 +279,7 @@ impl GameFeedback<(PlayerId, u64)> for UnoEvent {
                     if *target == you { 0.80 } else { 0.68 },
                     seed,
                 ),
-                UnoAudioCue::new(UnoSoundKind::Penalty, 0.10, 0.46, seed + 1),
+                UnoAudioCue::new(UnoSoundKind::Penalty(2), 0.10, 0.46, seed + 1),
             ],
             UnoEvent::SkipResolved {
                 drew_card: true, ..

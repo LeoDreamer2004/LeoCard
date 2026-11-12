@@ -1,7 +1,6 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
 use super::actions::MahjongUiAction;
 use super::layout::MahjongLayout as Layout;
-use super::tiles::queue_mahjong_deal_sound;
 use super::wall::render_mahjong_wall;
 use super::{
     MAHJONG_INK_SHOWCASE_DURATION, MAHJONG_MAJOR_SHOWCASE_DURATION, MAHJONG_WIN_PUSH_DURATION,
@@ -10,11 +9,12 @@ use super::{
     MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
     MahjongTileVoicePlayback, MahjongUiState, MahjongWinArtMaterial, MahjongWinInkMaterial,
     MahjongWinVisuals, MahjongWinningHandVisual, add_mahjong_ready_hint,
-    observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
-    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
-    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_win_effects, render_own_discard_flight,
-    render_own_hand, render_round_status, sync_mahjong_tile_voice,
+    observe_discard_animations, queue_mahjong_action_voice, queue_mahjong_deal_sound,
+    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
+    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
+    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
+    render_mahjong_win_effects, render_own_discard_flight, render_own_hand, render_round_status,
+    sync_mahjong_tile_voice,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
@@ -299,6 +299,7 @@ pub(super) fn sync_mahjong_claim_presentation(
         &tile_voices,
     );
     for event in events {
+        assets.table_sounds.queue_event(&mut commands, game, &event);
         match &event {
             MahjongEvent::ClaimResolved { player, claim, .. } => {
                 let action = match claim {
@@ -562,11 +563,17 @@ pub(crate) fn render_mahjong_table(
         ui.remote_discard_animation = None;
     }
     observe_discard_animations(ui, game);
-    let received_batch = game.players.iter().any(|player| {
-        let index = player.player.id.0 as usize;
-        player.concealed_count > ui.observed_table.state.counts[index]
-            || player.flowers.len() > usize::from(ui.observed_table.state.flowers[index])
-    });
+    let received_tiles = game
+        .players
+        .iter()
+        .map(|player| {
+            u16::from(
+                player
+                    .concealed_count
+                    .saturating_sub(ui.observed_table.state.counts[player.player.id.0 as usize]),
+            )
+        })
+        .sum::<u16>();
     let dealing = matches!(
         game.phase,
         MahjongPhaseView::Dealing { .. } | MahjongPhaseView::ReplacingFlower { .. }
@@ -774,8 +781,12 @@ pub(crate) fn render_mahjong_table(
     }
     #[cfg(not(feature = "developer"))]
     let _ = developer_hand;
-    if received_batch {
-        queue_mahjong_deal_sound(commands, assets);
+    if matches!(game.phase, MahjongPhaseView::Dealing { .. }) || intro_deal {
+        match received_tiles {
+            0 => {}
+            1 => game_assets.table_sounds.queue_draw(commands, game),
+            _ => queue_mahjong_deal_sound(commands, assets),
+        }
     }
     render_action_bar(
         commands,

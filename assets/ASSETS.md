@@ -1,7 +1,7 @@
 # 运行时素材使用与许可声明
 
 本文声明 LeoCard 当前发布物实际使用的图像、音频、字体素材及其许可来源。
-发布构建会按 `crates/client/runtime-assets.txt` 选取运行时文件，并默认内嵌到可执行文件；
+发布构建会按 `crates/client/assets/runtime-assets.txt` 选取运行时文件，并默认内嵌到可执行文件；
 未被该清单选中的原始压缩包、预览图和备用素材不属于运行时发布内容。需要保留的第三方
 原始文件位于 `assets/vendor/`；仅保留加工成品的例外由对应条目记录来源和许可。
 
@@ -21,10 +21,10 @@
 | Kenney Casino Audio 1.1 | 发牌、出牌、推牌、筹码、掷骰和结算音效 | `vendor/kenney/casino-audio/` | [CC0 1.0 · Kenney Casino Audio](https://kenney.nl/assets/casino-audio) |
 | VerzatileDev 4 Colour Cards | UNO 牌面、选色状态和 UNO 牌背 | `cards/uno/` | CC0 1.0；<https://verzatiledev.itch.io/4colour>，许可声明见 <https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license> |
 | BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
-
-`power-off.ogg` 与 `power-on.ogg` 由
-Electric switch #0026 的瞬态片段裁剪并做响度规范化而成；原始文件校验值与加工记录见
-`vendor/bigsoundbank/electric-switch/SOURCE.md`。
+| BigSoundBank / Joseph SARDIN | 麻将中档和牌演出、最高档展示牌冲击与落字重音 | `audio/mahjong/showcase/high.mp3`、`tile-impact.ogg`、`glyph-impact.ogg` | [CC0 1.0](https://bigsoundbank.com/licenses.html) |
+| Spring Spring | 麻将最和牌演出的管弦乐背景 | `audio/mahjong/showcase/major-background.ogg` | [10 Fanfares](https://opengameart.org/content/10-fanfares)，采用作者提供的 CC0 授权 |
+| SFXMint | 麻将单张摸牌与出牌音效 | `audio/mahjong/table/` | [CC0 1.0](https://sfxmint.com/sounds/mahjong)，AI 生成 |
+| BMacZero / Brian MacIntosh | UNO 反转、跳过、罚摸和 UNO 提醒音效的纸牌拟音底层 | `audio/uno/actions/` | [CC0 1.0](https://opengameart.org/content/playing-card-sounds) |
 
 UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同纹理。原始包、作者、下载
 日期和 SHA-256 记录在 `vendor/verzatiledev/4-colour-cards/SOURCE.md`。

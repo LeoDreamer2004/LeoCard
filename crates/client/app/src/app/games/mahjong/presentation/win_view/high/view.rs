@@ -1,3 +1,4 @@
+use super::super::audio::ShowcaseAudioStage;
 use super::super::context::WinShowcaseContext;
 use super::super::tile_motion::{MahjongShowcaseTile, ShowcaseTileStyle};
 use super::MahjongWinInkMaterial;
@@ -48,9 +49,11 @@ pub(in crate::app::games::mahjong::presentation::win_view) fn render_high_win_sh
         },
         0,
     );
-    commands
-        .entity(root)
-        .insert((GlobalZIndex(1050), Visibility::Hidden));
+    commands.entity(root).insert((
+        GlobalZIndex(1050),
+        Visibility::Hidden,
+        ShowcaseAudioStage::high((game.match_id, game.sequence_index), timing),
+    ));
     let backdrop = spawn_node(
         commands,
         root,

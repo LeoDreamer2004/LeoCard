@@ -46,6 +46,7 @@ fn dense_penalties_cap_draw_sounds_at_four() {
         cues.windows(2)
             .all(|pair| pair[0].remaining <= pair[1].remaining)
     );
+    assert!(cues.iter().all(|cue| cue.kind == UnoSoundKind::CardDraw));
 }
 
 #[test]
@@ -56,6 +57,7 @@ fn semantic_alerts_are_louder_than_card_texture() {
     .feedback((PlayerId(0), 1));
     let played = played(UnoFace::Number(3), 1, 0).feedback((PlayerId(0), 2));
     assert!(called[0].volume > played[0].volume);
+    assert_eq!(called.len(), 1);
 }
 
 #[test]
@@ -96,7 +98,7 @@ fn special_rules_keep_distinct_semantic_cues() {
     .feedback((PlayerId(0), 5));
     assert_eq!(
         report.iter().map(|cue| cue.kind).collect::<Vec<_>>(),
-        [UnoSoundKind::Report, UnoSoundKind::Penalty]
+        [UnoSoundKind::Report, UnoSoundKind::Penalty(2)]
     );
 }
 
@@ -112,7 +114,8 @@ fn simultaneous_pairs_share_audio_and_cancel_double_reverse_feedback() {
     assert!(second.feedback((PlayerId(0), 2)).is_empty());
 
     for (face, semantic) in [
-        (UnoFace::DrawTwo, UnoSoundKind::Penalty),
+        (UnoFace::DrawTwo, UnoSoundKind::Penalty(2)),
+        (UnoFace::DrawFour, UnoSoundKind::Penalty(4)),
         (UnoFace::Skip, UnoSoundKind::Skip),
     ] {
         let cues = played(face, 2, 0).feedback((PlayerId(0), 3));

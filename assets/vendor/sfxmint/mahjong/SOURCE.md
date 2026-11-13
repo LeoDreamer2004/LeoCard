@@ -23,7 +23,6 @@ These effects are used for single-tile draws (including replacement draws) and
 single discards. Opening multi-tile batches use a dedicated Detective_Lemons recording from the
 `mahjong-b-cc0-recorded-tiles.mp3` audition.
 
-Source/output hashes are recorded in `assets/vendor/table-audio/processing.json`.
 This vendor directory is outside the runtime asset roots.
 
 ## Source hashes

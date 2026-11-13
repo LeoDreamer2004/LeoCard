@@ -17,8 +17,7 @@ plucks for reverse, skip, draw penalties and the UNO reminder. The +2/+4, revers
 skip and reminder recipes match the approved listening montage. +1/+3 use the same
 sound palette with one/three pulses.
 
-Runtime files are in `assets/audio/uno/actions/`. Source and output hashes are in
-`assets/vendor/table-audio/processing.json`. Original procedural layers follow LeoCard's
-project asset license. The unmodified source recordings remain CC0.
+Runtime files are in `assets/audio/uno/actions/`. Original procedural layers follow
+LeoCard's project asset license. The unmodified source recordings remain CC0.
 
 This vendor directory is excluded from the runtime asset roots.

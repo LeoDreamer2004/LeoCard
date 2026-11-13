@@ -18,5 +18,4 @@ inside the opening deal's 320ms batch interval without stacking long recordings.
 
 Only multi-tile opening pickups use this recording. Single draws and discards
 use the corresponding SFXMint sources from `mahjong-c-ai-draw-discard.mp3`.
-Source and output hashes are in `assets/vendor/table-audio/processing.json`.
 The vendor directory is outside the runtime asset roots.

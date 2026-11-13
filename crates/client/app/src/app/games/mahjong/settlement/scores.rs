@@ -9,9 +9,48 @@ use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
+use leocard_protocol::{MahjongHandResultView, MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
 use std::array;
+
+pub(in crate::app::games::mahjong) fn render_round_status(
+    commands: &mut UiComposer,
+    table: Entity,
+    game: &MahjongSnapshot,
+    own_seat: u8,
+    elapsed: f32,
+    assets: &UiAssets,
+    game_assets: &MahjongAssets,
+) {
+    let rolling_scores: Option<[MahjongScoreValue; 4]> = match &game.phase {
+        MahjongPhaseView::Finished { result } => SettlementTimeline::new(result)
+            .scores
+            .map(|timing| array::from_fn(|slot| MahjongScoreValue::new(result, slot, timing.roll))),
+        _ => None,
+    };
+    // The finished snapshot already contains the final totals. Keep the table on
+    // the same timeline as the settlement overlay, including after UI rebuilds.
+    let scores = rolling_scores.map_or(game.match_scores, |scores| {
+        scores.map(|score| score.at(elapsed))
+    });
+    let texts = render_round_status_with_scores(
+        commands,
+        table,
+        game,
+        own_seat,
+        &scores,
+        assets,
+        game_assets,
+    );
+    if let Some(scores) = rolling_scores {
+        for player in &game.players {
+            let relative = usize::from((player.seat.0 + 4 - own_seat) % 4);
+            commands
+                .entity(texts[relative])
+                .insert(scores[usize::from(player.player.id.0)]);
+        }
+    }
+}
 
 pub(super) struct ScoreStageView<'a> {
     pub(super) game: &'a MahjongSnapshot,
@@ -96,16 +135,11 @@ impl ScoreStageView<'_> {
                 continue;
             };
             let slot = usize::from(player.player.id.0);
-            let total = result.match_scores[slot];
             let delta = result.deltas[slot];
-            let from = total.saturating_sub(delta);
+            let score = MahjongScoreValue::new(result, slot, timing.roll);
             commands.entity(score_text).insert((
-                Text(score_at(elapsed, from, total, timing.roll).to_string()),
-                MahjongScoreValue {
-                    from,
-                    to: total,
-                    start: timing.roll,
-                },
+                Text(score.at(elapsed).to_string()),
+                score,
                 TextColor(TEXT),
             ));
             let position = mahjong_status_score_position(relative as u8) - Vec2::new(7.0, 9.0);

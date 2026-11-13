@@ -306,13 +306,13 @@ fn add_choice_button(
             None,
         );
         commands.entity(tiles).insert(Pickable::IGNORE);
-        for index in 0..choice.count {
+        for (index, &kind) in choice.tiles[..choice.count].iter().enumerate() {
             let tile = add_mahjong_tile_material(
                 commands,
                 tiles,
                 MahjongTileVisual {
                     elevation: 0.0,
-                    kind: Some(choice.tiles[index]),
+                    kind: Some(kind),
                     size: MahjongTileSize::GuideHand,
                     index,
                     highlight: MahjongTileHighlight::None,

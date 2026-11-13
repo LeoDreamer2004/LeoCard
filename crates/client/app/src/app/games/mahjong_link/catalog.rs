@@ -22,7 +22,7 @@ impl GameLobbyRules for MahjongLinkRuleSet {
     fn lobby_rule_labels(&self) -> [String; 3] {
         [
             format!(
-                "{}～{} 人轮流",
+                "{}~{} 人轮流",
                 MahjongLinkRuleSet::MIN_PLAYERS,
                 MahjongLinkRuleSet::MAX_PLAYERS
             ),

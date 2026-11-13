@@ -11,13 +11,17 @@
 - Downloaded: 2026-11-12
 
 The individual files are the exact sources used for the approved
-`mahjong-c-ai-draw-discard.mp3` audition. Runtime Ogg copies only trim quiet edges,
-apply short edge fades and match the audition's 0.40 peak normalization.
+`mahjong-c-ai-draw-discard.mp3` audition. Runtime Ogg copies isolate one short
+impact from each source, with a 1 ms attack fade, a 12 ms release fade and the
+audition's 0.40 peak normalization. Later collisions and handling sounds are cut.
 There is no pitch variation or alternative collision recording.
 
+- Draw: source range 0.881–0.961 s, 80 ms total.
+- Discard: source range 0.000–0.050 s, 50 ms total, before the second collision.
+
 These effects are used for single-tile draws (including replacement draws) and
-single discards. Opening multi-tile batches retain the previous Kenney Casino
-Audio dealing sound.
+single discards. Opening multi-tile batches use a dedicated Detective_Lemons recording from the
+`mahjong-b-cc0-recorded-tiles.mp3` audition.
 
 Source/output hashes are recorded in `assets/vendor/table-audio/processing.json`.
 This vendor directory is outside the runtime asset roots.

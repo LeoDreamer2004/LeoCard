@@ -7,24 +7,55 @@
     "assets/vendor/bmaczero/playing-card-sounds/contact2.wav": "7a30a388cab6ce4b9da74fbc13f3a376ec4e588a024d1e26d59545d0153e5433",
     "assets/vendor/bmaczero/playing-card-sounds/cut.wav": "e34049add637cd31efe11aedfd93d5834f9e469ffb083b444c15aa709f1ac1d1",
     "assets/vendor/sfxmint/mahjong/discard.mp3": "f67a18e83ecb7b5cb0f35c738f3563fbd7925e303667e2b523a11dfcbc7cd115",
-    "assets/vendor/sfxmint/mahjong/draw.mp3": "260abee8024ee77bc1dea192e5fde50fa7e44a57ccb18116002a39e6509c096c"
+    "assets/vendor/sfxmint/mahjong/draw.mp3": "260abee8024ee77bc1dea192e5fde50fa7e44a57ccb18116002a39e6509c096c",
+    "assets/vendor/detective-lemons/mahjong/tiles-fall-hq.mp3": "2655e1c6d8d6680a88c00c0f4d9641704bbcd1ec3962664b9425e70745a143bb"
   },
   "outputs": [
     {
-      "file": "assets/audio/mahjong/table/draw.ogg",
-      "duration": 1.2144,
+      "file": "assets/audio/mahjong/table/deal.ogg",
+      "duration": 0.3,
       "peak": 0.4,
-      "bytes": 15022,
-      "sha256": "6bf69218f7cc5e8c859203b68e2657fbb7b919c5f327cf7db0d55ca1fce6854a",
-      "source": "assets/vendor/sfxmint/mahjong/draw.mp3"
+      "bytes": 8584,
+      "sha256": "a1ddf8e3adabbc94c85c009247d96007c49bee963675d4073d23287935be8ee3",
+      "source": "assets/vendor/detective-lemons/mahjong/tiles-fall-hq.mp3",
+      "source_range": [
+        0.54,
+        0.84
+      ],
+      "edge_fade_seconds": 0.006,
+      "audition": "mahjong-b-cc0-recorded-tiles.mp3"
+    },
+    {
+      "file": "assets/audio/mahjong/table/draw.ogg",
+      "duration": 0.08,
+      "peak": 0.4,
+      "bytes": 5049,
+      "sha256": "d1e496aa475cd0b073f0e10195313fd54505fe7767b4bb6845197cb675dc4a4f",
+      "source": "assets/vendor/sfxmint/mahjong/draw.mp3",
+      "source_range": [
+        0.881,
+        0.961
+      ],
+      "edge_fades_seconds": {
+        "in": 0.001,
+        "out": 0.012
+      }
     },
     {
       "file": "assets/audio/mahjong/table/discard.ogg",
-      "duration": 0.2611,
+      "duration": 0.05,
       "peak": 0.4,
-      "bytes": 6468,
-      "sha256": "de74524ab56dff5bf60d071da6913c48dee2ef1762ff2a434a28c6682aac9ae7",
-      "source": "assets/vendor/sfxmint/mahjong/discard.mp3"
+      "bytes": 4667,
+      "sha256": "9e5d7d867b76b28cd3da041c671215bebe3e087d2406daa87342f5f39ef97d7e",
+      "source": "assets/vendor/sfxmint/mahjong/discard.mp3",
+      "source_range": [
+        0.0,
+        0.05
+      ],
+      "edge_fades_seconds": {
+        "in": 0.001,
+        "out": 0.012
+      }
     },
     {
       "file": "assets/audio/uno/actions/reverse.ogg",

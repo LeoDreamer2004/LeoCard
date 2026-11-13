@@ -1,12 +1,12 @@
 use super::discard::DISCARD_DURATION;
-use crate::app::presentation::PendingDealSound;
-use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::runtime::ClientResource;
 use bevy::audio::Volume;
 use bevy::prelude::*;
 use leocard_protocol::{GameSnapshot, MahjongEvent, MahjongSnapshot, MatchId};
 use leocard_ui::UiComposer;
 
 pub(super) struct MahjongTableSounds {
+    deal: Handle<AudioSource>,
     draw: Handle<AudioSource>,
     discard: Handle<AudioSource>,
 }
@@ -22,12 +22,26 @@ pub(super) struct PendingMahjongTileSound {
 impl MahjongTableSounds {
     pub fn load(server: &AssetServer) -> Self {
         Self {
+            deal: server.load("audio/mahjong/table/deal.ogg"),
             draw: server.load("audio/mahjong/table/draw.ogg"),
             discard: server.load("audio/mahjong/table/discard.ogg"),
         }
     }
 
-    pub fn queue_draw(&self, commands: &mut UiComposer, game: &MahjongSnapshot) {
+    pub fn queue_opening(
+        &self,
+        commands: &mut UiComposer,
+        game: &MahjongSnapshot,
+        tile_count: u16,
+    ) {
+        match tile_count {
+            0 => {}
+            1 => self.queue_draw(commands, game),
+            _ => self.queue(commands, game, &self.deal, 0.0, 0.50),
+        }
+    }
+
+    fn queue_draw(&self, commands: &mut UiComposer, game: &MahjongSnapshot) {
         self.queue(commands, game, &self.draw, 0.04, 0.50);
     }
 
@@ -63,16 +77,6 @@ impl MahjongTableSounds {
             volume,
         });
     }
-}
-
-pub(super) fn queue_mahjong_deal_sound(commands: &mut UiComposer, assets: &UiAssets) {
-    if assets.audio.deal_sounds.is_empty() {
-        return;
-    }
-    commands.effect(PendingDealSound {
-        remaining: 0.0,
-        variant: fastrand::usize(..assets.audio.deal_sounds.len()),
-    });
 }
 
 pub(super) fn play_mahjong_tile_sounds(

@@ -23,6 +23,7 @@
 | BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
 | BigSoundBank / Joseph SARDIN | 麻将中档和牌演出、最高档展示牌冲击与落字重音 | `audio/mahjong/showcase/high.mp3`、`tile-impact.ogg`、`glyph-impact.ogg` | [CC0 1.0](https://bigsoundbank.com/licenses.html) |
 | Spring Spring | 麻将最和牌演出的管弦乐背景 | `audio/mahjong/showcase/major-background.ogg` | [10 Fanfares](https://opengameart.org/content/10-fanfares)，采用作者提供的 CC0 授权 |
+| Detective_Lemons / Freesound | 麻将开局批量摸牌的连续碰牌声 | `audio/mahjong/table/deal.ogg` | [CC0 1.0](https://freesound.org/people/Detective_Lemons/sounds/785585/) |
 | SFXMint | 麻将单张摸牌与出牌音效 | `audio/mahjong/table/` | [CC0 1.0](https://sfxmint.com/sounds/mahjong)，AI 生成 |
 | BMacZero / Brian MacIntosh | UNO 反转、跳过、罚摸和 UNO 提醒音效的纸牌拟音底层 | `audio/uno/actions/` | [CC0 1.0](https://opengameart.org/content/playing-card-sounds) |
 

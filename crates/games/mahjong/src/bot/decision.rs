@@ -125,9 +125,10 @@ fn after_action(
                         return None;
                     };
                     let first = suit.index() * 9 + usize::from(start) - 1;
-                    for held in first..first + 3 {
-                        if held != index {
-                            position.counts[held] -= 1;
+                    for (offset, count) in position.counts[first..first + 3].iter_mut().enumerate()
+                    {
+                        if first + offset != index {
+                            *count -= 1;
                         }
                     }
                     MahjongMeld::chow(suit, start, source)

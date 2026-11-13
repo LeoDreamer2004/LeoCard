@@ -41,11 +41,11 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 德州扑克行动语音：`audio/texas_holdem/voices/` 下的 14 条男女声行动语音。
 - 扑克牌桌语音：`audio/card_patterns/` 下的牌型、不出、叫分，以及斗地主单张、对子报点语音共 132 条。
 
-### Minecraft 等级物品图标（Mojang）
+### Minecraft 等级图标（Mojang）
 
-- 运行时文件：`ui/profile/` 下的 12 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶、可可豆和棕色染料等级。
-- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)；棕色染料使用原版 Java 客户端的物品纹理。
-- Minecraft 物品图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
+- 运行时文件：`ui/profile/` 下的 13 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶、可可豆、棕色染料和蠹虫等级。
+- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)。
+- Minecraft 图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
 
 ### MC 竞猜方块与物品图标（Mojang）
 

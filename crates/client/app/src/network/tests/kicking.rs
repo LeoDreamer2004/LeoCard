@@ -1,6 +1,9 @@
 use super::*;
 use crate::ClientPhaseRef;
-use leocard_protocol::{LobbyPlayerView, PlayerPublicInfo, ProfileId, RoomModerationSnapshot};
+use leocard_protocol::{
+    AvatarId, LobbyPlayerView, PlayerGameProfiles, PlayerGender, PlayerPublicInfo, ProfileId,
+    RoomModerationSnapshot, RoomParticipant,
+};
 
 #[test]
 fn spectator_interaction_controls_follow_authoritative_room_updates() {
@@ -27,9 +30,31 @@ fn spectator_interaction_controls_follow_authoritative_room_updates() {
     let mut room = RoomModerationSnapshot {
         host: Some(PlayerId(0)),
         spectator_interactions_blocked: true,
-        participants: Vec::new(),
+        participants: vec![RoomParticipant {
+            player: PlayerPublicInfo {
+                id: PlayerId(128),
+                profile_id: ProfileId([2; 32]),
+                name: "旁观者".to_owned(),
+                avatar: Some(AvatarId(7)),
+                reference_points: 100,
+                completed_games: 3,
+                game_profiles: PlayerGameProfiles {
+                    gender: PlayerGender::Female,
+                    ..Default::default()
+                },
+            },
+            spectating: true,
+            connected: true,
+            is_bot: false,
+        }],
     };
     model.apply(message(ServerEvent::RoomModerationSnapshot(room.clone())));
+    assert_eq!(model.player_name(PlayerId(128)), Some("旁观者"));
+    assert_eq!(model.player_avatar(PlayerId(128)), Some(AvatarId(7)));
+    assert_eq!(
+        model.local_game_profiles().unwrap().gender,
+        PlayerGender::Female
+    );
     assert!(!model.is_host());
     assert!(!model.can_send_interactions());
     model.apply(lobby);

@@ -72,7 +72,7 @@ fn host_controls_spectator_interactions_and_late_joiners_receive_the_policy_in_e
             moderation(&joined)
                 .participants
                 .iter()
-                .any(|player| player.spectating && player.name == "玩家99")
+                .any(|player| player.spectating && player.player.name == "玩家99")
         );
         let interact = ClientCommand::Interact {
             target: PlayerId(0),
@@ -144,6 +144,7 @@ fn every_game_allows_the_host_to_kick_players_and_spectators_during_play() {
             .iter()
             .find(|player| player.spectating)
             .unwrap()
+            .player
             .id;
         let forbidden = room.send(2, ClientCommand::KickPlayer { player: observer });
         assert!(matches!(
@@ -167,7 +168,7 @@ fn every_game_allows_the_host_to_kick_players_and_spectators_during_play() {
                 !moderation(&kicked)
                     .participants
                     .iter()
-                    .any(|player| player.id == target)
+                    .any(|player| player.player.id == target)
             );
             assert!(!kicked.iter().any(|delivery| matches!(
                 delivery.message.event,
@@ -206,6 +207,14 @@ fn uno_and_mahjong_finish_with_kicked_seats_under_automatic_control() {
                 },
             );
         }
+        if let GameSnapshot::Mahjong(game) = room.snapshot(1) {
+            assert_eq!(game.players.len(), 4);
+            assert!(
+                game.players
+                    .iter()
+                    .all(|player| { player.connected == (player.player.id == PlayerId(0)) })
+            );
+        }
         let command = match kind {
             GameKind::Uno => UnoCommand::SetAutoPlay { enabled: true }.into(),
             _ => MahjongCommand::SetAutoPlay { enabled: true }.into(),
@@ -213,7 +222,11 @@ fn uno_and_mahjong_finish_with_kicked_seats_under_automatic_control() {
         room.send(1, ClientCommand::Game(command));
         for _ in 0..2000 {
             room.session.advance_time(Duration::from_secs(5));
-            if room.snapshot(1).match_complete() {
+            let snapshot = room.snapshot(1);
+            if let GameSnapshot::Mahjong(game) = &snapshot {
+                assert_eq!(game.players.len(), 4);
+            }
+            if snapshot.match_complete() {
                 break;
             }
         }
@@ -411,6 +424,38 @@ fn midgame_spectators_share_selected_player_views_but_cannot_play_in_all_games()
         );
         assert!(interactions.iter().any(|delivery| matches!(&delivery.message.event,
             ServerEvent::PlayerInteraction(event) if event.source == spectator && event.target == PlayerId(0))));
+        let other = room
+            .send(OBSERVER + 1, join(100, OBSERVER + 1))
+            .into_iter()
+            .find_map(|delivery| match delivery.message.event {
+                ServerEvent::Joined { you } if delivery.recipient == ConnectionId(OBSERVER + 1) => {
+                    Some(you)
+                }
+                _ => None,
+            })
+            .unwrap();
+        for (connection, source) in [(1, PlayerId(0)), (OBSERVER + 1, other)] {
+            let interactions = room.send(
+                connection,
+                ClientCommand::Interact {
+                    target: spectator,
+                    kind: PlayerInteractionKind::EggBarrage,
+                },
+            );
+            assert!(interactions.iter().any(|delivery| matches!(&delivery.message.event,
+                ServerEvent::PlayerInteraction(event) if event.source == source && event.target == spectator)));
+        }
+        let stats = moderation(&room.send(1, ClientCommand::RequestSnapshot))
+            .participants
+            .iter()
+            .find(|player| player.player.id == spectator)
+            .unwrap()
+            .player
+            .game_profiles
+            .interactions
+            .clone()
+            .unwrap();
+        assert_eq!(stats.eggs_received, 200);
         assert_eq!(room.snapshot(OBSERVER), room.snapshot(4));
         for command in [
             ClientCommand::Game(QiGui523Command::Pass.into()),
@@ -437,7 +482,7 @@ fn midgame_spectators_share_selected_player_views_but_cannot_play_in_all_games()
 }
 
 #[test]
-fn spectators_can_broadcast_attributed_text_but_not_emoji_or_quick_voice() {
+fn spectators_can_broadcast_attributed_text_emoji_and_quick_voice() {
     let mut room = Room::started(GameRules::QiGui523(QiGuiRuleSet {
         player_count: 4,
         ..Default::default()
@@ -475,13 +520,21 @@ fn spectators_can_broadcast_attributed_text_but_not_emoji_or_quick_voice() {
         ChatContent::Emoji(ChatEmoji::Laugh),
         ChatContent::QuickVoice(0),
     ] {
-        let rejected = room.send(OBSERVER, ClientCommand::Chat { content });
-        assert!(
-            matches!(rejected.as_slice(), [delivery] if delivery.recipient == ConnectionId(OBSERVER)
-            && matches!(&delivery.message.event, ServerEvent::Rejected {
-                reason: RejectReason::Room(RoomViolation::SpectatorTextChatOnly),
-            }))
+        let deliveries = room.send(
+            OBSERVER,
+            ClientCommand::Chat {
+                content: content.clone(),
+            },
         );
+        assert_eq!(deliveries.len(), 5);
+        for delivery in deliveries {
+            assert!(
+                matches!(&delivery.message.event, ServerEvent::ChatMessage(message)
+                if message.source == spectator
+                    && message.spectator_name.as_deref() == Some("玩家99")
+                    && message.content == content)
+            );
+        }
     }
 }
 

@@ -87,7 +87,6 @@ impl GameSnapshotView for MahjongSession {
             .room
             .players
             .iter()
-            .filter(|player| !player.left)
             .map(|participant| {
                 let metadata = participant.public_metadata();
                 let core_id = metadata.player.id;

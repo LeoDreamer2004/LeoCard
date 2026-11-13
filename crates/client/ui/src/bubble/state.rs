@@ -3,6 +3,7 @@ use bevy::prelude::*;
 #[derive(Clone, Copy)]
 pub enum BubblePlacement {
     Anchor(Option<Entity>),
+    Beside(Option<Entity>),
     TopLeft(Vec2),
     BottomRight(Vec2),
 }

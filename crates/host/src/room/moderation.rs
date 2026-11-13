@@ -14,8 +14,7 @@ impl RoomSession {
                 .participants()
                 .filter(|player| !player.left)
                 .map(|player| RoomParticipant {
-                    id: player.id,
-                    name: player.name.clone(),
+                    player: player.public_metadata().player,
                     spectating: self.is_spectator(player.connection),
                     connected: player.connected,
                     is_bot: player.is_bot,

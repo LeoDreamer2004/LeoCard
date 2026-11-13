@@ -389,6 +389,42 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
             .any(|delivery| matches!(delivery.message.event, ServerEvent::LobbySnapshot(_)))
     );
 
+    for disconnect in [false, true] {
+        let mut departed = session.clone();
+        let host = departed.room.host_connection.unwrap();
+        let missing = departed
+            .room
+            .players
+            .iter()
+            .find(|player| player.connection != host)
+            .unwrap()
+            .clone();
+        for connection in connections {
+            if connection != missing.connection {
+                departed.handle(connection, message(20, ClientCommand::PlayAgain));
+            }
+        }
+        assert!(matches!(
+            departed.game().unwrap().phase(),
+            MahjongPhase::Finished(_)
+        ));
+        if disconnect {
+            departed.disconnect(missing.connection);
+        } else {
+            departed.handle(missing.connection, message(20, ClientCommand::LeaveRoom));
+        }
+        let snapshot = departed.game_view(PlayerId(0));
+        assert!(matches!(snapshot.phase, MahjongPhaseView::RollingDice));
+        assert_eq!(snapshot.players.len(), 4);
+        let retained = snapshot
+            .players
+            .iter()
+            .find(|player| player.player.id == missing.id)
+            .unwrap();
+        assert_eq!(Some(retained.seat), missing.seat);
+        assert!(!retained.connected);
+    }
+
     let original_match = session.match_id;
     let mut last = Vec::new();
     for connection in connections {

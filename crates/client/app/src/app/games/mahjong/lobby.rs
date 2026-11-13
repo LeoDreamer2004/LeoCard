@@ -153,7 +153,7 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "主要平衡国标麻将常见痛点，调整部分番种计番，稍削弱自摸得分",
+            help: "主要平衡国标麻将常见痛点，调整部分番种计番，稍削弱自摸得分。",
             previous: can_configure.then_some(balanced_toggled),
             next: can_configure.then_some(balanced_toggled),
         },

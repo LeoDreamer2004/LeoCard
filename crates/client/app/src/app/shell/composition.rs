@@ -6,7 +6,7 @@ use super::{
     ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
     ProfileModal, ProfileMotion, SettingsModal, SettingsMotion, ShopPage, UiState, UpdateManager,
     add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
-    can_edit_identity, render_confirmation, render_update_dialog,
+    add_spectator_avatars, can_edit_identity, render_confirmation, render_update_dialog,
 };
 #[cfg(not(target_os = "android"))]
 use super::{SakuraPage, SakuraState, render_startup_dialog};
@@ -22,7 +22,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::input_focus::tab_navigation::TabGroup;
 use bevy::prelude::*;
 use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements, PlayerEconomy};
-use leocard_ui::UiComposer;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(SystemParam)]
 struct VisualAssets<'w> {
@@ -233,26 +233,47 @@ impl ScreenRenderer<'_, '_, '_> {
                     avatars: &self.visuals.avatars,
                 },
             ),
-            ClientPhaseRef::Playing(game) => self.games.render_table(
-                self.commands,
-                root,
-                game,
-                GameTableContext {
-                    client,
-                    social: &self.ui.social,
-                    chat: self.chat,
-                    developer_hand: self.developer_hand,
-                    form: self.appearance,
-                    assets: &self.visuals.ui,
-                    avatars: &self.visuals.avatars,
-                    appearance: &self.visuals.table,
-                    game_summary: &self.visuals.game_summary,
-                    transition: &self.visuals.start_game_transition,
-                    table_materials: &mut self.visuals.table_materials,
-                    mahjong_tile_materials: &mut self.visuals.mahjong_tile_materials,
-                    turn_border_materials: &mut self.visuals.turn_border_materials,
-                },
-            ),
+            ClientPhaseRef::Playing(game) => {
+                let content = spawn_node(
+                    self.commands,
+                    root,
+                    Node {
+                        width: percent(100),
+                        flex_grow: 1.0,
+                        min_height: px(0),
+                        position_type: PositionType::Relative,
+                        ..default()
+                    },
+                    None,
+                );
+                self.games.render_table(
+                    self.commands,
+                    content,
+                    game,
+                    GameTableContext {
+                        client,
+                        social: &self.ui.social,
+                        chat: self.chat,
+                        developer_hand: self.developer_hand,
+                        form: self.appearance,
+                        assets: &self.visuals.ui,
+                        avatars: &self.visuals.avatars,
+                        appearance: &self.visuals.table,
+                        game_summary: &self.visuals.game_summary,
+                        transition: &self.visuals.start_game_transition,
+                        table_materials: &mut self.visuals.table_materials,
+                        mahjong_tile_materials: &mut self.visuals.mahjong_tile_materials,
+                        turn_border_materials: &mut self.visuals.turn_border_materials,
+                    },
+                );
+                add_spectator_avatars(
+                    self.commands,
+                    content,
+                    client.0.model(),
+                    &self.visuals.ui,
+                    &self.visuals.avatars,
+                );
+            }
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => ConnectionScreen::new(
                 self.connection,
                 self.appearance,

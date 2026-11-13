@@ -89,12 +89,14 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                     && client.0.model().is_host()
                     && let Some(room) = client.0.model().room_moderation()
                     && let Some(target) = room.participants.iter().find(|target| {
-                        target.id == *player && !target.is_bot && Some(target.id) != room.host
+                        target.player.id == *player
+                            && !target.is_bot
+                            && Some(target.player.id) != room.host
                     })
                 {
                     context.confirmation.show_with_button(
                         "踢出玩家".to_owned(),
-                        format!("确定将 {} 踢出房间吗？", target.name),
+                        format!("确定将 {} 踢出房间吗？", target.player.name),
                         UiAction::Settings(Self::KickPlayer(*player)),
                         "踢出",
                         CozyButtonVariant::Danger,

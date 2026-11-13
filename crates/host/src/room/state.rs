@@ -119,8 +119,7 @@ impl RoomSession {
 
     fn record_received_interaction(&mut self, target: PlayerId, kind: PlayerInteractionKind) {
         let Some(participant) = self
-            .players
-            .iter_mut()
+            .participants_mut()
             .find(|participant| participant.id == target && !participant.left)
         else {
             return;
@@ -235,9 +234,6 @@ impl RoomSession {
             .spectators
             .iter()
             .find(|player| player.id == source && !player.left);
-        if spectator.is_some() && !matches!(&content, ChatContent::Text(_)) {
-            return Err(RejectReason::Room(RoomViolation::SpectatorTextChatOnly));
-        }
         let content = match content {
             ChatContent::Text(text) => {
                 let text = text.trim();

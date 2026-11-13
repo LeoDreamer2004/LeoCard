@@ -106,11 +106,30 @@ impl MahjongSession {
             self.room.players[index].left = true;
         }
         self.room.bump_revision();
-        if self.game.is_some() {
+        if self.should_start_next_hand() {
+            self.start_next_hand(None)
+        } else if self.game.is_some() {
             self.broadcast_game(None)
         } else {
             self.broadcast_lobby(None)
         }
+    }
+
+    fn should_start_next_hand(&self) -> bool {
+        if !self
+            .game
+            .as_ref()
+            .is_some_and(|game| matches!(game.phase(), MahjongPhase::Finished(_)))
+        {
+            return false;
+        }
+        let mut active = self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left && (player.connected || player.is_bot))
+            .peekable();
+        active.peek().is_some() && active.all(|player| player.ready)
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
@@ -298,10 +317,7 @@ impl HostedGameLifecycle for MahjongSession {
             participant.ready = true;
         }
         self.room.bump_revision();
-        let mut active = self.room.players.iter().filter(|player| !player.left);
-        if active.clone().count() == usize::from(MahjongRuleSet::PLAYER_COUNT)
-            && active.all(|player| player.ready)
-        {
+        if self.should_start_next_hand() {
             return self.start_next_hand(Some((connection, request_id)));
         }
         self.broadcast_game(Some((connection, request_id)))
@@ -340,7 +356,9 @@ impl HostedGameLifecycle for MahjongSession {
             self.room
                 .broadcast_event(None, ServerEvent::PlayerLeft { name }),
         );
-        deliveries.extend(if self.game.is_some() {
+        deliveries.extend(if self.should_start_next_hand() {
+            self.start_next_hand(None)
+        } else if self.game.is_some() {
             self.broadcast_game(None)
         } else {
             self.broadcast_lobby(None)

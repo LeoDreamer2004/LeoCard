@@ -8,9 +8,17 @@ impl Policy {
         match game.phase() {
             MahjongPhase::WaitingForClaims(pending) => {
                 pending.options_for(player)?;
-                Some(MahjongBotAction::Respond(MahjongClaim::Pass))
+                let claim = if game.legal_claim_win_available(player).ok()? {
+                    MahjongClaim::Win
+                } else {
+                    MahjongClaim::Pass
+                };
+                Some(MahjongBotAction::Respond(claim))
             }
             MahjongPhase::Playing if game.current_player() == player => {
+                if game.legal_self_draw_available(player).ok()? {
+                    return Some(MahjongBotAction::SelfDraw);
+                }
                 let hand = game.player(player)?.hand();
                 // Normal draws and flower replacements discard the drawn tile.
                 // Enabling auto-play just after a chow/pung has no drawn tile;
@@ -28,10 +36,75 @@ impl Policy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leocard_mahjong::{MahjongClaimOption, MahjongRuleSet, build_deck};
+    use leocard_mahjong::{
+        MahjongActionOutcome, MahjongClaimOption, MahjongRuleSet, MahjongSuit, MahjongTile,
+        MahjongTileKind, build_deck,
+    };
+
+    fn winning_game(player: PlayerId, false_win: bool) -> MahjongGameState {
+        let hand = (1..=5)
+            .flat_map(|rank| {
+                (0..if rank == 5 { 2 } else { 3 }).map(move |copy| {
+                    MahjongTile::new(MahjongTileKind::suited(MahjongSuit::Characters, rank), copy)
+                })
+            })
+            .collect::<Vec<_>>();
+        let mut slots = (0..3)
+            .flat_map(|round| (0..4).map(move |index| round * 16 + player.index() * 4 + index))
+            .collect::<Vec<_>>();
+        slots.push(48 + player.index());
+        // The dealer's jumped tile completes either their own hand or player 1's pair.
+        slots.push(52);
+        let mut deck = build_deck();
+        for (slot, tile) in slots.into_iter().zip(hand) {
+            let index = deck.iter().position(|held| *held == tile).unwrap();
+            deck.swap(slot, index);
+        }
+        let mut game = MahjongGameState::new_with_deck(
+            MahjongRuleSet {
+                false_win,
+                ..MahjongRuleSet::default()
+            },
+            deck,
+            PlayerId(0),
+        )
+        .unwrap();
+        while matches!(game.phase(), MahjongPhase::Dealing { .. }) {
+            game.advance_deal().unwrap();
+        }
+        game
+    }
 
     #[test]
-    fn auto_play_discards_every_draw_and_passes_every_claim_until_the_wall_is_empty() {
+    fn auto_play_takes_legal_self_draws_and_discard_wins_in_both_false_win_modes() {
+        for false_win in [false, true] {
+            for player in [PlayerId(0), PlayerId(1)] {
+                let mut game = winning_game(player, false_win);
+                let outcome = if player == PlayerId(0) {
+                    assert_eq!(
+                        Policy::choose(&game, player),
+                        Some(MahjongBotAction::SelfDraw)
+                    );
+                    game.declare_self_draw(player).unwrap()
+                } else {
+                    let tile = game.last_drawn().unwrap();
+                    game.discard(PlayerId(0), tile).unwrap();
+                    assert_eq!(
+                        Policy::choose(&game, player),
+                        Some(MahjongBotAction::Respond(MahjongClaim::Win))
+                    );
+                    game.respond_to_claim(player, MahjongClaim::Win).unwrap()
+                };
+                let MahjongActionOutcome::HandFinished(result) = outcome else {
+                    panic!("auto-play must take the available win");
+                };
+                assert_eq!(result.winners[0].player, player);
+            }
+        }
+    }
+
+    #[test]
+    fn auto_play_draw_discards_and_passes_when_no_legal_win_is_available() {
         let mut game =
             MahjongGameState::new_with_deck(MahjongRuleSet::default(), build_deck(), PlayerId(0))
                 .unwrap();
@@ -48,6 +121,7 @@ mod tests {
                 MahjongPhase::Playing => {
                     let player = game.current_player();
                     let drawn = game.last_drawn().unwrap();
+                    assert!(!game.legal_self_draw_available(player).unwrap());
                     assert_eq!(
                         Policy::choose(&game, player),
                         Some(MahjongBotAction::Discard(drawn))
@@ -59,6 +133,7 @@ mod tests {
                 MahjongPhase::WaitingForClaims(pending) => {
                     let players = pending.waiting_for();
                     for player in players {
+                        assert!(!game.legal_claim_win_available(player).unwrap());
                         assert_eq!(
                             Policy::choose(&game, player),
                             Some(MahjongBotAction::Respond(MahjongClaim::Pass))

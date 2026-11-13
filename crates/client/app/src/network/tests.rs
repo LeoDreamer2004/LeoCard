@@ -272,30 +272,29 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     );
     assert!(!observer.send(ClientCommand::SetReady { ready: true }));
     for content in [
+        ChatContent::Text("好牌".to_owned()),
         ChatContent::Emoji(ChatEmoji::Smile),
         ChatContent::QuickVoice(0),
     ] {
-        assert!(!observer.send(ClientCommand::Chat { content }));
+        assert!(observer.send(ClientCommand::Chat {
+            content: content.clone()
+        }));
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let chat = loop {
+            host.poll();
+            if let Some(chat) = host.take_chat_messages().into_iter().next() {
+                break chat;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "host did not receive spectator chat"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        assert_eq!(Some(chat.source), observer.model().you());
+        assert_eq!(chat.content, content);
+        assert_eq!(chat.spectator_name.as_deref(), Some("观战"));
     }
-    let content = ChatContent::Text("好牌".to_owned());
-    assert!(observer.send(ClientCommand::Chat {
-        content: content.clone(),
-    }));
-    let deadline = Instant::now() + Duration::from_secs(3);
-    let chat = loop {
-        host.poll();
-        if let Some(chat) = host.take_chat_messages().into_iter().next() {
-            break chat;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "host did not receive spectator chat"
-        );
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert_eq!(Some(chat.source), observer.model().you());
-    assert_eq!(chat.content, content);
-    assert_eq!(chat.spectator_name.as_deref(), Some("观战"));
     assert_eq!(
         guest_a
             .model()

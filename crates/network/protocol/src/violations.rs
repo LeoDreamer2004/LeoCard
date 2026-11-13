@@ -100,7 +100,6 @@ pub enum RoomViolation {
     SpectatorCannotAct,
     OnlyHostCanKick,
     CannotKickPlayer,
-    SpectatorTextChatOnly,
     SpectatorInteractionsBlocked,
 }
 
@@ -125,7 +124,6 @@ impl fmt::Display for RoomViolation {
             Self::SpectatorCannotAct => "当前正在观战，请等待下一场入座",
             Self::OnlyHostCanKick => "只有房主可以踢出玩家",
             Self::CannotKickPlayer => "只能踢出其他真人玩家",
-            Self::SpectatorTextChatOnly => "旁观者只能发送文本消息",
             Self::SpectatorInteractionsBlocked => "房主已禁止旁观玩家互动",
         })
     }

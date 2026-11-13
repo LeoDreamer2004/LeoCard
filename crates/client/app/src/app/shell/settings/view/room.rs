@@ -104,12 +104,12 @@ pub(super) fn render_room_settings(
         add_text(
             commands,
             identity,
-            &participant.name,
+            &participant.player.name,
             15.0 * scale,
             TEXT,
             assets,
         );
-        let role = if Some(participant.id) == room.host {
+        let role = if Some(participant.player.id) == room.host {
             "房主"
         } else if participant.is_bot {
             "机器人"
@@ -131,12 +131,12 @@ pub(super) fn render_room_settings(
             MUTED,
             assets,
         );
-        if is_host && Some(participant.id) != room.host && !participant.is_bot {
+        if is_host && Some(participant.player.id) != room.host && !participant.is_bot {
             add_cozy_button_variant_scaled(
                 commands,
                 row,
                 "踢出",
-                UiAction::Settings(SettingsUiAction::RequestKickPlayer(participant.id)),
+                UiAction::Settings(SettingsUiAction::RequestKickPlayer(participant.player.id)),
                 assets,
                 px(64.0 * scale),
                 38.0 * scale,

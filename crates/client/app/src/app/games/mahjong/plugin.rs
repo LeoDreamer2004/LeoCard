@@ -71,7 +71,6 @@ impl Plugin for MahjongPlugin {
                 Update,
                 (
                     sync_mahjong_hand_tile_materials,
-                    sync_mahjong_ready_hand_peek,
                     sync_mahjong_hover_hints,
                     sync_fan_calculator,
                     apply_automatic_mahjong_action
@@ -79,6 +78,10 @@ impl Plugin for MahjongPlugin {
                         .run_if(start_game_intro_finished),
                 )
                     .in_set(ClientUpdateSet::Sync),
+            )
+            .add_systems(
+                Update,
+                sync_mahjong_ready_hand_peek.in_set(ClientUpdateSet::Animate),
             )
             .add_systems(
                 Update,

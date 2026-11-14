@@ -346,13 +346,14 @@ pub(super) fn render_mahjong_player_tiles(
         let regular_count = concealed_count.saturating_sub(usize::from(
             separate_last_concealed && remote_discard.is_none(),
         ));
+        let standing_size = match relative {
+            1 | 3 => MahjongTileSize::HiddenSide,
+            _ => MahjongTileSize::HiddenOpposite,
+        };
         let hidden_size = if face_down {
             MahjongTileSize::Mini
         } else {
-            match relative {
-                1 | 3 => MahjongTileSize::HiddenSide,
-                _ => MahjongTileSize::HiddenOpposite,
-            }
+            standing_size
         };
         if let Some(revealed) = player.revealed_hand.as_ref().filter(|_| !face_down) {
             let winner = result.and_then(|result| {
@@ -399,7 +400,7 @@ pub(super) fn render_mahjong_player_tiles(
                         size: if winning_hand {
                             MahjongTileSize::Mini
                         } else {
-                            hidden_size
+                            standing_size
                         },
                         index,
                         highlight: MahjongTileHighlight::None,
@@ -526,7 +527,7 @@ pub(super) fn render_mahjong_player_tiles(
                         size: if ghost.is_some() || robbing_tile.is_some() {
                             MahjongTileSize::River
                         } else {
-                            hidden_size
+                            standing_size
                         },
                         index: if from_drawn {
                             regular_count
@@ -541,13 +542,18 @@ pub(super) fn render_mahjong_player_tiles(
                     game_assets,
                     materials,
                 );
+                let tile_bottom = if face_down && ghost.is_none() && robbing_tile.is_none() {
+                    (Layout::MINI_HEIGHT - standing_size.dimensions().1) * 0.5
+                } else {
+                    0.0
+                };
                 commands
                     .entity(entity)
                     .entry::<Node>()
                     .and_modify(move |mut node| {
                         node.position_type = PositionType::Absolute;
                         node.left = px(tile_left);
-                        node.bottom = px(0);
+                        node.bottom = px(tile_bottom);
                         node.margin = UiRect::ZERO;
                     });
                 if robbing_tile.is_some() {

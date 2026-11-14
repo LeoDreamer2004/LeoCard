@@ -24,7 +24,7 @@ pub(crate) enum MahjongTileSize {
     MiniConcealedMeld,
     OwnMeld,
     OwnConcealedMeld,
-    OwnReadyHand,
+    OwnHand,
     InkShowcase,
     MajorShowcase,
     HiddenSide,
@@ -42,7 +42,7 @@ pub(crate) struct MahjongTileVisual {
 }
 
 impl MahjongTileSize {
-    pub(super) fn dimensions(self) -> (f32, f32, f32) {
+    pub(in super::super) fn dimensions(self) -> (f32, f32, f32) {
         match self {
             MahjongTileSize::River => (
                 Layout::RIVER_WIDTH,
@@ -69,7 +69,7 @@ impl MahjongTileSize {
             MahjongTileSize::MajorShowcase => (64.0, 86.0, -7.0),
             MahjongTileSize::OwnMeld
             | MahjongTileSize::OwnConcealedMeld
-            | MahjongTileSize::OwnReadyHand => (
+            | MahjongTileSize::OwnHand => (
                 Layout::OWN_WIDTH,
                 Layout::OWN_HEIGHT,
                 Layout::OWN_STEP - Layout::OWN_WIDTH,
@@ -97,7 +97,7 @@ pub(crate) fn add_mahjong_tile_material(
         relative,
     } = visual;
     let (width, height, overlap) = size.dimensions();
-    let back = kind.is_none() || matches!(size, MahjongTileSize::OwnReadyHand);
+    let back = kind.is_none();
     let glyph = kind.map_or_else(
         || game_assets.visuals.tile_back.clone(),
         |kind| {
@@ -130,7 +130,11 @@ pub(crate) fn add_mahjong_tile_material(
         ..default()
     };
     let final_rotation = 0.0;
-    let final_offset = Vec2::ZERO;
+    let final_offset = if matches!(size, MahjongTileSize::OwnHand) {
+        Vec2::new(0.0, -Layout::OWN_HAND_LIFT)
+    } else {
+        Vec2::ZERO
+    };
     let entity = commands.child(
         parent,
         (
@@ -161,7 +165,6 @@ pub(crate) fn add_mahjong_tile_material(
             | MahjongTileSize::HiddenOpposite
             | MahjongTileSize::OwnMeld
             | MahjongTileSize::OwnConcealedMeld
-            | MahjongTileSize::OwnReadyHand
     );
     let material = commands.material(
         entity,
@@ -170,9 +173,7 @@ pub(crate) fn add_mahjong_tile_material(
             table_projection,
             overlay_projection: matches!(
                 size,
-                MahjongTileSize::OwnMeld
-                    | MahjongTileSize::OwnConcealedMeld
-                    | MahjongTileSize::OwnReadyHand
+                MahjongTileSize::OwnMeld | MahjongTileSize::OwnConcealedMeld
             ),
             params: Vec4::new(
                 0.0,
@@ -183,9 +184,9 @@ pub(crate) fn add_mahjong_tile_material(
                     MahjongTileSize::HiddenOpposite => -3.0,
                     MahjongTileSize::GuideHand | MahjongTileSize::SettlementHand => -1.0,
                     MahjongTileSize::OwnMeld
-                    | MahjongTileSize::OwnReadyHand
                     | MahjongTileSize::InkShowcase
                     | MahjongTileSize::MajorShowcase => -4.0,
+                    MahjongTileSize::OwnHand => -6.0,
                     MahjongTileSize::GuideMeld => -4.0,
                     MahjongTileSize::OwnConcealedMeld
                     | MahjongTileSize::MiniConcealedMeld
@@ -212,7 +213,7 @@ pub(crate) fn add_mahjong_tile_material(
                 | MahjongTileSize::InkShowcase
                 | MahjongTileSize::MajorShowcase
                 | MahjongTileSize::Hint
-                | MahjongTileSize::OwnReadyHand
+                | MahjongTileSize::OwnHand
         )
     {
         commands

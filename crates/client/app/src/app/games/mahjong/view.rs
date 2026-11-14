@@ -911,7 +911,6 @@ pub(crate) fn render_mahjong_table(
     ui.observed_table.state.wall_len = Some(game.wall_len);
     ui.observed_table.state.discard_count = Some(game.discards.len());
     ui.observed_table.state.drawn_tile = game.your_drawn_tile;
-    ui.observed_table.state.declared_ready = game.your_declared_ready();
     ui.observed_table.state.meld_count = game
         .players
         .iter()

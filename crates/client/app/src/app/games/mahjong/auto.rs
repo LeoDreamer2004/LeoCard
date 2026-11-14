@@ -1,5 +1,4 @@
 //! 麻将局内的快捷开关与本地自动操作。
-use super::action_prompt::MahjongActionPrompt;
 use super::{MahjongAutomaticActionKey, MahjongUiAction, MahjongUiState};
 use crate::app::presentation::add_switch_drawer;
 use crate::app::runtime::{ClientResource, UiAssets};
@@ -32,7 +31,7 @@ pub(super) fn render_mahjong_auto_drawer(
         DrawerSwitch {
             short: "打",
             label: "自动摸打",
-            enabled: ui.auto_draw_discard,
+            enabled: ui.auto_draw_discard || game.your_declared_ready(),
             action: UiAction::Mahjong(MahjongUiAction::ToggleAutoDrawDiscard),
         },
         DrawerSwitch {
@@ -42,13 +41,28 @@ pub(super) fn render_mahjong_auto_drawer(
             action: UiAction::Mahjong(MahjongUiAction::SetAutoFlower(!game.your_auto_flower)),
         },
     ];
+    let switches = switches
+        .into_iter()
+        .filter(|switch| {
+            !(game.rules.false_win
+                && matches!(
+                    &switch.action,
+                    UiAction::Mahjong(MahjongUiAction::ToggleAutoWin)
+                ))
+                && !(game.your_declared_ready()
+                    && matches!(
+                        &switch.action,
+                        UiAction::Mahjong(MahjongUiAction::ToggleAutoDrawDiscard)
+                    ))
+        })
+        .collect::<Vec<_>>();
     add_switch_drawer(
         commands,
         table,
         SwitchDrawer {
             expanded: ui.auto_drawer_open,
             toggle_action: UiAction::Mahjong(MahjongUiAction::ToggleAutoDrawer),
-            switches: &switches[usize::from(game.rules.false_win)..],
+            switches: &switches,
         },
         assets,
     );
@@ -88,7 +102,7 @@ pub(super) fn apply_automatic_mahjong_action(
     }
 }
 
-fn choose_automatic_action(
+pub(super) fn choose_automatic_action(
     game: &MahjongSnapshot,
     ui: &MahjongUiState,
 ) -> Option<(MahjongAutomaticActionKey, MahjongCommand)> {
@@ -133,188 +147,16 @@ fn choose_automatic_action(
         ));
     }
     // 自动和牌已优先处理，剩余的手动吃碰杠和和牌机会仍须暂停自动摸打。
-    if game.can_legal_self_draw || MahjongActionPrompt::from_snapshot(game, ui).is_some() {
+    if ui.declaring_ready
+        || game.can_legal_self_draw
+        || game.can_self_draw
+        || !game.concealed_kong_options.is_empty()
+        || (!ui.no_claim && !game.added_kong_options.is_empty())
+    {
         return None;
     }
-    ui.auto_draw_discard.then_some((
+    (ui.auto_draw_discard || game.your_declared_ready()).then_some((
         MahjongAutomaticActionKey::Discard(game.match_id, game.sequence_index, drawn),
         MahjongCommand::Discard { tile: drawn },
     ))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use leocard_game_common::PlayerId;
-    use leocard_mahjong::{
-        MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWallBreak, MahjongWind,
-    };
-    use leocard_protocol::{MahjongPendingClaimView, MatchId};
-
-    fn snapshot() -> MahjongSnapshot {
-        let you = PlayerId(0);
-        let drawn = MahjongTile::new(MahjongTileKind::suited(MahjongSuit::Characters, 5), 0);
-        MahjongSnapshot {
-            match_id: MatchId([1; 16]),
-            host_port: 52300,
-            you,
-            host: you,
-            rules: MahjongRuleSet::default(),
-            players: Vec::new(),
-            your_hand: vec![drawn],
-            your_drawn_tile: Some(drawn),
-            your_auto_flower: true,
-            discards: Vec::new(),
-            dealer: you,
-            prevalent_wind: MahjongWind::East,
-            sequence_index: 0,
-            current_player: you,
-            wall_len: 60,
-            wall_break: MahjongWallBreak::new([1, 2]).unwrap(),
-            wall_tail_drawn: 0,
-            match_scores: [0; 4],
-            pending_claim: None,
-            can_self_draw: false,
-            can_legal_self_draw: false,
-            concealed_kong_options: Vec::new(),
-            added_kong_options: Vec::new(),
-            phase: MahjongPhaseView::Playing,
-        }
-    }
-
-    #[test]
-    fn auto_options_reset_only_when_a_new_hand_begins() {
-        let mut ui = MahjongUiState::default();
-        let match_id = MatchId([1; 16]);
-        ui.begin_hand(match_id, 0);
-        ui.auto_drawer_open = true;
-        ui.auto_win = true;
-        ui.no_claim = true;
-        ui.auto_draw_discard = true;
-        ui.begin_hand(match_id, 0);
-        assert!(ui.auto_win && ui.no_claim && ui.auto_draw_discard && ui.auto_drawer_open);
-
-        ui.begin_hand(match_id, 1);
-        assert!(!ui.auto_win && !ui.no_claim && !ui.auto_draw_discard && !ui.auto_drawer_open);
-        ui.auto_win = true;
-        ui.begin_hand(MatchId([2; 16]), 0);
-        assert!(!ui.auto_win);
-    }
-
-    #[test]
-    fn draw_discard_pauses_for_manual_calls_kongs_and_wins() {
-        let mut game = snapshot();
-        let mut ui = MahjongUiState {
-            auto_draw_discard: true,
-            ..default()
-        };
-        let drawn = game.your_drawn_tile.unwrap();
-        assert_eq!(
-            choose_automatic_action(&game, &ui).map(|(_, command)| command),
-            Some(MahjongCommand::Discard { tile: drawn })
-        );
-        game.can_self_draw = true;
-        assert!(choose_automatic_action(&game, &ui).is_none());
-        game.can_legal_self_draw = true;
-        assert!(choose_automatic_action(&game, &ui).is_none());
-        ui.auto_win = true;
-        for no_claim in [false, true] {
-            ui.no_claim = no_claim;
-            assert_eq!(
-                choose_automatic_action(&game, &ui).map(|(_, command)| command),
-                Some(MahjongCommand::DeclareSelfDraw)
-            );
-        }
-        ui.auto_win = false;
-        ui.no_claim = false;
-        game.can_self_draw = false;
-        game.can_legal_self_draw = false;
-        game.concealed_kong_options.push(drawn.kind());
-        assert!(choose_automatic_action(&game, &ui).is_none());
-        game.concealed_kong_options.clear();
-        game.added_kong_options.push(drawn);
-        assert!(choose_automatic_action(&game, &ui).is_none());
-        game.added_kong_options.clear();
-        for option in [
-            MahjongClaimOption::Chow { start: 3 },
-            MahjongClaimOption::Pung,
-            MahjongClaimOption::Kong,
-            MahjongClaimOption::Win,
-        ] {
-            game.phase = MahjongPhaseView::WaitingForClaims;
-            game.pending_claim = Some(MahjongPendingClaimView {
-                source: PlayerId(1),
-                tile: drawn,
-                robbing_kong: false,
-                your_options: vec![option],
-                can_legal_win: option == MahjongClaimOption::Win,
-                your_response: None,
-                waiting_for: vec![game.you],
-            });
-            assert!(choose_automatic_action(&game, &ui).is_none());
-        }
-    }
-
-    #[test]
-    fn no_claim_passes_calls_but_keeps_manual_false_win_available() {
-        let mut game = snapshot();
-        let ui = MahjongUiState {
-            auto_win: true,
-            no_claim: true,
-            auto_draw_discard: true,
-            ..default()
-        };
-        let tile = MahjongTile::new(MahjongTileKind::suited(MahjongSuit::Dots, 3), 0);
-        game.phase = MahjongPhaseView::WaitingForClaims;
-        game.pending_claim = Some(MahjongPendingClaimView {
-            source: PlayerId(1),
-            tile,
-            robbing_kong: false,
-            your_options: vec![MahjongClaimOption::Pung],
-            can_legal_win: false,
-            your_response: None,
-            waiting_for: vec![game.you],
-        });
-        assert_eq!(
-            choose_automatic_action(&game, &ui).map(|(_, command)| command),
-            Some(MahjongCommand::RespondToClaim {
-                claim: MahjongClaim::Pass,
-            })
-        );
-        let pending = game.pending_claim.as_mut().unwrap();
-        pending.your_options.push(MahjongClaimOption::Win);
-        assert!(choose_automatic_action(&game, &ui).is_none());
-        game.pending_claim.as_mut().unwrap().can_legal_win = true;
-        assert_eq!(
-            choose_automatic_action(&game, &ui).map(|(_, command)| command),
-            Some(MahjongCommand::RespondToClaim {
-                claim: MahjongClaim::Win,
-            })
-        );
-    }
-
-    #[test]
-    fn false_win_rule_disables_auto_win_even_if_previously_enabled() {
-        let mut game = snapshot();
-        let ui = MahjongUiState {
-            auto_win: true,
-            auto_draw_discard: true,
-            ..default()
-        };
-        game.rules.false_win = true;
-        game.can_legal_self_draw = true;
-        assert!(choose_automatic_action(&game, &ui).is_none());
-
-        game.phase = MahjongPhaseView::WaitingForClaims;
-        game.pending_claim = Some(MahjongPendingClaimView {
-            source: PlayerId(1),
-            tile: game.your_drawn_tile.unwrap(),
-            robbing_kong: false,
-            your_options: vec![MahjongClaimOption::Win],
-            can_legal_win: true,
-            your_response: None,
-            waiting_for: vec![game.you],
-        });
-        assert!(choose_automatic_action(&game, &ui).is_none());
-    }
 }

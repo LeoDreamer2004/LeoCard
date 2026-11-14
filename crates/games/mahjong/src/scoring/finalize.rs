@@ -47,6 +47,10 @@ pub(super) fn finish_score(
     context: &ScoreContext<'_>,
 ) -> MahjongScoreResult {
     suppress_implied(&mut values, context);
+    // 报听先计番，使原本没有其他番种的牌不能再获得无番和。
+    if values.rules.declared_ready && context.input.context.declared_ready {
+        values.add(MahjongFan::DeclaredReady, 1);
+    }
     if values.is_empty() {
         values.add(MahjongFan::ChickenHand, 1);
     }

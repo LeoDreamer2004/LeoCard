@@ -36,8 +36,8 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。参考音保存在 `audio/reference`，不进入运行时资源包。
 
-- 国标麻将番种报读语音：`audio/mahjong/fans/` 下的男女声各 81 条语音。
-- 麻将操作语音：`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸和补花语音。
+- 国标麻将番种报读语音：`audio/mahjong/fans/` 下的男女声各 82 条语音，含可选规则的报听。
+- 麻将操作语音：`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸、补花和报听语音。
 - 德州扑克行动语音：`audio/texas_holdem/voices/` 下的 14 条男女声行动语音。
 - 扑克牌桌语音：`audio/card_patterns/` 下的牌型、不出、叫分，以及斗地主单张、对子报点语音共 132 条。
 

@@ -9,7 +9,6 @@ use crate::{
     MahjongWinSource, is_complete_hand,
 };
 use leocard_game_common::PlayerId;
-
 use std::array;
 
 impl MahjongGameState {
@@ -19,6 +18,9 @@ impl MahjongGameState {
         tile: MahjongTile,
     ) -> Result<MahjongActionOutcome, MahjongGameError> {
         self.ensure_playing_turn(player)?;
+        if self.players[player.index()].has_declared_ready() && self.last_drawn != Some(tile) {
+            return Err(MahjongGameError::ReadyHandLocked);
+        }
         let position = self.players[player.index()]
             .hand
             .iter()
@@ -238,7 +240,7 @@ impl MahjongGameState {
         tile: MahjongTileKind,
     ) -> Result<MahjongActionOutcome, MahjongGameError> {
         self.ensure_playing_turn(player)?;
-        if self.wall.is_empty() || tile.is_flower() {
+        if !self.concealed_kong_available(player, tile) {
             return Err(MahjongGameError::CannotKong);
         }
         let positions: Vec<_> = self.players[player.index()]
@@ -271,7 +273,7 @@ impl MahjongGameState {
         tile: MahjongTile,
     ) -> Result<MahjongActionOutcome, MahjongGameError> {
         self.ensure_playing_turn(player)?;
-        if self.wall.is_empty() {
+        if !self.added_kong_available(player, tile) {
             return Err(MahjongGameError::CannotKong);
         }
         if !self.players[player.index()].hand.contains(&tile) {

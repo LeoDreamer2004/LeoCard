@@ -159,6 +159,27 @@ pub(crate) fn render_mahjong_lobby(
         },
         assets,
     );
+    let ready_toggled = MahjongRuleSet {
+        declared_ready: !rules.declared_ready,
+        ..rules
+    };
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        MahjongRuleConfigRow {
+            label: "报听",
+            value: if rules.declared_ready {
+                "开启"
+            } else {
+                "关闭"
+            }
+            .to_owned(),
+            help: "报听加 1 番并计入起和，可副露报听。报听后自动摸打，仍可和牌及开杠，但杠前后听牌必须完全相同。无番和不与报听叠加。",
+            previous: can_configure.then_some(ready_toggled),
+            next: can_configure.then_some(ready_toggled),
+        },
+        assets,
+    );
     let winners_toggled = MahjongRuleSet {
         multiple_winners: !rules.multiple_winners,
         ..rules

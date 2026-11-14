@@ -14,7 +14,7 @@ use super::{
     animate_own_discard, animate_remote_discard, apply_automatic_mahjong_action, assets,
     play_mahjong_action_prompt, play_mahjong_fan_voices, play_mahjong_showcase_sounds,
     play_mahjong_tile_sounds, sync_mahjong_claim_presentation, sync_mahjong_fan_guide,
-    sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints,
+    sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints, sync_mahjong_ready_hand_peek,
 };
 use crate::app::presentation::mahjong::MahjongAssetsSet;
 use crate::app::presentation::start_game_intro_finished;
@@ -71,6 +71,7 @@ impl Plugin for MahjongPlugin {
                 Update,
                 (
                     sync_mahjong_hand_tile_materials,
+                    sync_mahjong_ready_hand_peek,
                     sync_mahjong_hover_hints,
                     sync_fan_calculator,
                     apply_automatic_mahjong_action

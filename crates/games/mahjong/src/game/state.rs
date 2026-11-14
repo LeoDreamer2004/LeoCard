@@ -4,10 +4,9 @@ use super::{
     MahjongPublicPlayerState, MahjongWallBreak,
 };
 use crate::{MahjongMeldKind, MahjongRuleSet, MahjongTile, MahjongWind, build_deck};
-use leocard_game_common::PlayerId;
-
-use leocard_game_common::validate_deck as validate_physical_deck;
-use std::{array, collections::VecDeque};
+use leocard_game_common::{PlayerId, validate_deck as validate_physical_deck};
+use std::array;
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MahjongGameState {
@@ -48,6 +47,7 @@ impl MahjongGameState {
             flowers: Vec::new(),
             dead_hand: false,
             hand_revealed: false,
+            ready_waits: None,
         });
         let game = Self {
             rules,
@@ -113,6 +113,7 @@ impl MahjongGameState {
                 .collect(),
             flowers: state.flowers.clone(),
             dead_hand: state.dead_hand,
+            declared_ready: state.has_declared_ready(),
         })
     }
 

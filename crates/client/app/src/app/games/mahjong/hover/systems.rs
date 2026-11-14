@@ -1,6 +1,7 @@
 use super::super::{MahjongTileMaterial, MahjongTileSurface};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui::InteractionDisabled;
 use leocard_mahjong::MahjongTileKind;
 
 #[derive(Component)]
@@ -16,8 +17,12 @@ pub(in super::super) struct MahjongWaitPopupLink(pub Entity);
 pub(in super::super) struct MahjongReadyHint;
 
 pub(in super::super) fn sync_mahjong_hover_hints(
-    hands: Query<(&PickingInteraction, &MahjongHoverHandKind)>,
-    popups: Query<(&PickingInteraction, &MahjongWaitPopupLink)>,
+    hands: Query<(&PickingInteraction, &MahjongHoverHandKind), Without<InteractionDisabled>>,
+    popups: Query<(
+        &PickingInteraction,
+        &MahjongWaitPopupLink,
+        Has<InteractionDisabled>,
+    )>,
     matching_tiles: Query<(&MahjongMatchingTileKind, &MahjongTileSurface)>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut visibility: Query<&mut Visibility>,
@@ -25,9 +30,9 @@ pub(in super::super) fn sync_mahjong_hover_hints(
     let hovered_kind = hands
         .iter()
         .find_map(|(interaction, kind)| hovered(interaction).then_some(kind.0));
-    for (interaction, popup) in &popups {
+    for (interaction, popup, disabled) in &popups {
         if let Ok(mut visible) = visibility.get_mut(popup.0) {
-            let next = if hovered(interaction) {
+            let next = if !disabled && hovered(interaction) {
                 Visibility::Visible
             } else {
                 Visibility::Hidden

@@ -34,31 +34,32 @@ impl MahjongBotObservation {
                     options.push(MahjongBotAction::SelfDraw);
                 }
                 let mut added = [false; 34];
+                if own.has_declared_ready()
+                    && let Some(tile) = game.last_drawn()
+                {
+                    options.push(MahjongBotAction::Discard(tile));
+                }
                 for &tile in own.hand() {
                     let Some(index) = tile.kind().index34() else {
-                        options.push(MahjongBotAction::Discard(tile));
+                        if !own.has_declared_ready() {
+                            options.push(MahjongBotAction::Discard(tile));
+                        }
                         continue;
                     };
                     if added[index] {
                         continue;
                     }
                     added[index] = true;
-                    options.push(MahjongBotAction::Discard(tile));
+                    if !own.has_declared_ready() {
+                        options.push(MahjongBotAction::Discard(tile));
+                    }
                     if game.wall_len() == 0 {
                         continue;
                     }
-                    if own
-                        .hand()
-                        .iter()
-                        .filter(|held| held.kind() == tile.kind())
-                        .count()
-                        == 4
-                    {
+                    if game.concealed_kong_available(player, tile.kind()) {
                         options.push(MahjongBotAction::ConcealedKong(tile.kind()));
                     }
-                    if own.melds().iter().any(|meld| {
-                        meld.kind() == MahjongMeldKind::Pung && meld.tile() == tile.kind()
-                    }) {
+                    if game.added_kong_available(player, tile) {
                         options.push(MahjongBotAction::AddedKong(tile));
                     }
                 }
@@ -136,6 +137,7 @@ impl MahjongBotObservation {
             claim,
             rules: *game.rules(),
             context: MahjongWinContext {
+                declared_ready: own.has_declared_ready(),
                 source: MahjongWinSource::SelfDraw,
                 seat_wind: game.seat_wind(player).unwrap_or(MahjongWind::East),
                 prevalent_wind: game.prevalent_wind(),

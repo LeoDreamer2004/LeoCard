@@ -5,7 +5,6 @@ use leocard_mahjong::{
     MahjongMatchLength, MahjongMatchProgress, MahjongPublicMeld, MahjongRuleSet, MahjongTile,
     MahjongTileKind, MahjongWallBreak, MahjongWinRecord, MahjongWind,
 };
-
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -34,6 +33,7 @@ pub struct MahjongSnapshot {
     pub can_legal_self_draw: bool,
     pub concealed_kong_options: Vec<MahjongTileKind>,
     pub added_kong_options: Vec<MahjongTile>,
+    pub ready_discards: Vec<MahjongTile>,
     pub phase: MahjongPhaseView,
 }
 
@@ -47,6 +47,7 @@ pub struct MahjongPlayerView {
     pub melds: Vec<MahjongPublicMeld>,
     pub flowers: Vec<MahjongTile>,
     pub dead_hand: bool,
+    pub declared_ready: bool,
     pub auto_play: bool,
     pub ready: bool,
     pub connected: bool,
@@ -97,6 +98,8 @@ pub enum MahjongViolation {
     CannotWin,
     CannotKong,
     InvalidDeveloperHand(MahjongHandReplacementError),
+    CannotDeclareReady,
+    ReadyHandLocked,
 }
 
 impl fmt::Display for MahjongViolation {
@@ -111,6 +114,16 @@ impl fmt::Display for MahjongViolation {
             Self::AlreadyResponded => "你已经响应过这张牌",
             Self::CannotWin => "当前手牌不能和牌",
             Self::CannotKong => "当前不能开杠",
+            Self::CannotDeclareReady => "当前不能报听",
+            Self::ReadyHandLocked => "报听后只能打出刚摸到的牌",
         })
+    }
+}
+
+impl MahjongSnapshot {
+    pub fn your_declared_ready(&self) -> bool {
+        self.players
+            .iter()
+            .any(|player| player.player.id == self.you && player.declared_ready)
     }
 }

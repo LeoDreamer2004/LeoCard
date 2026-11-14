@@ -11,6 +11,7 @@ pub(crate) enum GinkgoButtonTone {
     Blue,
     Plum,
     Cinnabar,
+    Amber,
     Ash,
 }
 
@@ -21,6 +22,7 @@ impl GinkgoButtonTone {
             Self::Blue => ([68, 101, 134], [191, 223, 245]),
             Self::Plum => ([106, 79, 113], [226, 199, 237]),
             Self::Cinnabar => ([157, 61, 48], [255, 219, 154]),
+            Self::Amber => ([146, 103, 42], [255, 230, 166]),
             Self::Ash => ([84, 84, 79], [215, 207, 192]),
         };
         (

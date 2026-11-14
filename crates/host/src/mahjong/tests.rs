@@ -573,6 +573,83 @@ fn player_can_toggle_mahjong_auto_play_and_cancel_a_pending_action() {
 }
 
 #[test]
+fn declared_ready_is_authoritative_public_and_round_trips_in_snapshots() {
+    let mut session = session_with_deal_order(dealer_winning_deck());
+    session.rules.declared_ready = true;
+    for index in 0..4 {
+        session.handle(
+            ConnectionId(index + 1),
+            message(1, join_command(&format!("玩家{index}"), index + 1)),
+        );
+    }
+    for (index, player) in session.room.players.iter_mut().enumerate() {
+        player.seat = Some(SeatId(index as u8));
+        player.ready = true;
+    }
+    session.handle(ConnectionId(1), message(2, ClientCommand::StartGame));
+    finish_server_deal(&mut session);
+    let tile = session.game().unwrap().last_drawn().unwrap();
+    assert!(
+        session
+            .game_view(PlayerId(0))
+            .ready_discards
+            .contains(&tile)
+    );
+    assert!(session.game_view(PlayerId(1)).ready_discards.is_empty());
+    let deliveries = session.handle(
+        ConnectionId(1),
+        message(
+            3,
+            ClientCommand::Game(GameCommand::Mahjong(MahjongCommand::DeclareReady { tile })),
+        ),
+    );
+    assert!(
+        session
+            .game()
+            .unwrap()
+            .player(PlayerId(0))
+            .unwrap()
+            .has_declared_ready()
+    );
+    for player in 0..4 {
+        let snapshot = session.game_view(PlayerId(player));
+        assert!(snapshot.players[0].declared_ready);
+        assert!(snapshot.ready_discards.is_empty());
+        assert!(
+            snapshot
+                .players
+                .iter()
+                .filter(|other| other.player.id != snapshot.you)
+                .all(|other| other.revealed_hand.is_none())
+        );
+    }
+    for connection in 1..=4 {
+        assert_eq!(
+            deliveries
+                .iter()
+                .filter(|delivery| {
+                    delivery.recipient == ConnectionId(connection)
+                        && matches!(
+                            delivery.message.event,
+                            ServerEvent::GameEvent(GameEvent::Mahjong(
+                                MahjongEvent::ReadyDeclared {
+                                    player: PlayerId(0)
+                                }
+                            ))
+                        )
+                })
+                .count(),
+            1,
+        );
+    }
+    for delivery in deliveries {
+        let frame = encode_frame(&delivery.message).unwrap();
+        let decoded: ServerMessage = decode_frame(&frame).unwrap();
+        assert_eq!(decoded, delivery.message);
+    }
+}
+
+#[test]
 fn fan_feedback_is_private_and_gameplay_facts_have_stable_distinct_sequences() {
     let mut session =
         MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), build_deck()).unwrap();

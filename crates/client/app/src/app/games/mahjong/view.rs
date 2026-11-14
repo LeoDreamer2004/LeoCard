@@ -300,6 +300,16 @@ pub(super) fn sync_mahjong_claim_presentation(
     for event in events {
         assets.table_sounds.queue_event(&mut commands, game, &event);
         match &event {
+            MahjongEvent::ReadyDeclared { player } => {
+                queue_mahjong_action_voice(
+                    &mut commands,
+                    &assets,
+                    &preferences,
+                    game,
+                    *player,
+                    MahjongActionVoice::Ready,
+                );
+            }
             MahjongEvent::ClaimResolved { player, claim, .. } => {
                 let action = match claim {
                     MahjongClaim::Chow { .. } => Some(MahjongActionVoice::Chow),
@@ -741,6 +751,7 @@ pub(crate) fn render_mahjong_table(
         table,
         game,
         MahjongOwnHandVisuals {
+            declaring_ready: ui.declaring_ready,
             ui_assets: assets,
             response_tile,
             show_wait_fans,
@@ -900,6 +911,7 @@ pub(crate) fn render_mahjong_table(
     ui.observed_table.state.wall_len = Some(game.wall_len);
     ui.observed_table.state.discard_count = Some(game.discards.len());
     ui.observed_table.state.drawn_tile = game.your_drawn_tile;
+    ui.observed_table.state.declared_ready = game.your_declared_ready();
     ui.observed_table.state.meld_count = game
         .players
         .iter()

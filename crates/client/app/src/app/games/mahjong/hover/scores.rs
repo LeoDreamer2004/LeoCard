@@ -74,6 +74,7 @@ impl WaitScoreCalculator {
         Self {
             rules: game.rules,
             context: MahjongWinContext {
+                declared_ready: own.declared_ready,
                 source: MahjongWinSource::SelfDraw,
                 seat_wind: own.seat_wind,
                 prevalent_wind: game.prevalent_wind,

@@ -1,17 +1,23 @@
 use super::layout::MahjongLayout as Layout;
 use super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
-    MahjongHoverHandKind, MahjongTileMaterial, MahjongTileSurface, MahjongUiState,
-    attach_mahjong_tile_surface, mahjong_local_light,
+    MahjongHoverHandKind, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSurface,
+    MahjongUiState, attach_mahjong_tile_surface, mahjong_local_light,
 };
 use crate::app::presentation::ease_out_cubic;
 use crate::app::shell::UiAction;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui::InteractionDisabled;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::MahjongTile;
 use leocard_ui::UiComposer;
 use std::f32::consts;
+
+pub(super) struct MahjongHandTileInteraction {
+    pub action: Option<UiAction>,
+    pub dimmed: bool,
+}
 
 pub(super) fn mahjong_deal_spec(
     relative: u8,
@@ -59,7 +65,7 @@ pub(super) fn add_mahjong_hand_tile(
     commands: &mut UiComposer,
     parent: Entity,
     tile: MahjongTile,
-    action: Option<UiAction>,
+    interaction: MahjongHandTileInteraction,
     index: usize,
     deal: Option<MahjongDealSpec>,
     game_assets: &MahjongAssets,
@@ -106,7 +112,11 @@ pub(super) fn add_mahjong_hand_tile(
             overlay_projection: false,
             params: Vec4::new(0.0, 0.0, if deal.is_some() { 0.0 } else { 1.0 }, -6.0),
             lighting: mahjong_local_light(0),
-            highlight: Vec4::ZERO,
+            highlight: if interaction.dimmed {
+                MahjongTileHighlight::Disabled.overlay()
+            } else {
+                Vec4::ZERO
+            },
             elevation: 0.0,
             glyph,
             height,
@@ -130,8 +140,12 @@ pub(super) fn add_mahjong_hand_tile(
             visual.index = index as i32;
             visual.base_rotation = base_rotation;
         });
-    if let Some(action) = action {
+    if let Some(action) = interaction.action {
         commands.entity(entity).insert(action);
+        commands.entity(entity).remove::<InteractionDisabled>();
+    } else {
+        commands.entity(entity).remove::<UiAction>();
+        commands.entity(entity).insert(InteractionDisabled);
     }
     if let Some(deal) = deal {
         commands.entity(entity).init(MahjongDealTile {
@@ -161,13 +175,16 @@ pub(super) fn sync_mahjong_hand_tile_materials(
             &MahjongTileSurface,
             &mut UiTransform,
             &mut ZIndex,
+            Has<InteractionDisabled>,
         ),
         (Without<MahjongDealTile>, Without<MahjongDiscardHandShift>),
     >,
 ) {
     let smoothing = 1.0 - (-18.0 * time.delta_secs()).exp();
-    for (mut tile, interaction, material_node, mut transform, mut z_index) in &mut tiles {
-        let interaction = if cfg!(target_os = "android") {
+    for (mut tile, interaction, material_node, mut transform, mut z_index, disabled) in &mut tiles {
+        let interaction = if disabled {
+            PickingInteraction::None
+        } else if cfg!(target_os = "android") {
             if ui.selected_discard == Some(tile.tile) {
                 PickingInteraction::Hovered
             } else {

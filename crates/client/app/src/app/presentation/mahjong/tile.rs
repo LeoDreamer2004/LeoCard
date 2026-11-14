@@ -112,6 +112,7 @@ pub(crate) enum MahjongTileHighlight {
     #[default]
     None,
     Red,
+    Disabled,
 }
 
 impl MahjongTileHighlight {
@@ -119,6 +120,7 @@ impl MahjongTileHighlight {
         match self {
             Self::None => Vec4::ZERO,
             Self::Red => Vec4::new(1.0, 0.18, 0.16, 0.52),
+            Self::Disabled => Vec4::new(0.18, 0.19, 0.20, 0.62),
         }
     }
 }

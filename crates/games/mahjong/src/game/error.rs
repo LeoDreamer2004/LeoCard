@@ -62,6 +62,8 @@ pub enum MahjongGameError {
     AlreadyResponded,
     CannotWin,
     CannotKong,
+    CannotDeclareReady,
+    ReadyHandLocked,
     InvalidHandReplacement(MahjongHandReplacementError),
     Score(MahjongScoreError),
 }
@@ -86,6 +88,8 @@ impl fmt::Display for MahjongGameError {
             Self::AlreadyResponded => f.write_str("已经提交过本次响应"),
             Self::CannotWin => f.write_str("当前手牌不能宣布和牌"),
             Self::CannotKong => f.write_str("当前不能开杠"),
+            Self::CannotDeclareReady => f.write_str("当前不能报听"),
+            Self::ReadyHandLocked => f.write_str("报听后只能打出刚摸到的牌"),
             Self::InvalidHandReplacement(error) => error.fmt(f),
             Self::Score(error) => error.fmt(f),
         }

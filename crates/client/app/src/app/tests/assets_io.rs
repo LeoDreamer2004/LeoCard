@@ -165,6 +165,7 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
             "win",
             "self_draw",
             "flower",
+            "ready",
         ] {
             for variant in 1..=2 {
                 sounds.push(format!(
@@ -174,8 +175,8 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
         }
     }
     for (directory, expected_count) in [
-        ("audio/mahjong/fans/female", 81),
-        ("audio/mahjong/fans/male", 81),
+        ("audio/mahjong/fans/female", 82),
+        ("audio/mahjong/fans/male", 82),
         ("audio/mahjong/tiles/female", 68),
         ("audio/mahjong/tiles/male", 68),
         ("audio/card_patterns/female", 74),

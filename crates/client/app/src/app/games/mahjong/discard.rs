@@ -26,6 +26,7 @@ pub(crate) struct MahjongOwnDiscardAnimation {
     pub old_hand: Vec<MahjongTile>,
     pub old_drawn: Option<MahjongTile>,
     pub old_meld_count: usize,
+    old_face_down: bool,
     pub discard_index: usize,
     pub river_slot: usize,
     pub elapsed: f32,
@@ -57,7 +58,11 @@ impl MahjongOwnDiscardAnimation {
             source_x + Layout::OWN_WIDTH / 2.0,
             REFERENCE_DESIGN_HEIGHT
                 - Layout::OWN_BOTTOM
-                - Layout::OWN_HAND_LIFT
+                - if self.old_face_down {
+                    0.0
+                } else {
+                    Layout::OWN_HAND_LIFT
+                }
                 - Layout::OWN_HEIGHT / 2.0,
         );
         let target_center =
@@ -204,6 +209,7 @@ pub(super) fn observe_discard_animations(ui: &mut MahjongUiState, game: &Mahjong
             old_hand: previous.hand.clone(),
             old_drawn: previous.drawn_tile,
             old_meld_count: previous.meld_count,
+            old_face_down: previous.declared_ready,
             discard_index: game.discards.len() - 1,
             river_slot,
             elapsed: 0.0,

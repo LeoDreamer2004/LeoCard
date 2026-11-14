@@ -44,7 +44,6 @@ pub(crate) struct ChatHistoryEntry {
 
 #[derive(Resource)]
 pub(crate) struct ChatPanelState {
-    pub text_only: bool,
     pub open: bool,
     pub drawer: DrawerSlide,
     pub quick_voice_open: bool,
@@ -58,7 +57,6 @@ pub(crate) struct ChatPanelState {
 impl Default for ChatPanelState {
     fn default() -> Self {
         Self {
-            text_only: false,
             open: false,
             drawer: DrawerSlide::new(false, Vec2::new(CHAT_PANEL_HIDDEN_OFFSET, 0.0)),
             quick_voice_open: false,
@@ -108,8 +106,4 @@ pub(crate) struct QuickVoiceMenu;
 pub(crate) struct QuickVoiceScroll;
 
 #[derive(Component, Clone, Copy, Eq, Hash, PartialEq)]
-pub(crate) enum ChatBubbleSlot {
-    Player(PlayerId),
-    SpectatorIncoming,
-    SpectatorLocal,
-}
+pub(crate) struct ChatBubbleSlot(pub PlayerId);

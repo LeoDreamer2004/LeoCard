@@ -153,7 +153,6 @@ pub(crate) fn sync_player_interactions(
     let Some(client) = client.as_deref_mut() else {
         return;
     };
-    let players = client.0.model().active_game_meta().map(|game| game.players);
     let interactions = client.0.take_player_interactions();
     if interactions.is_empty() {
         return;
@@ -167,15 +166,9 @@ pub(crate) fn sync_player_interactions(
         {
             notices.message(message);
         }
-        let source = if players
-            .as_ref()
-            .is_some_and(|players| !players.contains(&interaction.source))
-        {
-            Some(Vec2::splat(36.0))
-        } else {
+        let Some(source) =
             interaction_anchor_in_layer(interaction.source, layer_node, layer_transform, &avatars)
-        };
-        let Some(source) = source else {
+        else {
             continue;
         };
         let Some(target) =

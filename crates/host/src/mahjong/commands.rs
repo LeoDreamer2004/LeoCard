@@ -46,6 +46,15 @@ impl MahjongSession {
                 }),
                 move |game, player| game.discard(player, tile),
             ),
+            MahjongCommand::DeclareReady { tile } => self.perform_action(
+                connection,
+                request_id,
+                Some(MahjongEvent::TileDiscarded {
+                    player: self.room.player_id(connection).unwrap_or(PlayerId(u8::MAX)),
+                    tile,
+                }),
+                move |game, player| game.declare_ready(player, tile),
+            ),
             MahjongCommand::RespondToClaim { claim } => {
                 self.perform_action(connection, request_id, None, move |game, player| {
                     game.respond_to_claim(player, claim)
@@ -291,6 +300,7 @@ impl MahjongSession {
             );
         };
         let unavailable = MahjongWinFeedback::before_discard(game, public_event.as_ref());
+        let ready_before = game.players()[player.index()].has_declared_ready();
         let dead_before = game
             .players()
             .iter()
@@ -301,6 +311,9 @@ impl MahjongSession {
                 let mut events = Vec::new();
                 if let Some(event) = public_event {
                     events.push(event);
+                }
+                if !ready_before && game.players()[player.index()].has_declared_ready() {
+                    events.push(MahjongEvent::ReadyDeclared { player });
                 }
                 events.extend(unavailable);
                 events.extend(events_for_outcome(&outcome));

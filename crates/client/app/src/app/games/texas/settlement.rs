@@ -6,7 +6,7 @@ use crate::app::presentation::{
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, PlayerMenuProfile, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
     TEXT, add_animated_summary_text, add_avatar, add_ready_avatar, decorate_panel_skin,
-    summary_modal_visual, summary_row_progress, title_font,
+    spawn_centered_summary, summary_modal_visual, summary_row_progress, title_font,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -37,21 +37,17 @@ pub(super) fn add_texas_hand_result(
     };
     let twice = !game.second_community.is_empty();
     let modal_visual = summary_modal_visual(animation.elapsed);
-    let panel = spawn_node(
+    let panel = spawn_centered_summary(
         commands,
         table,
+        percent(12),
         Node {
-            position_type: PositionType::Absolute,
-            left: percent(12),
-            right: percent(12),
-            top: percent(2),
             padding: UiRect::all(px(24)),
             flex_direction: FlexDirection::Column,
             row_gap: px(4),
             border_radius: BorderRadius::all(px(12)),
             ..default()
         },
-        None,
     );
     commands.entity(panel).insert((
         GameSummaryModal,

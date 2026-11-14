@@ -1,12 +1,13 @@
 use super::index::GraphIndex;
 use super::mesh::{Sample, Topology};
 use super::temperature::Temperature;
-use crate::{McGuessGraphRules, McGuessRuleSet};
+use crate::McGuessGraphRules;
 use fastrand::Rng;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::time::Instant;
 
 mod diversity;
+mod invariants;
 
 #[test]
 fn hot_neighbour_candidates_favor_low_source_degree() {
@@ -31,105 +32,6 @@ fn hot_neighbour_candidates_favor_low_source_degree() {
         }
     }
     assert!(total_degrees[1] < total_degrees[0]);
-}
-
-#[test]
-fn all_temperature_steps_keep_real_connected_graphs_with_exact_playable_counts() {
-    for temperature in McGuessGraphRules::TEMPERATURE_OPTIONS {
-        for nodes in [16, 40] {
-            for include_tags in [false, true] {
-                let rules = McGuessGraphRules {
-                    temperature,
-                    nodes,
-                    include_tags,
-                    ..Default::default()
-                };
-                let sample = Sample::generate(rules, 27).expect("playable mesh at every step");
-                let index = GraphIndex::bundled(include_tags);
-                let topology = Topology::new(index, &sample);
-                assert_eq!(sample.nodes.len() - topology.tags, usize::from(nodes));
-                assert!(
-                    topology.tags
-                        <= if include_tags {
-                            usize::from(nodes / 8)
-                        } else {
-                            0
-                        }
-                );
-                let mut pairs = HashSet::new();
-                for edge in &sample.edges {
-                    assert_ne!(edge.from, edge.to);
-                    assert!(sample.nodes.contains(&edge.from) && sample.nodes.contains(&edge.to));
-                    assert!(pairs.insert((edge.from.min(edge.to), edge.from.max(edge.to))));
-                    assert!(index.data.edges.iter().any(|real| {
-                        real.from == edge.from
-                            && real.to == edge.to
-                            && real.kind == edge.kind
-                            && real.directed == edge.directed
-                    }));
-                }
-                for &node in &sample.nodes {
-                    let degree = topology.degree(node);
-                    assert!((1..=Temperature::new(temperature).degree_limit()).contains(&degree));
-                    if index.data.nodes[node].entry.is_none() || temperature == 0 {
-                        assert!(degree >= 2);
-                    }
-                }
-                assert!(topology.leaves <= Temperature::new(temperature).leaf_limit(nodes.into()));
-                let mut reached = HashSet::from([sample.nodes[0]]);
-                let mut queue = VecDeque::from([sample.nodes[0]]);
-                while let Some(node) = queue.pop_front() {
-                    for edge in &sample.edges {
-                        let other = if edge.from == node {
-                            edge.to
-                        } else if edge.to == node {
-                            edge.from
-                        } else {
-                            continue;
-                        };
-                        if reached.insert(other) {
-                            queue.push_back(other);
-                        }
-                    }
-                }
-                assert_eq!(reached.len(), sample.nodes.len());
-                let repeated = Sample::generate(rules, 27).unwrap();
-                assert_eq!(sample.nodes, repeated.nodes);
-                assert_eq!(
-                    sample
-                        .edges
-                        .iter()
-                        .map(|e| (e.from, e.to, e.kind))
-                        .collect::<Vec<_>>(),
-                    repeated
-                        .edges
-                        .iter()
-                        .map(|e| (e.from, e.to, e.kind))
-                        .collect::<Vec<_>>()
-                );
-            }
-        }
-    }
-    let mut invalid = McGuessGraphRules {
-        temperature: 11,
-        ..Default::default()
-    };
-    assert!(
-        !McGuessRuleSet {
-            graph: invalid,
-            ..Default::default()
-        }
-        .is_valid()
-    );
-    assert!(Sample::generate(invalid, 0).is_none());
-    invalid.temperature = 10;
-    assert!(
-        McGuessRuleSet {
-            graph: invalid,
-            ..Default::default()
-        }
-        .is_valid()
-    );
 }
 
 #[derive(Default, Debug)]

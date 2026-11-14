@@ -59,7 +59,7 @@ pub fn animate_bubbles(
                     .filter(|size| size.min_element() > 1.0)
                     .unwrap_or(bubble.size);
                 match bubble.placement {
-                    BubblePlacement::Anchor(anchor) => {
+                    BubblePlacement::Anchor(anchor) | BubblePlacement::Beside(anchor) => {
                         let (anchor, anchor_transform) = geometry.get(anchor?).ok()?;
                         let position = anchor_position_in_layer(
                             layer,
@@ -68,7 +68,15 @@ pub fn animate_bubbles(
                             anchor_transform,
                             bubble.anchor_offset,
                         )?;
-                        Some(bubble_origin(position, layer_size, size))
+                        Some(if matches!(bubble.placement, BubblePlacement::Beside(_)) {
+                            clamp_bubble_origin(
+                                position + Vec2::new(8.0, -size.y * 0.5),
+                                layer_size,
+                                size,
+                            )
+                        } else {
+                            bubble_origin(position, layer_size, size)
+                        })
                     }
                     BubblePlacement::TopLeft(inset) => {
                         Some(clamp_bubble_origin(inset, layer_size, size))

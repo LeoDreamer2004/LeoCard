@@ -1,6 +1,4 @@
 //! 麻将按钮动作到网络命令的转换。
-use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView};
-
 use crate::app::games::mahjong::{MahjongChoiceMenu, MahjongUiState};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
@@ -12,6 +10,7 @@ use bevy::prelude::*;
 use leocard_mahjong::{
     MahjongClaim, MahjongMatchLength, MahjongRuleSet, MahjongTile, MahjongTileKind,
 };
+use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView};
 
 #[derive(Clone)]
 pub(crate) enum MahjongUiAction {
@@ -20,6 +19,9 @@ pub(crate) enum MahjongUiAction {
     ToggleNoClaim,
     ToggleAutoDrawDiscard,
     SetAutoFlower(bool),
+    ToggleDeclareReady,
+    ToggleReadyHandPeek,
+    DeclareReady(MahjongTile),
     ToggleFanGuide,
     CloseFanGuide,
     SelectFanGuideTier(u16),
@@ -50,6 +52,7 @@ impl DomainUiAction for MahjongUiAction {
                 | Self::SelectFanGuideTier(_)
                 | Self::Discard(_)
                 | Self::SetAutoFlower(_)
+                | Self::ToggleReadyHandPeek
         )
     }
 }
@@ -71,8 +74,34 @@ pub(super) fn dispatch_mahjong_actions(
 impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
     fn handle(&self, context: &mut MahjongActionContext<'_>) {
         match self {
+            Self::ToggleReadyHandPeek => {
+                if context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().game_snapshot())
+                    .and_then(GameSnapshot::mahjong)
+                    .is_some_and(|game| game.your_declared_ready())
+                {
+                    context.ui.ready_hand_peek = !context.ui.ready_hand_peek;
+                }
+                return;
+            }
             Self::ToggleAutoDrawer => {
                 context.ui.auto_drawer_open = !context.ui.auto_drawer_open;
+                return;
+            }
+            Self::ToggleDeclareReady => {
+                if context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().game_snapshot())
+                    .and_then(GameSnapshot::mahjong)
+                    .is_some_and(|game| !game.ready_discards.is_empty())
+                {
+                    context.ui.declaring_ready = !context.ui.declaring_ready;
+                    context.ui.selected_discard = None;
+                    context.ui.last_automatic_action = None;
+                }
                 return;
             }
             Self::ToggleAutoWin => {
@@ -170,7 +199,7 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 }
                 return;
             }
-            Self::Discard(tile) => {
+            Self::Discard(tile) | Self::DeclareReady(tile) => {
                 let Some(game) = context.client.as_deref().and_then(|client| {
                     client
                         .0
@@ -195,9 +224,11 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
         }
         context.ui.choice_menu = None;
         context.ui.selected_discard = None;
+        context.ui.declaring_ready = false;
         let command = match self {
             MahjongUiAction::UpdateRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
             MahjongUiAction::Discard(tile) => MahjongCommand::Discard { tile: *tile },
+            MahjongUiAction::DeclareReady(tile) => MahjongCommand::DeclareReady { tile: *tile },
             MahjongUiAction::Respond(claim) => MahjongCommand::RespondToClaim { claim: *claim },
             MahjongUiAction::SelfDraw => MahjongCommand::DeclareSelfDraw,
             MahjongUiAction::ConcealedKong(tile) => {
@@ -208,6 +239,8 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             | MahjongUiAction::CloseFanGuide
             | MahjongUiAction::SelectFanGuideTier(_)
             | MahjongUiAction::ToggleAutoDrawer
+            | MahjongUiAction::ToggleDeclareReady
+            | MahjongUiAction::ToggleReadyHandPeek
             | MahjongUiAction::ToggleAutoWin
             | MahjongUiAction::ToggleNoClaim
             | MahjongUiAction::ToggleAutoDrawDiscard

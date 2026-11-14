@@ -39,6 +39,7 @@ impl MahjongActionPrompt {
             if !matches!(game.phase, MahjongPhaseView::Playing)
                 || game.current_player != game.you
                 || !(game.can_self_draw
+                    || !game.ready_discards.is_empty()
                     || !game.concealed_kong_options.is_empty()
                     || (!ui.no_claim && !game.added_kong_options.is_empty()))
             {

@@ -6,8 +6,8 @@ use crate::app::presentation::{
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin,
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
     SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_animated_summary_text, add_ready_avatar,
-    animated_summary_score, decorate_panel_skin, summary_modal_visual, summary_row_progress,
-    title_font,
+    animated_summary_score, decorate_panel_skin, spawn_centered_summary, summary_modal_visual,
+    summary_row_progress, title_font,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -36,14 +36,11 @@ pub(super) fn add_uno_summary(
     animation: &GameSummaryAnimation,
 ) {
     let modal_visual = summary_modal_visual(animation.elapsed);
-    let modal = spawn_node(
+    let modal = spawn_centered_summary(
         commands,
         table,
+        percent(25),
         Node {
-            position_type: PositionType::Absolute,
-            left: percent(25),
-            right: percent(25),
-            top: percent(3),
             min_height: px(380),
             padding: UiRect::all(px(26)),
             flex_direction: FlexDirection::Column,
@@ -51,7 +48,6 @@ pub(super) fn add_uno_summary(
             border_radius: BorderRadius::all(px(12)),
             ..default()
         },
-        None,
     );
     commands.entity(modal).insert((
         GameSummaryModal,

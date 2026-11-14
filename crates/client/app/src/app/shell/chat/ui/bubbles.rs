@@ -62,27 +62,12 @@ pub(crate) fn sync_chat_messages(
         let Some(layer) = layer else {
             continue;
         };
-        let (slot, placement) = if spectator_heading.is_some() {
-            if model.you() == Some(source) {
-                // Leave room for the chat input below the sender's own bubble.
-                (
-                    ChatBubbleSlot::SpectatorLocal,
-                    BubblePlacement::BottomRight(Vec2::new(12.0, 64.0)),
-                )
-            } else {
-                (
-                    ChatBubbleSlot::SpectatorIncoming,
-                    BubblePlacement::TopLeft(Vec2::splat(12.0)),
-                )
-            }
+        let slot = ChatBubbleSlot(source);
+        let anchor = interaction_anchor_entity(source, &avatars);
+        let placement = if spectator_heading.is_some() {
+            BubblePlacement::Beside(anchor)
         } else {
-            let Some(anchor) = interaction_anchor_entity(source, &avatars) else {
-                continue;
-            };
-            (
-                ChatBubbleSlot::Player(source),
-                BubblePlacement::Anchor(Some(anchor)),
-            )
+            BubblePlacement::Anchor(anchor)
         };
         if let Some(previous) = spawned.remove(&slot) {
             commands.entity(previous).despawn();
@@ -98,18 +83,13 @@ pub(crate) fn sync_chat_messages(
             assets.font.clone(),
             TEXT,
         );
-        style.anchor_offset = Vec2::new(0.0, 0.16);
-        style.z_index = if slot == ChatBubbleSlot::SpectatorLocal {
-            1855
+        style.anchor_offset = if spectator_heading.is_some() {
+            Vec2::new(0.5, 0.0)
         } else {
-            1600
+            Vec2::new(0.0, 0.16)
         };
+        style.z_index = 1600;
         let duration = 2.8 + (text.chars().count() as f32 * 0.055).min(2.2);
-        let text = if let Some(heading) = spectator_heading {
-            format!("{heading}\n{text}")
-        } else {
-            text
-        };
         let (content, duration) = match emoji {
             Some(emoji) => (BubbleContent::Image(assets.chat_emoji(emoji)), 3.4),
             None => (BubbleContent::Text(text.as_str()), duration),
@@ -136,8 +116,12 @@ pub(crate) fn sync_chat_bubble_anchors(
     for (entity, slot, mut bubble) in &mut bubbles {
         if !playing {
             commands.entity(entity).despawn();
-        } else if let ChatBubbleSlot::Player(player) = *slot {
-            bubble.placement = BubblePlacement::Anchor(interaction_anchor_entity(player, &avatars));
+        } else {
+            let anchor = interaction_anchor_entity(slot.0, &avatars);
+            bubble.placement = match bubble.placement {
+                BubblePlacement::Beside(_) => BubblePlacement::Beside(anchor),
+                _ => BubblePlacement::Anchor(anchor),
+            };
         }
     }
 }

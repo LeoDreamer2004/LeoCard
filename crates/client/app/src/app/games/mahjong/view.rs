@@ -9,16 +9,15 @@ use super::{
     MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
     MahjongTileVoicePlayback, MahjongUiState, MahjongWinArtMaterial, MahjongWinInkMaterial,
     MahjongWinVisuals, MahjongWinningHandVisual, add_mahjong_ready_hint,
-    observe_discard_animations, queue_mahjong_action_voice, queue_mahjong_deal_sound,
-    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
-    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
-    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
-    render_mahjong_win_effects, render_own_discard_flight, render_own_hand, render_round_status,
-    sync_mahjong_tile_voice,
+    observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
+    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
+    render_mahjong_settlement, render_mahjong_win_effects, render_own_discard_flight,
+    render_own_hand, render_round_status, sync_mahjong_tile_voice,
 };
 use crate::app::presentation::{
-    DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
-    TableBackgroundMaterial, TableSurfaceKind, add_auto_play_overlay,
+    DESIGN_WIDTH, GameSummaryAnimation, Observed, SilentButton, StartGameSeatTransition,
+    TableBackground, TableBackgroundMaterial, TableSurfaceKind, add_auto_play_overlay,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, GameEvents, TableAppearance, UiAssets,
@@ -72,7 +71,7 @@ pub(super) const fn mahjong_claim_landing_time() -> f32 {
 }
 
 #[derive(Component)]
-#[require(CustomButtonMotion)]
+#[require(CustomButtonMotion, SilentButton)]
 pub(crate) struct MahjongHandTile {
     pub tile: MahjongTile,
     pub lift: f32,
@@ -301,6 +300,16 @@ pub(super) fn sync_mahjong_claim_presentation(
     for event in events {
         assets.table_sounds.queue_event(&mut commands, game, &event);
         match &event {
+            MahjongEvent::ReadyDeclared { player } => {
+                queue_mahjong_action_voice(
+                    &mut commands,
+                    &assets,
+                    &preferences,
+                    game,
+                    *player,
+                    MahjongActionVoice::Ready,
+                );
+            }
             MahjongEvent::ClaimResolved { player, claim, .. } => {
                 let action = match claim {
                     MahjongClaim::Chow { .. } => Some(MahjongActionVoice::Chow),
@@ -682,7 +691,15 @@ pub(crate) fn render_mahjong_table(
             },
         );
     }
-    render_round_status(commands, table, game, own_seat, assets, game_assets);
+    render_round_status(
+        commands,
+        table,
+        game,
+        own_seat,
+        game_summary.elapsed,
+        assets,
+        game_assets,
+    );
     if game
         .players
         .iter()
@@ -734,6 +751,7 @@ pub(crate) fn render_mahjong_table(
         table,
         game,
         MahjongOwnHandVisuals {
+            declaring_ready: ui.declaring_ready,
             ui_assets: assets,
             response_tile,
             show_wait_fans,
@@ -782,11 +800,9 @@ pub(crate) fn render_mahjong_table(
     #[cfg(not(feature = "developer"))]
     let _ = developer_hand;
     if matches!(game.phase, MahjongPhaseView::Dealing { .. }) || intro_deal {
-        match received_tiles {
-            0 => {}
-            1 => game_assets.table_sounds.queue_draw(commands, game),
-            _ => queue_mahjong_deal_sound(commands, assets),
-        }
+        game_assets
+            .table_sounds
+            .queue_opening(commands, game, received_tiles);
     }
     render_action_bar(
         commands,
@@ -895,6 +911,7 @@ pub(crate) fn render_mahjong_table(
     ui.observed_table.state.wall_len = Some(game.wall_len);
     ui.observed_table.state.discard_count = Some(game.discards.len());
     ui.observed_table.state.drawn_tile = game.your_drawn_tile;
+    ui.observed_table.state.declared_ready = game.your_declared_ready();
     ui.observed_table.state.meld_count = game
         .players
         .iter()

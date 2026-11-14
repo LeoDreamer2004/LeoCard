@@ -8,7 +8,7 @@ use super::super::{
 use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_display_trump};
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, add_ready_avatar, add_text,
-    add_title, decorate_panel_skin,
+    add_title, decorate_panel_skin, spawn_centered_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -35,17 +35,28 @@ pub(super) fn add_shengji_result(
     animation: &ShengjiSettlementAnimation,
 ) {
     let kitty_award = u32::from(result.kitty_points).saturating_mul(result.kitty_multiplier);
-    let stage = spawn_node(
+    let summary = spawn_centered_summary(
         commands,
         table,
+        px(0),
         Node {
-            position_type: PositionType::Absolute,
+            height: percent(100),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            row_gap: percent(2),
+            ..default()
+        },
+    );
+    let stage = spawn_node(
+        commands,
+        summary,
+        Node {
             // 居中且保持足够紧凑，左边缘不会压住左上角的闲家得分框。
-            left: percent(30),
-            right: percent(30),
-            top: percent(3),
+            width: percent(40),
             height: percent(32),
             min_height: px(205),
+            flex_shrink: 0.0,
             padding: UiRect::all(px(20)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -209,12 +220,12 @@ pub(super) fn add_shengji_result(
         UiTransform::IDENTITY,
     ));
 
-    add_shengji_settlement_modal(commands, table, game, result, assets, avatars, animation);
+    add_shengji_settlement_modal(commands, summary, game, result, assets, avatars, animation);
 }
 
 fn add_shengji_settlement_modal(
     commands: &mut UiComposer,
-    table: Entity,
+    summary: Entity,
     game: &ShengjiSnapshot,
     result: &ShengjiHandResultView,
     assets: &UiAssets,
@@ -222,17 +233,14 @@ fn add_shengji_settlement_modal(
     animation: &ShengjiSettlementAnimation,
 ) {
     let columns = if game.players.len() > 4 { 2 } else { 1 };
-    let inset = if columns == 2 { 18.0 } else { 25.0 };
     let modal = spawn_node(
         commands,
-        table,
+        summary,
         Node {
-            position_type: PositionType::Absolute,
-            left: percent(inset),
-            right: percent(inset),
-            top: percent(37),
+            width: percent(if columns == 2 { 64 } else { 50 }),
             height: percent(50),
             min_height: px(300),
+            flex_shrink: 0.0,
             padding: UiRect::all(px(24)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,

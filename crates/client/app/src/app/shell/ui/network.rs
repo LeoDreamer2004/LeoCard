@@ -1,8 +1,7 @@
 //! 网络会话变化驱动的页面、弹窗和开局演出协调。
 
 use super::super::{
-    ChatPanelState, ConnectionEndFeedback, LobbyGameMotion, PageMotion, ProfileMotion,
-    SettingsMotion, UiState,
+    ConnectionEndFeedback, LobbyGameMotion, PageMotion, ProfileMotion, SettingsMotion, UiState,
 };
 use crate::app::games::ScreenChangeCapture;
 use crate::app::presentation::{
@@ -28,7 +27,6 @@ pub(crate) struct NetworkUiSnapshot {
 #[derive(SystemParam)]
 pub(crate) struct NetworkUiContext<'w, 's> {
     ui: ResMut<'w, UiState>,
-    chat: ResMut<'w, ChatPanelState>,
     page_motion: ResMut<'w, PageMotion>,
     lobby_game_motion: ResMut<'w, LobbyGameMotion>,
     settings_motion: ResMut<'w, SettingsMotion>,
@@ -69,13 +67,6 @@ impl NetworkUiContext<'_, '_> {
         before: NetworkUiSnapshot,
         page_error: &mut PageErrorState,
     ) {
-        let text_only = client.model().is_spectating();
-        if self.chat.text_only != text_only {
-            self.chat.text_only = text_only;
-            self.chat.quick_voice_open = false;
-            self.chat.emoji_open = false;
-            self.ui.dirty = true;
-        }
         let NetworkUiSnapshot {
             previous_state,
             reconnect_notice,

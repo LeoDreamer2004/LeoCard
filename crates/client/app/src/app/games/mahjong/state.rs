@@ -18,6 +18,8 @@ pub(crate) struct MahjongUiState {
     pub auto_win: bool,
     pub no_claim: bool,
     pub auto_draw_discard: bool,
+    pub declaring_ready: bool,
+    pub ready_hand_peek: bool,
     pub choice_menu: Option<MahjongChoiceMenu>,
     pub selected_discard: Option<MahjongTile>,
     pub fan_summary_continued: Option<(MatchId, u8)>,
@@ -58,11 +60,18 @@ pub(crate) struct MahjongTableObservation {
     pub wall_len: Option<u16>,
     pub discard_count: Option<usize>,
     pub drawn_tile: Option<MahjongTile>,
+    pub declared_ready: bool,
     pub meld_count: usize,
 }
 
 impl MahjongUiState {
     pub(crate) fn reconcile(&mut self, game: &MahjongSnapshot) {
+        if !game.your_declared_ready() {
+            self.ready_hand_peek = false;
+        }
+        if game.ready_discards.is_empty() {
+            self.declaring_ready = false;
+        }
         if !matches!(game.phase, MahjongPhaseView::Playing)
             || game.current_player != game.you
             || self.observed_table.state.hand != game.your_hand
@@ -81,6 +90,8 @@ impl MahjongUiState {
         self.auto_win = false;
         self.no_claim = false;
         self.auto_draw_discard = false;
+        self.declaring_ready = false;
+        self.ready_hand_peek = false;
         self.choice_menu = None;
         self.selected_discard = None;
         self.fan_summary_continued = None;

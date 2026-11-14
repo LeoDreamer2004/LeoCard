@@ -1,3 +1,4 @@
+use super::ready::ReadyKong;
 use super::{
     ClaimTrigger, MahjongActionOutcome, MahjongClaim, MahjongClaimOption, MahjongDrawOrigin,
     MahjongGameError, MahjongGameState, MahjongHandResult, MahjongPendingClaim, MahjongPhase,
@@ -41,13 +42,18 @@ impl MahjongGameState {
                 .iter()
                 .filter(|held| held.kind() == tile.kind())
                 .count();
-            if !self.wall.is_empty() && same >= 2 {
+            let declared = self.players[target_index].has_declared_ready();
+            if !declared && !self.wall.is_empty() && same >= 2 {
                 pending.options[target_index].push(MahjongClaimOption::Pung);
             }
-            if !self.wall.is_empty() && same >= 3 {
+            if !self.wall.is_empty()
+                && same >= 3
+                && self.ready_kong_allowed(target, tile.kind(), ReadyKong::Melded(from))
+            {
                 pending.options[target_index].push(MahjongClaimOption::Kong);
             }
-            if target == next_player(from)
+            if !declared
+                && target == next_player(from)
                 && let MahjongTileKind::Suited { suit, rank } = tile.kind()
             {
                 for start in rank.saturating_sub(2)..=rank {
@@ -311,6 +317,7 @@ impl MahjongGameState {
             melds: self.players[player.index()].melds.clone(),
             winning_tile,
             context: MahjongWinContext {
+                declared_ready: self.players[player.index()].has_declared_ready(),
                 source,
                 seat_wind: self.seat_wind(player).expect("player was validated"),
                 prevalent_wind: self.prevalent_wind,

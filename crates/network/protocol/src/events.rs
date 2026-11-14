@@ -108,6 +108,9 @@ pub enum MahjongEvent {
     HandFinished {
         result: MahjongHandResultView,
     },
+    ReadyDeclared {
+        player: PlayerId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

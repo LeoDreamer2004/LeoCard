@@ -2,6 +2,7 @@ mod actions;
 mod developer;
 mod error;
 mod lifecycle;
+mod ready;
 mod resolution;
 mod state;
 #[cfg(test)]

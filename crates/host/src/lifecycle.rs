@@ -162,8 +162,7 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
                 }
                 if !self
                     .room()
-                    .players
-                    .iter()
+                    .participants()
                     .any(|player| player.id == target && !player.left)
                 {
                     return Err(RejectReason::Player(PlayerViolation::NotJoined));

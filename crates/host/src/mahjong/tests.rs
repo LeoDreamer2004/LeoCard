@@ -389,6 +389,42 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
             .any(|delivery| matches!(delivery.message.event, ServerEvent::LobbySnapshot(_)))
     );
 
+    for disconnect in [false, true] {
+        let mut departed = session.clone();
+        let host = departed.room.host_connection.unwrap();
+        let missing = departed
+            .room
+            .players
+            .iter()
+            .find(|player| player.connection != host)
+            .unwrap()
+            .clone();
+        for connection in connections {
+            if connection != missing.connection {
+                departed.handle(connection, message(20, ClientCommand::PlayAgain));
+            }
+        }
+        assert!(matches!(
+            departed.game().unwrap().phase(),
+            MahjongPhase::Finished(_)
+        ));
+        if disconnect {
+            departed.disconnect(missing.connection);
+        } else {
+            departed.handle(missing.connection, message(20, ClientCommand::LeaveRoom));
+        }
+        let snapshot = departed.game_view(PlayerId(0));
+        assert!(matches!(snapshot.phase, MahjongPhaseView::RollingDice));
+        assert_eq!(snapshot.players.len(), 4);
+        let retained = snapshot
+            .players
+            .iter()
+            .find(|player| player.player.id == missing.id)
+            .unwrap();
+        assert_eq!(Some(retained.seat), missing.seat);
+        assert!(!retained.connected);
+    }
+
     let original_match = session.match_id;
     let mut last = Vec::new();
     for connection in connections {
@@ -534,6 +570,83 @@ fn player_can_toggle_mahjong_auto_play_and_cancel_a_pending_action() {
         session.game().unwrap().discards().last().unwrap().tile,
         drawn
     );
+}
+
+#[test]
+fn declared_ready_is_authoritative_public_and_round_trips_in_snapshots() {
+    let mut session = session_with_deal_order(dealer_winning_deck());
+    session.rules.declared_ready = true;
+    for index in 0..4 {
+        session.handle(
+            ConnectionId(index + 1),
+            message(1, join_command(&format!("玩家{index}"), index + 1)),
+        );
+    }
+    for (index, player) in session.room.players.iter_mut().enumerate() {
+        player.seat = Some(SeatId(index as u8));
+        player.ready = true;
+    }
+    session.handle(ConnectionId(1), message(2, ClientCommand::StartGame));
+    finish_server_deal(&mut session);
+    let tile = session.game().unwrap().last_drawn().unwrap();
+    assert!(
+        session
+            .game_view(PlayerId(0))
+            .ready_discards
+            .contains(&tile)
+    );
+    assert!(session.game_view(PlayerId(1)).ready_discards.is_empty());
+    let deliveries = session.handle(
+        ConnectionId(1),
+        message(
+            3,
+            ClientCommand::Game(GameCommand::Mahjong(MahjongCommand::DeclareReady { tile })),
+        ),
+    );
+    assert!(
+        session
+            .game()
+            .unwrap()
+            .player(PlayerId(0))
+            .unwrap()
+            .has_declared_ready()
+    );
+    for player in 0..4 {
+        let snapshot = session.game_view(PlayerId(player));
+        assert!(snapshot.players[0].declared_ready);
+        assert!(snapshot.ready_discards.is_empty());
+        assert!(
+            snapshot
+                .players
+                .iter()
+                .filter(|other| other.player.id != snapshot.you)
+                .all(|other| other.revealed_hand.is_none())
+        );
+    }
+    for connection in 1..=4 {
+        assert_eq!(
+            deliveries
+                .iter()
+                .filter(|delivery| {
+                    delivery.recipient == ConnectionId(connection)
+                        && matches!(
+                            delivery.message.event,
+                            ServerEvent::GameEvent(GameEvent::Mahjong(
+                                MahjongEvent::ReadyDeclared {
+                                    player: PlayerId(0)
+                                }
+                            ))
+                        )
+                })
+                .count(),
+            1,
+        );
+    }
+    for delivery in deliveries {
+        let frame = encode_frame(&delivery.message).unwrap();
+        let decoded: ServerMessage = decode_frame(&frame).unwrap();
+        assert_eq!(decoded, delivery.message);
+    }
 }
 
 #[test]

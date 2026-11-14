@@ -52,10 +52,8 @@ impl<'a> ChatPanelOptions<'a> {
         }
         add_chat_history(commands, panel, chat, assets);
         add_chat_input_row(commands, panel, chat, assets);
-        if !chat.text_only {
-            add_quick_voice_menu(commands, panel, chat, assets);
-            add_emoji_menu(commands, panel, chat, assets);
-        }
+        add_quick_voice_menu(commands, panel, chat, assets);
+        add_emoji_menu(commands, panel, chat, assets);
         controls
     }
 }
@@ -208,7 +206,7 @@ pub(super) fn add_chat_input_row(
     add_input_icon_button(
         commands,
         row,
-        (!chat.text_only).then_some(UiAction::Chat(ChatUiAction::ToggleEmojiMenu)),
+        UiAction::Chat(ChatUiAction::ToggleEmojiMenu),
         &assets.social.chat_emoji_icon,
         24.0,
         assets,
@@ -216,7 +214,7 @@ pub(super) fn add_chat_input_row(
     add_input_icon_button(
         commands,
         row,
-        (!chat.text_only).then_some(UiAction::Chat(ChatUiAction::ToggleQuickVoiceMenu)),
+        UiAction::Chat(ChatUiAction::ToggleQuickVoiceMenu),
         &assets.social.quick_voice_icon,
         23.0,
         assets,
@@ -253,12 +251,11 @@ fn add_text_input(
 fn add_input_icon_button(
     commands: &mut UiComposer,
     row: Entity,
-    action: Option<UiAction>,
+    action: UiAction,
     icon: &Handle<Image>,
     icon_size: f32,
     assets: &UiAssets,
 ) {
-    let tint = Color::WHITE.with_alpha(if action.is_some() { 1.0 } else { 0.45 });
     let (button, _) = TextureButton {
         node: Node {
             width: px(42),
@@ -272,9 +269,9 @@ fn add_input_icon_button(
             justify_content: JustifyContent::Center,
             ..default()
         },
-        normal: cozy_chat_button_image(assets.home.button.clone()).with_color(tint),
+        normal: cozy_chat_button_image(assets.home.button.clone()),
         hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
-        action,
+        action: Some(action),
         label: None,
         font_size: 13.0,
         color: TEXT,
@@ -284,7 +281,7 @@ fn add_input_icon_button(
     let icon_entity = commands.entity_for(button, "icon");
     commands
         .entity(icon_entity)
-        .insert(ImageNode::new(icon.clone()).with_color(tint));
+        .insert(ImageNode::new(icon.clone()));
 }
 
 pub(super) fn cozy_chat_button_image(texture: Handle<Image>) -> ImageNode {

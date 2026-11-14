@@ -179,6 +179,7 @@ pub enum MahjongCommand {
     DeclareConcealedKong { tile: MahjongTileKind },
     DeclareAddedKong { tile: MahjongTile },
     SetAutoFlower { enabled: bool },
+    DeclareReady { tile: MahjongTile },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

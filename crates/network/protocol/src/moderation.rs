@@ -1,3 +1,4 @@
+use crate::PlayerPublicInfo;
 use leocard_game_common::PlayerId;
 use serde::{Deserialize, Serialize};
 
@@ -11,8 +12,7 @@ pub struct RoomModerationSnapshot {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RoomParticipant {
-    pub id: PlayerId,
-    pub name: String,
+    pub player: PlayerPublicInfo,
     pub spectating: bool,
     pub connected: bool,
     pub is_bot: bool,

@@ -59,6 +59,7 @@ impl MahjongGameState {
             player.flowers.clear();
             player.dead_hand = false;
             player.hand_revealed = false;
+            player.ready_waits = None;
         }
         Ok(())
     }

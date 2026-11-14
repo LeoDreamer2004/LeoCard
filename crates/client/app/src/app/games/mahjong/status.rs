@@ -39,25 +39,6 @@ impl MahjongTurnLightMaterial {
     }
 }
 
-pub(super) fn render_round_status(
-    commands: &mut UiComposer,
-    table: Entity,
-    game: &MahjongSnapshot,
-    own_seat: u8,
-    assets: &UiAssets,
-    game_assets: &MahjongAssets,
-) {
-    render_round_status_with_scores(
-        commands,
-        table,
-        game,
-        own_seat,
-        &game.match_scores,
-        assets,
-        game_assets,
-    );
-}
-
 pub(super) fn render_round_status_with_scores(
     commands: &mut UiComposer,
     table: Entity,

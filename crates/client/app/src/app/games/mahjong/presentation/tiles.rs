@@ -24,6 +24,7 @@ pub(crate) enum MahjongTileSize {
     MiniConcealedMeld,
     OwnMeld,
     OwnConcealedMeld,
+    OwnReadyHand,
     InkShowcase,
     MajorShowcase,
     HiddenSide,
@@ -66,7 +67,9 @@ impl MahjongTileSize {
             }
             MahjongTileSize::InkShowcase => (54.0, 73.0, -7.0),
             MahjongTileSize::MajorShowcase => (64.0, 86.0, -7.0),
-            MahjongTileSize::OwnMeld | MahjongTileSize::OwnConcealedMeld => (
+            MahjongTileSize::OwnMeld
+            | MahjongTileSize::OwnConcealedMeld
+            | MahjongTileSize::OwnReadyHand => (
                 Layout::OWN_WIDTH,
                 Layout::OWN_HEIGHT,
                 Layout::OWN_STEP - Layout::OWN_WIDTH,
@@ -94,7 +97,7 @@ pub(crate) fn add_mahjong_tile_material(
         relative,
     } = visual;
     let (width, height, overlap) = size.dimensions();
-    let back = kind.is_none();
+    let back = kind.is_none() || matches!(size, MahjongTileSize::OwnReadyHand);
     let glyph = kind.map_or_else(
         || game_assets.visuals.tile_back.clone(),
         |kind| {
@@ -158,6 +161,7 @@ pub(crate) fn add_mahjong_tile_material(
             | MahjongTileSize::HiddenOpposite
             | MahjongTileSize::OwnMeld
             | MahjongTileSize::OwnConcealedMeld
+            | MahjongTileSize::OwnReadyHand
     );
     let material = commands.material(
         entity,
@@ -166,7 +170,9 @@ pub(crate) fn add_mahjong_tile_material(
             table_projection,
             overlay_projection: matches!(
                 size,
-                MahjongTileSize::OwnMeld | MahjongTileSize::OwnConcealedMeld
+                MahjongTileSize::OwnMeld
+                    | MahjongTileSize::OwnConcealedMeld
+                    | MahjongTileSize::OwnReadyHand
             ),
             params: Vec4::new(
                 0.0,
@@ -177,6 +183,7 @@ pub(crate) fn add_mahjong_tile_material(
                     MahjongTileSize::HiddenOpposite => -3.0,
                     MahjongTileSize::GuideHand | MahjongTileSize::SettlementHand => -1.0,
                     MahjongTileSize::OwnMeld
+                    | MahjongTileSize::OwnReadyHand
                     | MahjongTileSize::InkShowcase
                     | MahjongTileSize::MajorShowcase => -4.0,
                     MahjongTileSize::GuideMeld => -4.0,
@@ -205,6 +212,7 @@ pub(crate) fn add_mahjong_tile_material(
                 | MahjongTileSize::InkShowcase
                 | MahjongTileSize::MajorShowcase
                 | MahjongTileSize::Hint
+                | MahjongTileSize::OwnReadyHand
         )
     {
         commands

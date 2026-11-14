@@ -87,6 +87,7 @@ pub enum MahjongFan {
     SingleWait,
     SelfDrawn,
     FlowerTiles,
+    DeclaredReady,
 }
 
 impl MahjongFan {
@@ -169,7 +170,8 @@ impl MahjongFan {
             | Self::ClosedWait
             | Self::SingleWait
             | Self::SelfDrawn
-            | Self::FlowerTiles => 1,
+            | Self::FlowerTiles
+            | Self::DeclaredReady => 1,
         }
     }
 
@@ -256,6 +258,7 @@ impl MahjongFan {
             Self::SingleWait => "单调将",
             Self::SelfDrawn => "自摸",
             Self::FlowerTiles => "花牌",
+            Self::DeclaredReady => "报听",
         }
     }
 }
@@ -290,6 +293,7 @@ impl MahjongWinSource {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MahjongWinContext {
+    pub declared_ready: bool,
     pub source: MahjongWinSource,
     pub seat_wind: MahjongWind,
     pub prevalent_wind: MahjongWind,

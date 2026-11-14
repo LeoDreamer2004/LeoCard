@@ -118,7 +118,11 @@ pub(super) fn render_mahjong_player_panel(
     let label = add_text(
         commands,
         flower_count,
-        format!("补花 {}", player.flowers.len()),
+        if player.declared_ready {
+            format!("报听 补花 {}", player.flowers.len())
+        } else {
+            format!("补花 {}", player.flowers.len())
+        },
         13.0,
         MUTED,
         assets,
@@ -173,6 +177,7 @@ pub(super) fn render_mahjong_player_tiles(
         .map(|visual| (visual.start, visual.reveal_duration))
         .unwrap_or_default();
     let winning_hand = winning_hand.is_some();
+    let face_down = player.declared_ready && !winning_hand;
     let relative = (player.seat.0 + 4 - own_seat) % 4;
     let remote_discard =
         remote_discard.filter(|active| active.player == player.player.id && relative != 0);
@@ -205,7 +210,13 @@ pub(super) fn render_mahjong_player_tiles(
         let width = 450.0;
         let height = Layout::REMOTE_HEIGHT;
         let rotation = -f32::from(relative) * consts::FRAC_PI_2;
-        let footprint_height = if relative == 2 { 8.96 } else { 10.4 };
+        let footprint_height = if face_down {
+            Layout::MINI_HEIGHT
+        } else if relative == 2 {
+            8.96
+        } else {
+            10.4
+        };
         let center = world_layout(world)
             - Rot2::radians(rotation) * Vec2::new(0.0, (height - footprint_height) * 0.5);
         (
@@ -335,11 +346,15 @@ pub(super) fn render_mahjong_player_tiles(
         let regular_count = concealed_count.saturating_sub(usize::from(
             separate_last_concealed && remote_discard.is_none(),
         ));
-        let hidden_size = match relative {
-            1 | 3 => MahjongTileSize::HiddenSide,
-            _ => MahjongTileSize::HiddenOpposite,
+        let hidden_size = if face_down {
+            MahjongTileSize::Mini
+        } else {
+            match relative {
+                1 | 3 => MahjongTileSize::HiddenSide,
+                _ => MahjongTileSize::HiddenOpposite,
+            }
         };
-        if let Some(revealed) = &player.revealed_hand {
+        if let Some(revealed) = player.revealed_hand.as_ref().filter(|_| !face_down) {
             let winner = result.and_then(|result| {
                 result
                     .winners
@@ -441,7 +456,7 @@ pub(super) fn render_mahjong_player_tiles(
                 }
             }
         } else {
-            let advance = mahjong_remote_tile_advance(relative, false);
+            let advance = mahjong_remote_tile_advance(relative, face_down);
             let discarded_index = regular_count / 2;
             for index in 0..regular_count {
                 let entity = add_mahjong_tile_material(

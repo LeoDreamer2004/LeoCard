@@ -3,7 +3,7 @@
 use super::*;
 use crate::app::presentation::{
     ACCENT, DANGER, PanelSkin, PlayerMenuProfile, READY, TEXT, add_avatar, add_text, add_title,
-    attach_player_interactions, decorate_panel_skin,
+    attach_player_interactions, decorate_panel_skin, spawn_centered_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -33,20 +33,16 @@ impl FinalSummaryView<'_> {
             avatars,
             opened_at,
         } = self;
-        let summary = spawn_node(
+        let summary = spawn_centered_summary(
             commands,
             table,
+            px(270),
             Node {
-                position_type: PositionType::Absolute,
-                left: px(270),
-                right: px(270),
-                top: px(114),
                 padding: UiRect::axes(px(24), px(20)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(10),
                 ..default()
             },
-            None,
         );
         commands
             .entity(summary)

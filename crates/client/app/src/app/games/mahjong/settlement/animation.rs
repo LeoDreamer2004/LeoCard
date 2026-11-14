@@ -16,12 +16,6 @@ pub(crate) fn mahjong_fan_pause_at(result: &MahjongHandResultView) -> Option<f32
         .then(|| SettlementTimeline::new(result).pages_end - PAGE_FADE_DURATION - 0.04)
 }
 
-pub(super) fn score_at(elapsed: f32, from: i32, to: i32, start: f32) -> i32 {
-    let progress = ((elapsed - start) / SCORE_ROLL_DURATION).clamp(0.0, 1.0);
-    let eased = 1.0 - (1.0 - progress).powi(3);
-    (from as f32 + (to as f32 - from as f32) * eased).round() as i32
-}
-
 pub(super) fn delta_progress(elapsed: f32, start: f32) -> f32 {
     ((elapsed - start) / DELTA_FLIGHT_DURATION).clamp(0.0, 1.0)
 }
@@ -63,11 +57,28 @@ pub(in crate::app::games::mahjong) struct MahjongScoreShade {
     pub(super) start: f32,
 }
 
-#[derive(Component)]
+#[derive(Clone, Copy, Component)]
 pub(in crate::app::games::mahjong) struct MahjongScoreValue {
-    pub(super) from: i32,
-    pub(super) to: i32,
-    pub(super) start: f32,
+    from: i32,
+    to: i32,
+    start: f32,
+}
+
+impl MahjongScoreValue {
+    pub(super) fn new(result: &MahjongHandResultView, slot: usize, start: f32) -> Self {
+        let to = result.match_scores[slot];
+        Self {
+            from: to.saturating_sub(result.deltas[slot]),
+            to,
+            start,
+        }
+    }
+
+    pub(super) fn at(self, elapsed: f32) -> i32 {
+        let progress = ((elapsed - self.start) / SCORE_ROLL_DURATION).clamp(0.0, 1.0);
+        let eased = 1.0 - (1.0 - progress).powi(3);
+        (self.from as f32 + (self.to as f32 - self.from as f32) * eased).round() as i32
+    }
 }
 
 #[derive(Component)]
@@ -190,7 +201,7 @@ pub(in crate::app::games::mahjong) fn animate_mahjong_settlement(
         color.0 = Color::BLACK.with_alpha(0.80 * alpha);
     }
     for (score, mut text) in &mut scores {
-        text.0 = score_at(elapsed, score.from, score.to, score.start).to_string();
+        text.0 = score.at(elapsed).to_string();
     }
     for (delta, mut visible, mut transform, mut color) in &mut visibility.p3() {
         let progress = delta_progress(elapsed, delta.start);

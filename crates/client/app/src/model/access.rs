@@ -130,15 +130,22 @@ impl ClientModel {
     }
 
     pub fn player(&self, id: PlayerId) -> Option<&PlayerPublicInfo> {
-        match self.phase() {
+        let player = match self.phase() {
             ClientPhaseRef::Lobby(lobby) => lobby
                 .players
                 .iter()
                 .map(|view| &view.player)
                 .find(|player| player.id == id),
             ClientPhaseRef::Playing(game) => game.player(id),
-            ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
-        }
+            ClientPhaseRef::Idle | ClientPhaseRef::Closed => return None,
+        };
+        player.or_else(|| {
+            self.room_moderation()?
+                .participants
+                .iter()
+                .find(|participant| participant.spectating && participant.player.id == id)
+                .map(|participant| &participant.player)
+        })
     }
 
     pub fn player_name(&self, id: PlayerId) -> Option<&str> {

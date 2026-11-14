@@ -23,6 +23,7 @@
 | BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
 | BigSoundBank / Joseph SARDIN | 麻将中档和牌演出、最高档展示牌冲击与落字重音 | `audio/mahjong/showcase/high.mp3`、`tile-impact.ogg`、`glyph-impact.ogg` | [CC0 1.0](https://bigsoundbank.com/licenses.html) |
 | Spring Spring | 麻将最和牌演出的管弦乐背景 | `audio/mahjong/showcase/major-background.ogg` | [10 Fanfares](https://opengameart.org/content/10-fanfares)，采用作者提供的 CC0 授权 |
+| Detective_Lemons / Freesound | 麻将开局批量摸牌的连续碰牌声 | `audio/mahjong/table/deal.ogg` | [CC0 1.0](https://freesound.org/people/Detective_Lemons/sounds/785585/) |
 | SFXMint | 麻将单张摸牌与出牌音效 | `audio/mahjong/table/` | [CC0 1.0](https://sfxmint.com/sounds/mahjong)，AI 生成 |
 | BMacZero / Brian MacIntosh | UNO 反转、跳过、罚摸和 UNO 提醒音效的纸牌拟音底层 | `audio/uno/actions/` | [CC0 1.0](https://opengameart.org/content/playing-card-sounds) |
 
@@ -35,16 +36,16 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。参考音保存在 `audio/reference`，不进入运行时资源包。
 
-- 国标麻将番种报读语音：`audio/mahjong/fans/` 下的男女声各 81 条语音。
-- 麻将操作语音：`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸和补花语音。
+- 国标麻将番种报读语音：`audio/mahjong/fans/` 下的男女声各 82 条语音，含可选规则的报听。
+- 麻将操作语音：`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸、补花和报听语音。
 - 德州扑克行动语音：`audio/texas_holdem/voices/` 下的 14 条男女声行动语音。
 - 扑克牌桌语音：`audio/card_patterns/` 下的牌型、不出、叫分，以及斗地主单张、对子报点语音共 132 条。
 
-### Minecraft 等级物品图标（Mojang）
+### Minecraft 等级图标（Mojang）
 
-- 运行时文件：`ui/profile/` 下的 12 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶、可可豆和棕色染料等级。
-- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)；棕色染料使用原版 Java 客户端的物品纹理。
-- Minecraft 物品图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
+- 运行时文件：`ui/profile/` 下的 13 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶、可可豆、棕色染料和蠹虫等级。
+- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)。
+- Minecraft 图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
 
 ### MC 竞猜方块与物品图标（Mojang）
 

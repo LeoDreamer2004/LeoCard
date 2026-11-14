@@ -52,6 +52,8 @@ impl MahjongSession {
             MahjongGameError::AlreadyResponded => MahjongViolation::AlreadyResponded,
             MahjongGameError::CannotWin => MahjongViolation::CannotWin,
             MahjongGameError::CannotKong => MahjongViolation::CannotKong,
+            MahjongGameError::CannotDeclareReady => MahjongViolation::CannotDeclareReady,
+            MahjongGameError::ReadyHandLocked => MahjongViolation::ReadyHandLocked,
             MahjongGameError::InvalidHandReplacement(reason) => {
                 MahjongViolation::InvalidDeveloperHand(*reason)
             }
@@ -87,7 +89,6 @@ impl GameSnapshotView for MahjongSession {
             .room
             .players
             .iter()
-            .filter(|player| !player.left)
             .map(|participant| {
                 let metadata = participant.public_metadata();
                 let core_id = metadata.player.id;
@@ -112,6 +113,7 @@ impl GameSnapshotView for MahjongSession {
                     melds: game_player.melds,
                     flowers: game_player.flowers,
                     dead_hand: game_player.dead_hand,
+                    declared_ready: game_player.declared_ready,
                     auto_play: metadata.auto_play,
                     ready: metadata.ready,
                     connected: metadata.connected,
@@ -151,7 +153,7 @@ impl GameSnapshotView for MahjongSession {
                 .copied()
                 .collect::<HashSet<_>>()
                 .into_iter()
-                .filter(|kind| kinds.iter().filter(|held| **held == *kind).count() == 4)
+                .filter(|kind| game.concealed_kong_available(recipient, *kind))
                 .collect()
         } else {
             Vec::new()
@@ -167,7 +169,9 @@ impl GameSnapshotView for MahjongSession {
                 .hand()
                 .iter()
                 .copied()
-                .filter(|tile| pung_kinds.contains(&tile.kind()))
+                .filter(|tile| {
+                    pung_kinds.contains(&tile.kind()) && game.added_kong_available(recipient, *tile)
+                })
                 .collect()
         } else {
             Vec::new()
@@ -221,6 +225,7 @@ impl GameSnapshotView for MahjongSession {
             can_legal_self_draw: game.legal_self_draw_available(recipient).unwrap_or(false),
             concealed_kong_options,
             added_kong_options,
+            ready_discards: game.declared_ready_discards(recipient),
             phase,
         }
     }

@@ -21,6 +21,8 @@ pub struct MahjongPlayerState {
     pub(super) flowers: Vec<MahjongTile>,
     pub(super) dead_hand: bool,
     pub(super) hand_revealed: bool,
+    /// 报听时锁定完整的结构听牌，开杠后必须与之完全相同。
+    pub(super) ready_waits: Option<Vec<MahjongTileKind>>,
 }
 
 impl MahjongPlayerState {
@@ -51,6 +53,10 @@ impl MahjongPlayerState {
     pub const fn is_hand_revealed(&self) -> bool {
         self.hand_revealed
     }
+
+    pub fn has_declared_ready(&self) -> bool {
+        self.ready_waits.is_some()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -62,6 +68,7 @@ pub struct MahjongPublicPlayerState {
     pub melds: Vec<MahjongPublicMeld>,
     pub flowers: Vec<MahjongTile>,
     pub dead_hand: bool,
+    pub declared_ready: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

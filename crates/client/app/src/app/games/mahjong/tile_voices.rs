@@ -46,6 +46,9 @@ pub(super) fn sync_mahjong_tile_voice(
         MahjongEvent::KongDeclared { .. }
         | MahjongEvent::HandFinished { .. }
         | MahjongEvent::FlowerReplaced { .. } => Some(TileVoiceUpdate::Stop),
+        MahjongEvent::ReadyDeclared { .. } if preferences.mahjong_action_voices => {
+            Some(TileVoiceUpdate::Stop)
+        }
         _ => None,
     });
     if update.is_none() && !new_match && preferences.mahjong_tile_voices {

@@ -153,9 +153,30 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "主要平衡国标麻将常见痛点，调整部分番种计番，稍削弱自摸得分",
+            help: "主要平衡国标麻将常见痛点，调整部分番种计番，稍削弱自摸得分。",
             previous: can_configure.then_some(balanced_toggled),
             next: can_configure.then_some(balanced_toggled),
+        },
+        assets,
+    );
+    let ready_toggled = MahjongRuleSet {
+        declared_ready: !rules.declared_ready,
+        ..rules
+    };
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        MahjongRuleConfigRow {
+            label: "报听",
+            value: if rules.declared_ready {
+                "开启"
+            } else {
+                "关闭"
+            }
+            .to_owned(),
+            help: "报听加 1 番并计入起和，可副露报听。报听后自动摸打，仍可和牌及开杠，但杠前后听牌必须完全相同。无番和不与报听叠加。",
+            previous: can_configure.then_some(ready_toggled),
+            next: can_configure.then_some(ready_toggled),
         },
         assets,
     );

@@ -24,7 +24,7 @@ pub(crate) struct MahjongAssets {
     pub(super) table_sounds: MahjongTableSounds,
     pub(super) showcase_sounds: MahjongShowcaseSounds,
     fan_voices: BTreeMap<MahjongFan, [Handle<AudioSource>; 2]>,
-    action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
+    action_voices: [[[Handle<AudioSource>; 2]; 9]; 2],
     tile_voices: HashMap<MahjongTileKind, [[Handle<AudioSource>; 2]; 2]>,
     pub(super) status: Handle<MahjongTurnLightMaterial>,
     pub(super) status_lights: [Handle<MahjongTurnLightMaterial>; 4],
@@ -40,10 +40,11 @@ pub(super) enum MahjongActionVoice {
     Win,
     SelfDraw,
     Flower,
+    Ready,
 }
 
 impl MahjongActionVoice {
-    const FILES: [&'static str; 8] = [
+    const FILES: [&'static str; 9] = [
         "chow",
         "pung",
         "melded_kong",
@@ -52,6 +53,7 @@ impl MahjongActionVoice {
         "win",
         "self_draw",
         "flower",
+        "ready",
     ];
 
     const fn index(self) -> usize {
@@ -64,6 +66,7 @@ impl MahjongActionVoice {
             Self::Win => 5,
             Self::SelfDraw => 6,
             Self::Flower => 7,
+            Self::Ready => 8,
         }
     }
 }

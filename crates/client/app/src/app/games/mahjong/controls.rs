@@ -158,6 +158,30 @@ pub(super) fn render_action_bar(
         );
         return;
     }
+    if !game.ready_discards.is_empty() {
+        if ui.declaring_ready {
+            add_text(commands, bar, "选牌报听", 18.0, TEXT, assets);
+        }
+        add_mahjong_button(
+            commands,
+            bar,
+            if ui.declaring_ready {
+                "取消"
+            } else {
+                "报听"
+            },
+            MahjongUiAction::ToggleDeclareReady,
+            if ui.declaring_ready {
+                GinkgoButtonTone::Ash
+            } else {
+                GinkgoButtonTone::Amber
+            },
+            assets,
+        );
+        if ui.declaring_ready {
+            return;
+        }
+    }
     if game.can_self_draw {
         add_mahjong_button(
             commands,
@@ -306,13 +330,13 @@ fn add_choice_button(
             None,
         );
         commands.entity(tiles).insert(Pickable::IGNORE);
-        for index in 0..choice.count {
+        for (index, &kind) in choice.tiles[..choice.count].iter().enumerate() {
             let tile = add_mahjong_tile_material(
                 commands,
                 tiles,
                 MahjongTileVisual {
                     elevation: 0.0,
-                    kind: Some(choice.tiles[index]),
+                    kind: Some(kind),
                     size: MahjongTileSize::GuideHand,
                     index,
                     highlight: MahjongTileHighlight::None,

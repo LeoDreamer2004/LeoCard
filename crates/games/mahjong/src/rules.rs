@@ -76,6 +76,8 @@ pub struct MahjongRuleSet {
     pub false_win: bool,
     #[cfg_attr(feature = "serde", serde(default))]
     pub balanced_scoring: bool,
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub declared_ready: bool,
 }
 
 impl Default for MahjongRuleSet {
@@ -87,6 +89,7 @@ impl Default for MahjongRuleSet {
             multiple_winners: false,
             false_win: false,
             balanced_scoring: false,
+            declared_ready: false,
         }
     }
 }

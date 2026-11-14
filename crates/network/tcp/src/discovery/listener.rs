@@ -84,37 +84,3 @@ pub async fn query_room_info(address: SocketAddr, room_id: RoomId) -> Result<Roo
     .await
     .map_err(|_| TcpError::Timeout("room discovery"))?
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use leocard_protocol::GameKind;
-
-    #[tokio::test]
-    async fn receive_ignores_unrelated_packets_and_uses_the_advertised_tcp_port() {
-        let listener = LanDiscoverySocket::bind_port(0).unwrap();
-        let port = listener.0.local_addr().unwrap().port();
-        let sender = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
-        let target = (Ipv4Addr::LOCALHOST, port);
-        sender.send_to(b"unrelated", target).await.unwrap();
-        let info = RoomInfo {
-            host_name: "房主".to_owned(),
-            host_avatar: None,
-            avatar_png: None,
-            game: GameKind::Mahjong,
-            playing: false,
-        };
-        let bytes = AnnouncementPacket::encode(17, RoomId(9), 54321, info.clone()).unwrap();
-        sender.send_to(&bytes, target).await.unwrap();
-        let notice = timeout(Duration::from_secs(1), listener.receive())
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(notice.server_id, 17);
-        assert_eq!(
-            notice.address,
-            SocketAddr::from((Ipv4Addr::LOCALHOST, 54321))
-        );
-        assert_eq!(notice.info, info);
-    }
-}

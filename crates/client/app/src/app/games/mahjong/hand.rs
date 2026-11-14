@@ -5,8 +5,8 @@ use super::tiles::{
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
     MahjongDiscardHandShift, MahjongDisplayedHand, MahjongOwnDiscardAnimation,
-    MahjongReadyHandRegion, MahjongReadyHandTile, MahjongTileHighlight, MahjongTileMaterial,
-    MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
+    MahjongReadyHandRegion, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
+    MahjongTileVisual, MahjongUiAction, MahjongWinningHand, add_mahjong_ready_hand_tile,
     add_mahjong_response_indicator, add_mahjong_tile_material, add_mahjong_wait_popup,
     apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_discard_waits,
     mahjong_own_row_left, mahjong_win_tile_cues, mahjong_winning_hand_progress,
@@ -220,18 +220,16 @@ pub(super) fn render_own_hand(
                         || (winner.from.is_none() && winner.player == game.you))
             })
         });
-        if winning_hand || face_down {
+        if face_down {
+            add_mahjong_ready_hand_tile(commands, hand, tile, index, assets, materials);
+        } else if winning_hand {
             let entity = add_mahjong_tile_material(
                 commands,
                 hand,
                 MahjongTileVisual {
                     elevation: 0.0,
                     kind: Some(tile.kind()),
-                    size: if face_down {
-                        MahjongTileSize::OwnReadyHand
-                    } else {
-                        MahjongTileSize::OwnMeld
-                    },
+                    size: MahjongTileSize::OwnMeld,
                     index,
                     highlight: MahjongTileHighlight::None,
                     deal: None,
@@ -240,9 +238,6 @@ pub(super) fn render_own_hand(
                 assets,
                 materials,
             );
-            if face_down {
-                commands.entity(entity).insert(MahjongReadyHandTile(hand));
-            }
             if let (Some(result), Some(cues)) = (result, cues) {
                 mark_mahjong_win_tile(commands, entity, result, cues, Some(winning_hand_start));
             }
@@ -313,7 +308,7 @@ pub(super) fn render_own_hand(
                     elevation: 0.0,
                     kind: Some(tile.kind()),
                     size: if face_down {
-                        MahjongTileSize::OwnReadyHand
+                        MahjongTileSize::OwnHand
                     } else {
                         MahjongTileSize::OwnMeld
                     },
@@ -348,9 +343,6 @@ pub(super) fn render_own_hand(
                 materials,
             )
         };
-        if face_down {
-            commands.entity(entity).insert(MahjongReadyHandTile(hand));
-        }
         if let Some(result) = result {
             let cues = mahjong_win_tile_cues(result, |winner| {
                 winner.player == game.you && winner.from.is_none() && winner.winning_tile == tile

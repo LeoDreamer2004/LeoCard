@@ -60,7 +60,6 @@ pub(crate) struct MahjongTableObservation {
     pub wall_len: Option<u16>,
     pub discard_count: Option<usize>,
     pub drawn_tile: Option<MahjongTile>,
-    pub declared_ready: bool,
     pub meld_count: usize,
 }
 

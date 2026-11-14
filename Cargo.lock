@@ -3662,17 +3662,10 @@ dependencies = [
 name = "leocard-tcp"
 version = "0.12.6"
 dependencies = [
- "ed25519-dalek",
  "fastrand",
- "leocard-achievements",
  "leocard-game-common",
- "leocard-guandan",
  "leocard-host",
  "leocard-protocol",
- "leocard-qigui523",
- "leocard-shengji",
- "leocard-texas-holdem",
- "leocard-uno",
  "serde",
  "socket2",
  "tokio",

@@ -76,7 +76,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked -- -D warnings
 
       - name: Test workspace
-        run: cargo test --workspace --all-targets --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked -- --test-threads=1
+        run: cargo test --workspace --all-targets --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked
 
   build:
     name: Build ${{ matrix.name }}

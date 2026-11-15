@@ -5,11 +5,14 @@ use crate::{MahjongMeld, MahjongMeldKind, MahjongScoreInput, MahjongTileKind, Ma
 use leocard_game_common::{PlayerId, SearchBudget};
 use std::collections::HashMap;
 
+const COMPLETE_HAND_VALUE: f64 = 300.0;
+
 #[derive(Clone)]
 pub(super) struct Position {
     pub counts: Counts,
     pub melds: Vec<MahjongMeld>,
     pub replacement: bool,
+    pub declared_ready: bool,
 }
 
 #[derive(Hash, Eq, PartialEq)]
@@ -18,6 +21,7 @@ struct SearchKey {
     unseen: Counts,
     melds: Vec<(u8, usize)>,
     replacement: bool,
+    declared_ready: bool,
     depth: u8,
 }
 
@@ -56,9 +60,9 @@ impl<'a> Search<'a> {
             let next = self.shanten.calculate(&counts, position.melds.len() as u8);
             if next < distance {
                 let weight = if next < 0 {
-                    if self.win_value(position, &counts, index).is_some() {
+                    if let Some(value) = self.win_value(position, &counts, index) {
                         legal_waits += f64::from(unseen[index]);
-                        1.0
+                        value / COMPLETE_HAND_VALUE
                     } else {
                         0.15
                     }
@@ -78,6 +82,23 @@ impl<'a> Search<'a> {
         -f64::from(effective_distance) * 90.0
             + width * 1.5
             + potential(&position.counts, &position.melds) * 6.0
+    }
+
+    pub fn has_live_win(&mut self, position: &Position, unseen: &Counts) -> bool {
+        if self.distance(position) != 0 {
+            return false;
+        }
+        let mut counts = position.counts;
+        (0..34).any(|index| {
+            if unseen[index] == 0 || counts[index] >= 4 {
+                return false;
+            }
+            counts[index] += 1;
+            let legal = self.shanten.calculate(&counts, position.melds.len() as u8) < 0
+                && self.win_value(position, &counts, index).is_some();
+            counts[index] -= 1;
+            legal
+        })
     }
 
     pub fn best_discards(
@@ -133,6 +154,7 @@ impl<'a> Search<'a> {
                 })
                 .collect(),
             replacement: position.replacement,
+            declared_ready: position.declared_ready,
             depth,
         };
         if let Some(value) = self.values.get(&key) {
@@ -161,6 +183,13 @@ impl<'a> Search<'a> {
                 .flatten();
             let next_value = if let Some(win) = win {
                 win
+            } else if position.declared_ready {
+                // 报听后的无效摸牌只能原样打出，不能在搜索中继续改良手牌。
+                drawn.counts[index] -= 1;
+                drawn.replacement = false;
+                let future = self.future(&drawn, &remaining, depth - 1)?;
+                drawn.counts[index] += 1;
+                future
             } else if next_distance <= distance {
                 let choices = self.best_discards(&drawn, &remaining, 2);
                 let mut best = base;
@@ -195,6 +224,7 @@ impl<'a> Search<'a> {
             })
             .collect();
         let mut context = self.observation.context;
+        context.declared_ready = position.declared_ready;
         context.source = if position.replacement {
             MahjongWinSource::KongReplacement
         } else {
@@ -222,7 +252,7 @@ impl<'a> Search<'a> {
             .ok()
             .filter(|score| legal(score.points_without_flowers));
         Some(
-            300.0
+            COMPLETE_HAND_VALUE
                 + f64::from(self_draw.total_points) * 3.0
                 + claim.map_or(0.0, |score| 25.0 + f64::from(score.total_points)),
         )

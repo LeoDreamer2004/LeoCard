@@ -40,7 +40,7 @@ pub(super) fn render_mahjong_player_panel(
     table: Entity,
     player: &MahjongPlayerView,
     visuals: MahjongPlayerPanelVisuals<'_>,
-) {
+) -> Entity {
     let MahjongPlayerPanelVisuals {
         own_seat,
         interaction_menu_open,
@@ -130,6 +130,7 @@ pub(super) fn render_mahjong_player_panel(
     commands
         .entity(label)
         .insert((TextLayout::default().with_no_wrap(), Pickable::IGNORE));
+    portrait.portrait
 }
 
 pub(super) struct MahjongPlayerTileVisuals<'a> {

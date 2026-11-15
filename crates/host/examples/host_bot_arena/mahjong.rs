@@ -4,7 +4,6 @@ use leocard_mahjong::{
     MahjongBot, MahjongBotAction, MahjongBotObservation, MahjongClaim, MahjongClaimOption,
     MahjongGameState, MahjongMeldKind, MahjongPhase, MahjongRuleSet, build_deck,
 };
-
 use std::time::Duration;
 
 pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
@@ -61,6 +60,7 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
         };
         match action {
             MahjongBotAction::Discard(tile) => game.discard(player, tile),
+            MahjongBotAction::DeclareReady(tile) => game.declare_ready(player, tile),
             MahjongBotAction::Respond(claim) => game.respond_to_claim(player, claim),
             MahjongBotAction::SelfDraw => game.declare_self_draw(player),
             MahjongBotAction::ConcealedKong(tile) => game.declare_concealed_kong(player, tile),

@@ -159,9 +159,6 @@ pub(super) fn render_action_bar(
         return;
     }
     if !game.ready_discards.is_empty() {
-        if ui.declaring_ready {
-            add_text(commands, bar, "选牌报听", 18.0, TEXT, assets);
-        }
         add_mahjong_button(
             commands,
             bar,

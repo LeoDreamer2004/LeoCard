@@ -8,6 +8,9 @@ use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
 use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
 
+// The 0.42s draw animation finishes before the remaining time is spent showing the upright tile.
+const READY_DRAW_DISCARD_DELAY: f64 = 0.9;
+
 pub(super) fn render_mahjong_auto_drawer(
     commands: &mut UiComposer,
     table: Entity,
@@ -71,30 +74,51 @@ pub(super) fn render_mahjong_auto_drawer(
 pub(super) fn apply_automatic_mahjong_action(
     mut client: Option<ResMut<ClientResource>>,
     mut ui: ResMut<MahjongUiState>,
+    time: Res<Time>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         ui.last_automatic_action = None;
+        ui.ready_draw.clear();
         return;
     };
-    if let Some(game) = client
+    let game = client
         .0
         .model()
         .game_snapshot()
-        .and_then(GameSnapshot::mahjong)
-    {
+        .and_then(GameSnapshot::mahjong);
+    if let Some(game) = game {
         ui.begin_hand(game.match_id, game.sequence_index);
     }
-    let decision = client
-        .0
-        .model()
-        .game_snapshot()
-        .and_then(GameSnapshot::mahjong)
-        .and_then(|game| choose_automatic_action(game, &ui));
+    let now = time.elapsed_secs_f64();
+    let ready_draw = game
+        .filter(|game| {
+            game.your_declared_ready()
+                && matches!(game.phase, MahjongPhaseView::Playing)
+                && game.current_player == game.you
+        })
+        .and_then(|game| {
+            game.your_drawn_tile.map(|tile| {
+                MahjongAutomaticActionKey::Discard(game.match_id, game.sequence_index, tile)
+            })
+        });
+    if let Some(key) = ready_draw {
+        if ui.ready_draw.observe(key) {
+            ui.ready_draw.state = now;
+        }
+    } else {
+        ui.ready_draw.clear();
+    }
+    // Observe the draw even when a win/kong prompt pauses automation, so UI changes
+    // cannot restart the timer. Only a discard with this exact key waits below.
+    let decision = game.and_then(|game| choose_automatic_action(game, &ui));
     let Some((key, command)) = decision else {
         ui.last_automatic_action = None;
         return;
     };
     if ui.last_automatic_action == Some(key) {
+        return;
+    }
+    if ui.ready_draw.key == Some(key) && now - ui.ready_draw.state < READY_DRAW_DISCARD_DELAY {
         return;
     }
     if client.0.send(game_command(command)) {

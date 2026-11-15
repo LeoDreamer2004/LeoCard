@@ -34,7 +34,7 @@ pub(crate) fn sync_chat_messages(
         let source = message.source;
         let spectator_heading = message
             .spectator_name
-            .map(|name| format!("旁观玩家【{}】：", name.replace(['\r', '\n'], " ")));
+            .map(|name| format!("【{}(旁观者)】：", name.replace(['\r', '\n'], " ")));
         let (text, emoji) = match message.content {
             ChatContent::Text(text) => (text, None),
             ChatContent::QuickVoice(index) => {
@@ -52,7 +52,7 @@ pub(crate) fn sync_chat_messages(
         };
         chat.history.push_back(ChatHistoryEntry {
             sender_label: spectator_heading.clone().unwrap_or_else(|| {
-                format!("[{}(玩家)]:", model.player_name(source).unwrap_or("玩家"))
+                format!("【{}】：", model.player_name(source).unwrap_or("玩家"))
             }),
             message: text.clone(),
         });

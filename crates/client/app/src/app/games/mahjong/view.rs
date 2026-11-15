@@ -624,6 +624,7 @@ pub(crate) fn render_mahjong_table(
         game_assets,
         tile_materials,
     );
+    let mut player_panels = Vec::with_capacity(game.players.len());
     for player in &game.players {
         let winner_start = finished_result.and_then(|result| {
             result
@@ -678,7 +679,7 @@ pub(crate) fn render_mahjong_table(
                 materials: tile_materials,
             },
         );
-        render_mahjong_player_panel(
+        player_panels.push(render_mahjong_player_panel(
             commands,
             table,
             player,
@@ -689,7 +690,7 @@ pub(crate) fn render_mahjong_table(
                 assets,
                 avatars,
             },
-        );
+        ));
     }
     render_round_status(
         commands,
@@ -887,6 +888,7 @@ pub(crate) fn render_mahjong_table(
             game,
             result,
             MahjongSettlementVisuals {
+                player_panels: &player_panels,
                 assets,
                 avatars,
                 animation: game_summary,

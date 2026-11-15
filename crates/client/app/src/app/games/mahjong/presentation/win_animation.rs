@@ -173,7 +173,7 @@ pub(crate) fn apply_mahjong_winning_hand_visual(
     if relative == 0 {
         transform.translation = Val2::px(0.0, 8.0 * (1.0 - progress));
         transform.rotation = Rot2::radians(base_rotation);
-        transform.scale = Vec2::splat(0.97 + progress * 0.03);
+        transform.scale = Vec2::ONE;
         return;
     }
     let distance = 12.0 * (1.0 - progress);
@@ -185,7 +185,7 @@ pub(crate) fn apply_mahjong_winning_hand_visual(
     };
     transform.translation = Val2::px(offset.x, offset.y);
     transform.rotation = Rot2::radians(base_rotation);
-    transform.scale = Vec2::new(0.96 + progress * 0.04, 0.02 + progress * 0.98);
+    transform.scale = Vec2::new(1.0, 0.02 + progress * 0.98);
 }
 
 pub(crate) fn animate_mahjong_winning_hands(

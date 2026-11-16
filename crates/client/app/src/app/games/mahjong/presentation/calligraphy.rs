@@ -1,23 +1,34 @@
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_mahjong::MahjongClaim;
 use leocard_ui::UiComposer;
 
 pub(crate) struct MahjongCalligraphyAssets {
-    glyphs: [Handle<Image>; 5],
+    glyphs: [Handle<Image>; 6],
     ink: Handle<Image>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) enum MahjongCalligraphyKind {
     Chow,
     Pung,
     Kong,
     Win,
     SelfDraw,
+    Ready,
 }
 
 impl MahjongCalligraphyKind {
+    pub(crate) const fn from_claim(claim: MahjongClaim) -> Option<Self> {
+        match claim {
+            MahjongClaim::Chow { .. } => Some(Self::Chow),
+            MahjongClaim::Pung => Some(Self::Pung),
+            MahjongClaim::Kong => Some(Self::Kong),
+            MahjongClaim::Pass | MahjongClaim::Win => None,
+        }
+    }
+
     const fn index(self) -> usize {
         match self {
             Self::Chow => 0,
@@ -25,13 +36,14 @@ impl MahjongCalligraphyKind {
             Self::Kong => 2,
             Self::Win => 3,
             Self::SelfDraw => 4,
+            Self::Ready => 5,
         }
     }
 
     const fn glyph_size(self) -> Vec2 {
         match self {
             Self::Chow | Self::Pung | Self::Kong => Vec2::splat(76.0),
-            Self::Win => Vec2::splat(88.0),
+            Self::Win | Self::Ready => Vec2::splat(88.0),
             Self::SelfDraw => Vec2::new(162.8, 88.0),
         }
     }
@@ -39,7 +51,7 @@ impl MahjongCalligraphyKind {
     const fn ink_size(self) -> Option<Vec2> {
         match self {
             Self::Chow | Self::Pung | Self::Kong => None,
-            Self::Win => Some(Vec2::new(152.0, 94.0)),
+            Self::Win | Self::Ready => Some(Vec2::new(152.0, 94.0)),
             Self::SelfDraw => Some(Vec2::new(214.0, 94.0)),
         }
     }
@@ -72,7 +84,7 @@ impl MahjongCalligraphyAssets {
                 .load(format!("ui/mahjong/calligraphy/{name}.png"))
         };
         Self {
-            glyphs: ["chow", "pung", "kong", "win", "self-draw"].map(load),
+            glyphs: ["chow", "pung", "kong", "win", "self-draw", "ready"].map(load),
             ink: load("ink"),
         }
     }

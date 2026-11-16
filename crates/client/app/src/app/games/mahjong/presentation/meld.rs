@@ -6,12 +6,11 @@ use super::super::{
 };
 use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use super::{
-    MAHJONG_KONG_STACK_LIFT, MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material,
+    MAHJONG_KONG_STACK_LIFT, MahjongCalligraphyKind, MahjongTileSize, MahjongTileVisual,
+    add_mahjong_tile_material,
 };
 use bevy::prelude::*;
-use leocard_mahjong::{
-    MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongPublicMeld, MahjongTileKind,
-};
+use leocard_mahjong::{MahjongKongKind, MahjongMeldKind, MahjongPublicMeld, MahjongTileKind};
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct MahjongMeldPresentation<'a> {
@@ -92,11 +91,11 @@ pub(crate) fn render_mahjong_meld(
         } else {
             *index as i32
         }));
-    let landing = presentation.claim.and_then(|claim| match claim.claim {
-        MahjongClaim::Chow { .. } => base
+    let landing = presentation.claim.and_then(|claim| match claim.kind {
+        MahjongCalligraphyKind::Chow => base
             .iter()
             .position(|kind| *kind == claim.tile.map(|tile| tile.kind())),
-        MahjongClaim::Pung => Some(1),
+        MahjongCalligraphyKind::Pung => Some(1),
         _ => None,
     });
     for (slot, kind) in base.into_iter().enumerate() {
@@ -154,7 +153,7 @@ pub(crate) fn render_mahjong_meld(
             presentation.claim,
             presentation
                 .claim
-                .is_some_and(|claim| matches!(claim.claim, MahjongClaim::Kong)),
+                .is_some_and(|claim| matches!(claim.kind, MahjongCalligraphyKind::Kong)),
         );
         *index += 1;
     }

@@ -6,6 +6,7 @@ use leocard_game_common::SearchBudget;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MahjongBotAction {
     Discard(MahjongTile),
+    DeclareReady(MahjongTile),
     Respond(MahjongClaim),
     SelfDraw,
     ConcealedKong(MahjongTileKind),
@@ -24,6 +25,7 @@ impl MahjongBot {
             counts: [0; 34],
             melds: observation.melds.clone(),
             replacement: false,
+            declared_ready: observation.context.declared_ready,
         };
         for index in observation
             .hand
@@ -32,12 +34,31 @@ impl MahjongBot {
         {
             root.counts[index] += 1;
         }
+        let mut options = observation.options.clone();
+        if observation.may_declare_ready {
+            options.extend(
+                observation
+                    .options
+                    .iter()
+                    .filter_map(|action| match action {
+                        MahjongBotAction::Discard(tile) => {
+                            Some(MahjongBotAction::DeclareReady(*tile))
+                        }
+                        _ => None,
+                    }),
+            );
+        }
         let mut candidates = Vec::new();
-        for &action in &observation.options {
+        for action in options {
             let Some((position, discard)) = after_action(observation, &root, action, &mut search)
             else {
                 continue;
             };
+            if matches!(action, MahjongBotAction::DeclareReady(_))
+                && !search.has_live_win(&position, &observation.unseen)
+            {
+                continue;
+            }
             let risk = discard.map_or(0.0, |index| observation.danger(index));
             let value = search.evaluate(&position, &observation.unseen) - risk;
             candidates.push((action, position, risk, value));
@@ -87,9 +108,10 @@ fn after_action(
     let mut position = root.clone();
     let mut discard = None;
     match action {
-        MahjongBotAction::Discard(tile) => {
+        MahjongBotAction::Discard(tile) | MahjongBotAction::DeclareReady(tile) => {
             let index = tile.kind().index34()?;
             position.counts[index] -= 1;
+            position.declared_ready |= matches!(action, MahjongBotAction::DeclareReady(_));
             discard = Some(index);
         }
         MahjongBotAction::ConcealedKong(tile) => {

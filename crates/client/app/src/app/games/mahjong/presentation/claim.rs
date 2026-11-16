@@ -19,7 +19,6 @@ use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
-use leocard_mahjong::MahjongClaim;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
@@ -27,15 +26,6 @@ use std::f32::consts;
 #[derive(Component)]
 pub(crate) struct MahjongClaimLandingSlot {
     pub player: PlayerId,
-}
-
-fn mahjong_claim_label(claim: MahjongClaim) -> Option<MahjongCalligraphyKind> {
-    match claim {
-        MahjongClaim::Chow { .. } => Some(MahjongCalligraphyKind::Chow),
-        MahjongClaim::Pung => Some(MahjongCalligraphyKind::Pung),
-        MahjongClaim::Kong => Some(MahjongCalligraphyKind::Kong),
-        MahjongClaim::Pass | MahjongClaim::Win => None,
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -138,9 +128,6 @@ pub(crate) fn render_mahjong_claim_presentation(
     else {
         return;
     };
-    let Some(kind) = mahjong_claim_label(active.claim) else {
-        return;
-    };
     let Some(target_relative) = geometry.relative_player(game, active.player) else {
         return;
     };
@@ -222,9 +209,10 @@ pub(crate) fn render_mahjong_claim_presentation(
     let overlay = projected_overlay(commands, table);
     let label_position = MahjongSeatGeometry::river_anchor(target_relative);
     let (scale, alpha, offset_y) = mahjong_claim_label_visual(active.elapsed);
-    let holder = game_assets
-        .calligraphy
-        .spawn(commands, overlay, kind, label_position, alpha);
+    let holder =
+        game_assets
+            .calligraphy
+            .spawn(commands, overlay, active.kind, label_position, alpha);
     commands.entity(holder).insert((
         MahjongClaimLabel {
             player: active.player,
@@ -446,7 +434,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
         if let Some(mut material) = materials.get_mut(&material_node.0) {
             material.params.z = alpha;
             let progress = (flight_elapsed / MAHJONG_CLAIM_FLIGHT_DURATION).clamp(0.0, 1.0);
-            let landing = if matches!(active.claim, MahjongClaim::Kong) {
+            let landing = if matches!(active.kind, MahjongCalligraphyKind::Kong) {
                 super::tiles::MAHJONG_KONG_STACK_LIFT
             } else {
                 0.0

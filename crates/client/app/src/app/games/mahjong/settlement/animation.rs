@@ -52,6 +52,23 @@ pub(in crate::app::games::mahjong) struct MahjongScoreStage {
     pub(super) end: f32,
 }
 
+#[derive(Clone, Copy, Component)]
+pub(in crate::app::games::mahjong) struct MahjongScorePlayerFocus {
+    pub(super) start: f32,
+    pub(super) end: f32,
+}
+
+impl MahjongScorePlayerFocus {
+    pub(super) fn layer(self, elapsed: f32) -> GlobalZIndex {
+        // Stay above both the dimmer and the full-screen continue button. Profile menus use 1500.
+        GlobalZIndex(if elapsed >= self.start && elapsed < self.end {
+            1301
+        } else {
+            0
+        })
+    }
+}
+
 #[derive(Component)]
 pub(in crate::app::games::mahjong) struct MahjongScoreShade {
     pub(super) start: f32,
@@ -163,11 +180,15 @@ pub(in crate::app::games::mahjong) fn animate_mahjong_settlement(
         Query<(&MahjongScoreShade, &mut BackgroundColor)>,
     )>,
     mut scores: Query<(&MahjongScoreValue, &mut Text)>,
+    mut player_panels: Query<(&MahjongScorePlayerFocus, &mut GlobalZIndex)>,
 ) {
     if !animation.is_changed() {
         return;
     }
     let elapsed = animation.elapsed;
+    for (focus, mut layer) in &mut player_panels {
+        layer.set_if_neq(focus.layer(elapsed));
+    }
     for (page, mut visibility) in &mut visibility.p0() {
         *visibility = if elapsed >= page.start && elapsed < page.end {
             Visibility::Visible

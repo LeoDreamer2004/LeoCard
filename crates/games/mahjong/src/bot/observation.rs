@@ -16,6 +16,7 @@ pub struct MahjongBotObservation {
     pub(super) discards: Vec<MahjongDiscard>,
     pub(super) unseen: Counts,
     pub(super) options: Vec<MahjongBotAction>,
+    pub(super) may_declare_ready: bool,
     pub(super) claim: Option<(PlayerId, MahjongTileKind)>,
     pub(super) rules: MahjongRuleSet,
     pub(super) context: MahjongWinContext,
@@ -28,11 +29,17 @@ impl MahjongBotObservation {
     pub fn from_game(game: &MahjongGameState, player: PlayerId) -> Option<Self> {
         let own = game.player(player)?;
         let mut options = Vec::new();
+        let mut may_declare_ready = false;
         let claim = match game.phase() {
             MahjongPhase::Playing if game.current_player() == player => {
                 if game.legal_self_draw_available(player).ok()? {
                     options.push(MahjongBotAction::SelfDraw);
                 }
+                // 听牌与起和番数留给后台搜索检查，避免每次轮询都枚举报听弃牌。
+                may_declare_ready = game.rules().declared_ready
+                    && !own.is_dead_hand()
+                    && !own.has_declared_ready()
+                    && game.wall_len() > 0;
                 let mut added = [false; 34];
                 if own.has_declared_ready()
                     && let Some(tile) = game.last_drawn()
@@ -134,6 +141,7 @@ impl MahjongBotObservation {
             discards: game.discards().to_vec(),
             unseen: seen.map(|count| 4u8.saturating_sub(count)),
             options,
+            may_declare_ready,
             claim,
             rules: *game.rules(),
             context: MahjongWinContext {

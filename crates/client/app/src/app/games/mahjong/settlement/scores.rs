@@ -63,7 +63,7 @@ pub(super) struct ScoreStageView<'a> {
 }
 
 impl ScoreStageView<'_> {
-    pub(super) fn render(self, commands: &mut UiComposer, table: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, table: Entity, player_panels: &[Entity]) {
         let Self {
             game,
             result,
@@ -78,6 +78,14 @@ impl ScoreStageView<'_> {
             .iter()
             .find(|player| player.player.id == game.you)
             .map_or(0, |player| player.seat.0);
+
+        let focus = MahjongScorePlayerFocus {
+            start: timing.start,
+            end,
+        };
+        for &panel in player_panels {
+            commands.entity(panel).insert((focus, focus.layer(elapsed)));
+        }
 
         let score_stage = spawn_node(
             commands,
@@ -105,7 +113,7 @@ impl ScoreStageView<'_> {
             },
         ));
 
-        // 复刻牌桌中央的方位牌，让遮罩只留下这一块亮区。四面数值从结算前
+        // 复刻牌桌中央的方位牌，与抬高的玩家框一同保持明亮。四面数值从结算前
         // 的分数开始，沿各自座位的朝向接收增减，再滚到结算后的分数。
         let layout_scores = array::from_fn(|slot| {
             let to = result.match_scores[slot];

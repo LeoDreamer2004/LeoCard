@@ -4,9 +4,9 @@ use crate::features::GameSnapshotView;
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    MahjongBotObservation, MahjongFan, MahjongFanValue, MahjongMatchLength, MahjongMatchProgress,
-    MahjongPhase, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWallBreak, MahjongWinRecord, build_deck,
+    MahjongBotAction, MahjongBotObservation, MahjongFan, MahjongFanValue, MahjongMatchLength,
+    MahjongMatchProgress, MahjongPhase, MahjongRuleSet, MahjongScoreResult, MahjongSuit,
+    MahjongTile, MahjongTileKind, MahjongWallBreak, MahjongWinRecord, build_deck,
 };
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameEvent, GameSnapshot, JoinRequest,
@@ -15,7 +15,8 @@ use leocard_protocol::{
     ServerMessage, decode_frame, encode_frame, join_identity_payload,
 };
 use std::collections::HashSet;
-use std::time::Duration;
+use std::thread;
+use std::time::{Duration, Instant};
 
 const ROOM: RoomId = RoomId(2014);
 
@@ -647,6 +648,60 @@ fn declared_ready_is_authoritative_public_and_round_trips_in_snapshots() {
         let decoded: ServerMessage = decode_frame(&frame).unwrap();
         assert_eq!(decoded, delivery.message);
     }
+}
+
+#[test]
+fn automatic_ready_declaration_discards_and_emits_the_ready_event() {
+    let mut deck = dealer_winning_deck();
+    let miss = MahjongTileKind::suited(MahjongSuit::Characters, 9);
+    let index = deck.iter().position(|tile| tile.kind() == miss).unwrap();
+    deck.swap(52, index);
+    let mut session = session_with_deal_order(deck);
+    session.rules.declared_ready = true;
+    for index in 0..4 {
+        session.handle(
+            ConnectionId(index + 1),
+            message(1, join_command(&format!("玩家{index}"), index + 1)),
+        );
+    }
+    for (index, player) in session.room.players.iter_mut().enumerate() {
+        player.seat = Some(SeatId(index as u8));
+        player.ready = true;
+    }
+    session.handle(ConnectionId(1), message(2, ClientCommand::StartGame));
+    finish_server_deal(&mut session);
+    session.room.players[0].is_bot = true;
+    let game = session.game().unwrap();
+    let tile = game.last_drawn().unwrap();
+    assert_eq!(tile.kind(), miss);
+    assert!(!game.legal_self_draw_available(PlayerId(0)).unwrap());
+    let action = MahjongBotAction::DeclareReady(tile);
+    let observation = MahjongBotObservation::from_game(game, PlayerId(0)).unwrap();
+    // Inject the policy answer to exercise execution without a timed search.
+    assert!(
+        session
+            .bot_decision
+            .poll(observation, action, move |_, _| action)
+            .is_none()
+    );
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let (events, _) = loop {
+        if let Some(outcome) = session.play_automatic_action(PlayerId(0)) {
+            break outcome;
+        }
+        assert!(Instant::now() < deadline, "bot answer must complete");
+        thread::sleep(Duration::from_millis(1));
+    };
+    assert!(events.contains(&MahjongEvent::TileDiscarded {
+        player: PlayerId(0),
+        tile,
+    }));
+    assert!(events.contains(&MahjongEvent::ReadyDeclared {
+        player: PlayerId(0),
+    }));
+    let game = session.game().unwrap();
+    assert!(game.player(PlayerId(0)).unwrap().has_declared_ready());
+    assert_eq!(game.discards().last().unwrap().tile, tile);
 }
 
 #[test]

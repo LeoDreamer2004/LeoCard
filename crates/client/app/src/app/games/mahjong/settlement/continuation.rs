@@ -7,7 +7,7 @@ use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node};
 
 #[expect(
     clippy::too_many_arguments,
@@ -47,7 +47,9 @@ pub(super) fn render_settlement_continue(
         },
     ));
     if let Some(action) = action {
-        commands.entity(area).insert((Button, action));
+        commands
+            .entity(area)
+            .insert((Button, action, CustomButtonMotion));
     }
     let prompt = add_text(commands, area, label, 18.0, TEXT, assets);
     commands.entity(prompt).insert((

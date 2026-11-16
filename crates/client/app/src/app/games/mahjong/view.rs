@@ -4,16 +4,17 @@ use super::layout::MahjongLayout as Layout;
 use super::wall::render_mahjong_wall;
 use super::{
     MAHJONG_INK_SHOWCASE_DURATION, MAHJONG_MAJOR_SHOWCASE_DURATION, MAHJONG_WIN_PUSH_DURATION,
-    MahjongActionPrompt, MahjongActionVoice, MahjongAssets, MahjongDiscardRiverVisuals,
-    MahjongMajorFanAssets, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
-    MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
-    MahjongTileVoicePlayback, MahjongUiState, MahjongWinArtMaterial, MahjongWinInkMaterial,
-    MahjongWinVisuals, MahjongWinningHandVisual, add_mahjong_ready_hint,
-    observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
-    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
-    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_win_effects, render_own_discard_flight,
-    render_own_hand, render_round_status, sync_mahjong_tile_voice,
+    MahjongActionPrompt, MahjongActionVoice, MahjongAssets, MahjongCalligraphyKind,
+    MahjongDiscardRiverVisuals, MahjongMajorFanAssets, MahjongOwnHandVisuals,
+    MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals, MahjongSettlementVisuals,
+    MahjongTableRoot, MahjongTileMaterial, MahjongTileVoicePlayback, MahjongUiState,
+    MahjongWinArtMaterial, MahjongWinInkMaterial, MahjongWinVisuals, MahjongWinningHandVisual,
+    add_mahjong_ready_hint, observe_discard_animations, queue_mahjong_action_voice,
+    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
+    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
+    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
+    render_mahjong_win_effects, render_own_discard_flight, render_own_hand, render_round_status,
+    sync_mahjong_tile_voice,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, SilentButton, StartGameSeatTransition,
@@ -22,10 +23,13 @@ use crate::app::presentation::{
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, GameEvents, TableAppearance, UiAssets,
 };
+#[cfg(feature = "developer")]
+use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
     ChatPanelState, DeveloperHandInput, UiAction, UiState, add_chat_help_button, add_chat_panel,
     add_reconnecting_overlay,
 };
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongTile, MahjongWinRecord};
 use leocard_protocol::{
@@ -33,10 +37,6 @@ use leocard_protocol::{
 };
 use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node, ui_component};
 use std::collections::VecDeque;
-
-#[cfg(feature = "developer")]
-use crate::app::shell::add_developer_hand_input;
-use bevy::prelude::*;
 
 pub(super) const MAHJONG_CLAIM_FLIGHT_DELAY: f32 = 0.18;
 pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
@@ -106,7 +106,7 @@ pub(crate) struct ActiveMahjongClaimPresentation {
     pub player: PlayerId,
     pub source: Option<PlayerId>,
     pub tile: Option<MahjongTile>,
-    pub claim: MahjongClaim,
+    pub kind: MahjongCalligraphyKind,
     pub shift_hand: bool,
     pub elapsed: f32,
 }
@@ -391,17 +391,16 @@ pub(super) fn sync_mahjong_claim_presentation(
                 source,
                 tile,
                 claim,
-            } if matches!(
-                claim,
-                MahjongClaim::Chow { .. } | MahjongClaim::Pung | MahjongClaim::Kong
-            ) =>
-            {
+            } => {
+                let Some(kind) = MahjongCalligraphyKind::from_claim(claim) else {
+                    continue;
+                };
                 ActiveMahjongClaimPresentation {
                     match_id,
                     player,
                     source: Some(source),
                     tile: Some(tile),
-                    claim,
+                    kind,
                     shift_hand: true,
                     elapsed: 0.0,
                 }
@@ -411,8 +410,17 @@ pub(super) fn sync_mahjong_claim_presentation(
                 player,
                 source: None,
                 tile: None,
-                claim: MahjongClaim::Kong,
+                kind: MahjongCalligraphyKind::Kong,
                 shift_hand: !added,
+                elapsed: 0.0,
+            },
+            MahjongEvent::ReadyDeclared { player } => ActiveMahjongClaimPresentation {
+                match_id,
+                player,
+                source: None,
+                tile: None,
+                kind: MahjongCalligraphyKind::Ready,
+                shift_hand: false,
                 elapsed: 0.0,
             },
             _ => continue,
@@ -624,6 +632,7 @@ pub(crate) fn render_mahjong_table(
         game_assets,
         tile_materials,
     );
+    let mut player_panels = Vec::with_capacity(game.players.len());
     for player in &game.players {
         let winner_start = finished_result.and_then(|result| {
             result
@@ -668,7 +677,10 @@ pub(crate) fn render_mahjong_table(
                 drawn_tile_falling: drawn_tile_falling
                     && game.current_player == player.player.id
                     && !active_claim.is_some_and(|claim| {
-                        matches!(claim.claim, MahjongClaim::Chow { .. } | MahjongClaim::Pung)
+                        matches!(
+                            claim.kind,
+                            MahjongCalligraphyKind::Chow | MahjongCalligraphyKind::Pung
+                        )
                     }),
                 animation: game_summary,
                 active_claim,
@@ -678,7 +690,7 @@ pub(crate) fn render_mahjong_table(
                 materials: tile_materials,
             },
         );
-        render_mahjong_player_panel(
+        player_panels.push(render_mahjong_player_panel(
             commands,
             table,
             player,
@@ -689,7 +701,7 @@ pub(crate) fn render_mahjong_table(
                 assets,
                 avatars,
             },
-        );
+        ));
     }
     render_round_status(
         commands,
@@ -887,6 +899,7 @@ pub(crate) fn render_mahjong_table(
             game,
             result,
             MahjongSettlementVisuals {
+                player_panels: &player_panels,
                 assets,
                 avatars,
                 animation: game_summary,

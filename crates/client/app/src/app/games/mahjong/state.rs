@@ -25,6 +25,7 @@ pub(crate) struct MahjongUiState {
     pub fan_summary_continued: Option<(MatchId, u8)>,
     pub final_summary_opened_at: Option<(MatchId, u8, f32)>,
     pub last_automatic_action: Option<MahjongAutomaticActionKey>,
+    pub(super) ready_draw: Observed<MahjongAutomaticActionKey, f64>,
     pub(super) auto_hand: Option<(MatchId, u8)>,
     pub(super) last_table_height: Option<f32>,
     pub discard_animation: Option<MahjongOwnDiscardAnimation>,
@@ -96,6 +97,7 @@ impl MahjongUiState {
         self.fan_summary_continued = None;
         self.final_summary_opened_at = None;
         self.last_automatic_action = None;
+        self.ready_draw.clear();
     }
 
     pub(crate) fn clear(&mut self) {

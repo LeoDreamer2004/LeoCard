@@ -142,10 +142,14 @@ pub(super) fn add_mahjong_hand_tile(
         });
     if let Some(action) = interaction.action {
         commands.entity(entity).insert(action);
-        commands.entity(entity).remove::<InteractionDisabled>();
     } else {
         commands.entity(entity).remove::<UiAction>();
+    }
+    // 无出牌动作时仍保留悬停反馈，仅在选牌受限时禁用交互。
+    if interaction.dimmed {
         commands.entity(entity).insert(InteractionDisabled);
+    } else {
+        commands.entity(entity).remove::<InteractionDisabled>();
     }
     if let Some(deal) = deal {
         commands.entity(entity).init(MahjongDealTile {

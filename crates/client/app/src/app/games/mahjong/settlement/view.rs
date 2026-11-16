@@ -33,6 +33,7 @@ pub(super) fn settlement_row_texture(assets: &UiAssets) -> ImageNode {
 }
 
 pub(in crate::app::games::mahjong) struct MahjongSettlementVisuals<'a> {
+    pub player_panels: &'a [Entity],
     pub assets: &'a UiAssets,
     pub avatars: &'a AvatarImages,
     pub animation: &'a GameSummaryAnimation,
@@ -51,6 +52,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
     visuals: MahjongSettlementVisuals<'_>,
 ) {
     let MahjongSettlementVisuals {
+        player_panels,
         assets,
         avatars,
         animation,
@@ -400,7 +402,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
                 f32::INFINITY
             },
         }
-        .render(commands, table);
+        .render(commands, table, player_panels);
     }
 
     if let Some(opened_at) = final_summary_opened_at.filter(|_| final_standings) {

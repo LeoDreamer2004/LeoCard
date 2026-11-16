@@ -1,17 +1,15 @@
-use super::actions::GuandanUiAction;
 use super::state::GuandanUiState;
 use crate::app::games::{CardCounter, CounterRows};
 use crate::app::presentation::{
     ACCENT, CardCounterCell, CardCounterWindowState, TEXT, add_card_counter_window,
-    add_switch_drawer,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{UiAction, UiState};
+use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
 use leocard_guandan::{GuandanCard, GuandanPhase, GuandanSuit};
 use leocard_protocol::{GameSnapshot, GuandanSnapshot};
-use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
+use leocard_ui::UiComposer;
 use std::array;
 use std::collections::HashSet;
 
@@ -47,32 +45,6 @@ pub(super) fn render(
     if !ui.counter_window().active {
         return;
     }
-    let drawer = add_switch_drawer(
-        commands,
-        viewport,
-        SwitchDrawer {
-            expanded: ui.counter.drawer_open,
-            toggle_action: UiAction::Guandan(GuandanUiAction::ToggleCounterDrawer),
-            switches: &[DrawerSwitch {
-                short: "牌",
-                label: "记牌器",
-                enabled: ui.counter.enabled,
-                action: UiAction::Guandan(GuandanUiAction::ToggleCounter),
-            }],
-        },
-        assets,
-    );
-    // Keep the touch target above the hand and its action controls on both layouts.
-    commands
-        .entity(drawer)
-        .entry::<Node>()
-        .and_modify(|mut node| {
-            node.bottom = px(if cfg!(target_os = "android") {
-                394
-            } else {
-                292
-            });
-        });
     if !ui.counter.enabled {
         return;
     }

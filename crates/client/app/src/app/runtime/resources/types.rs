@@ -57,6 +57,7 @@ pub(crate) struct HomeAssets {
     pub play_table: Handle<Image>,
     pub recent_cards: [Handle<Image>; 3],
     pub settings_page: Handle<Image>,
+    pub about_mascot: Handle<Image>,
     pub page_frame: Handle<Image>,
     pub page_inset: Handle<Image>,
     pub panel: Handle<Image>,

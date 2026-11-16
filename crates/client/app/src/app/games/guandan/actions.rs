@@ -10,18 +10,22 @@ use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
 use leocard_guandan::{GuandanAction, GuandanRuleSet};
 use leocard_protocol::{GameSnapshot, GuandanCommand};
+use leocard_ui::CardDragSelection;
 
 #[derive(Clone)]
 pub(crate) enum GuandanUiAction {
     UpdateRules(GuandanRuleSet),
     ToggleCard,
+    ToggleHandLayout,
+    GroupSelected,
+    ResetHandGroups,
     Play,
     Pass,
     Hint,
     ShowPreviousTrick,
     SubmitTribute,
     ToggleCounter,
-    ToggleCounterDrawer,
+    ToggleDrawer,
 }
 
 impl DomainUiAction for GuandanUiAction {
@@ -42,6 +46,7 @@ pub(super) struct GuandanActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, GuandanUiState>,
     economy: Res<'w, PlayerEconomy>,
+    drag: ResMut<'w, CardDragSelection>,
 }
 
 pub(super) fn dispatch_actions(
@@ -59,6 +64,35 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
                 GuandanCommand::UpdateRules { rules: *rules },
             ),
             Self::ToggleCard => {}
+            Self::ToggleHandLayout => {
+                context.ui.arrangement.toggle_layout();
+                context.drag.active = false;
+            }
+            Self::ResetHandGroups => {
+                context.ui.arrangement.reset_groups();
+                context.drag.active = false;
+            }
+            Self::GroupSelected => {
+                let Some(game) = context.client.as_deref().and_then(|client| {
+                    client
+                        .0
+                        .model()
+                        .game_snapshot()
+                        .and_then(GameSnapshot::guandan)
+                }) else {
+                    return;
+                };
+                let selected = context.ui.selected.clone();
+                if !context
+                    .ui
+                    .arrangement
+                    .group_selected(&selected, &game.your_hand, game.level)
+                {
+                    return;
+                }
+                context.ui.selected.clear();
+                context.drag.active = false;
+            }
             Self::Hint => {
                 let ui = &mut context.ui;
                 if let Some(cards) = ui.hints.next_cards() {
@@ -72,8 +106,8 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
                     context.ui.counter.enabled = !context.ui.counter.enabled;
                 }
             }
-            Self::ToggleCounterDrawer => {
-                context.ui.counter.drawer_open = !context.ui.counter.drawer_open;
+            Self::ToggleDrawer => {
+                context.ui.drawer_open = !context.ui.drawer_open;
             }
             Self::Pass => send_game_command(
                 &mut context.client,

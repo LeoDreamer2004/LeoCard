@@ -7,6 +7,7 @@ use super::super::super::{
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UpdateUiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
 
@@ -36,6 +37,24 @@ impl<'a> AboutSettings<'a> {
                 ..default()
             },
             None,
+        );
+        commands.child(
+            identity,
+            (
+                Node {
+                    position_type: PositionType::Absolute,
+                    right: px(0),
+                    bottom: px(0),
+                    height: percent(90),
+                    max_height: px(224),
+                    aspect_ratio: Some(1.0),
+                    ..default()
+                },
+                ImageNode::new(self.assets.home.about_mascot.clone())
+                    .with_color(Color::WHITE.with_alpha(0.12)),
+                ZIndex(-1),
+                Pickable::IGNORE,
+            ),
         );
         add_title(
             commands,

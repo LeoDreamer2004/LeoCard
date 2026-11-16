@@ -1,28 +1,58 @@
-use super::hand::{HandCardSelectionOverlay, HandCardSlot, HandCardVisual, hand_layout};
+use super::hand::{HandCardSelectionOverlay, HandCardSlot, HandCardVisual};
+use super::hit_testing::{CardHitRegion, crossed_cards};
 use super::state::GuandanUiState;
-use crate::app::presentation::{
-    HandCardHighlight, advance_towards, drag_preview_color, hand_card_pose_for_layout,
-    update_drag_selection,
-};
+use crate::app::games::HandSelection;
+use crate::app::presentation::{HandCardHighlight, advance_towards, drag_preview_color};
 use crate::app::runtime::ClientResource;
-use crate::app::shell::UiState;
+use crate::app::shell::{ConfirmationDialog, PageMotion, UiState};
+use bevy::ecs::system::SystemParam;
+use bevy::picking::events::{PointerCancel, PointerClick};
 use bevy::picking::hover::PickingInteraction;
+use bevy::picking::pointer::PointerButton;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use bevy::window::PrimaryWindow;
+use leocard_guandan::GuandanCard;
 use leocard_protocol::GameSnapshot;
 use leocard_ui::CardDragSelection;
 
+#[derive(SystemParam)]
+pub(super) struct HandPointerInput<'w, 's> {
+    mouse: Res<'w, ButtonInput<MouseButton>>,
+    windows: Query<'w, 's, &'static Window, With<PrimaryWindow>>,
+    cards: Query<
+        'w,
+        's,
+        (
+            Entity,
+            &'static PickingInteraction,
+            &'static RelativeCursorPosition,
+            &'static HandCardSlot,
+            &'static ComputedNode,
+            &'static UiGlobalTransform,
+        ),
+    >,
+    clicks: MessageReader<'w, 's, PointerClick>,
+    cancels: MessageReader<'w, 's, PointerCancel>,
+    confirmation: Res<'w, ConfirmationDialog>,
+    motion: Res<'w, PageMotion>,
+}
+
+#[derive(Default)]
+pub(super) struct HandDragGesture {
+    origin: Option<Vec2>,
+    previous: Option<Vec2>,
+    hand: Vec<GuandanCard>,
+    moved: bool,
+}
+
 pub(super) fn handle_card_drag_selection(
-    mouse: Res<ButtonInput<MouseButton>>,
+    mut input: HandPointerInput,
     client: Option<Res<ClientResource>>,
     mut drag: ResMut<CardDragSelection>,
     mut game_ui: ResMut<GuandanUiState>,
     mut ui: ResMut<UiState>,
-    cards: Query<(
-        Option<&PickingInteraction>,
-        &RelativeCursorPosition,
-        &HandCardSlot,
-    )>,
+    mut gesture: Local<HandDragGesture>,
 ) {
     let Some(game) = client.as_deref().and_then(|client| {
         client
@@ -31,8 +61,12 @@ pub(super) fn handle_card_drag_selection(
             .game_snapshot()
             .and_then(GameSnapshot::guandan)
     }) else {
+        input.clicks.clear();
+        input.cancels.clear();
         return;
     };
+    let canceled = input.cancels.read().count() > 0;
+    let window = input.windows.single().ok();
     if client
         .as_deref()
         .is_none_or(|client| client.0.model().you() != Some(game.you))
@@ -42,27 +76,128 @@ pub(super) fn handle_card_drag_selection(
             .players
             .iter()
             .any(|player| player.player.id == game.you && player.auto_play)
+        || window.is_none_or(|window| !window.focused)
+        || canceled
+        || input.confirmation.is_open()
+        || input.motion.active()
+        || ui.settings.open
+        || ui.shop.open
+        || ui.profile.open
+        || ui.leaving_room
     {
         drag.active = false;
+        input.clicks.clear();
         return;
     }
-    let pressed = cards
+    let cursor = window.and_then(|window| {
+        window
+            .cursor_position()
+            .map(|point| point * window.scale_factor())
+    });
+    let mut current_hand = input
+        .cards
         .iter()
-        .find(|(interaction, _, _)| *interaction == Some(&PickingInteraction::Pressed))
-        .map(|(_, _, slot)| (slot.index, slot.card));
-    let hovered = cards
-        .iter()
-        .filter(|(_, cursor, _)| cursor.cursor_over())
-        .map(|(_, _, slot)| slot.index)
-        .max();
-    let changed = update_drag_selection(
-        &mouse,
-        &mut drag,
+        .map(|(_, _, _, slot, _, _)| (slot.index, slot.card))
+        .collect::<Vec<_>>();
+    current_hand.sort_by_key(|(index, _)| *index);
+    let current_hand = current_hand
+        .into_iter()
+        .map(|(_, card)| card)
+        .collect::<Vec<_>>();
+    if drag.active
+        && (gesture.hand != current_hand
+            || gesture.hand.len() != game.your_hand.len()
+            || gesture
+                .hand
+                .iter()
+                .any(|card| !game.your_hand.contains(card)))
+    {
+        drag.active = false;
+    }
+    if input.mouse.just_pressed(MouseButton::Left)
+        && let Some((_, _, _, slot, _, _)) =
+            input
+                .cards
+                .iter()
+                .find(|(_, interaction, cursor, _, _, _)| {
+                    **interaction == PickingInteraction::Pressed && cursor.cursor_over()
+                })
+    {
+        drag.begin_path(slot.index, !game_ui.selected.contains(&slot.card));
+        gesture.origin = cursor;
+        gesture.previous = cursor;
+        gesture.hand = current_hand;
+        gesture.moved = false;
+    }
+    if !drag.active {
+        input.clicks.clear();
+        return;
+    }
+    if let Some(cursor) = cursor {
+        let start = gesture.previous.unwrap_or(cursor);
+        gesture.moved |= gesture
+            .origin
+            .is_some_and(|origin| origin.distance(cursor) > 6.0);
+        let regions = input
+            .cards
+            .iter()
+            .map(|(_, _, _, slot, node, transform)| {
+                let half = node.size() * 0.5;
+                CardHitRegion {
+                    index: slot.index,
+                    rect: Rect::from_corners(
+                        transform.transform_point2(-half),
+                        transform.transform_point2(half),
+                    ),
+                }
+            })
+            .collect::<Vec<_>>();
+        for index in crossed_cards(start, cursor, &regions) {
+            drag.visit(index);
+        }
+        if let Some((_, _, _, slot, _, _)) =
+            input
+                .cards
+                .iter()
+                .find(|(_, interaction, relative, _, _, _)| {
+                    matches!(
+                        **interaction,
+                        PickingInteraction::Hovered | PickingInteraction::Pressed
+                    ) && relative.cursor_over()
+                })
+        {
+            drag.visit(slot.index);
+            gesture.moved |= slot.index != drag.anchor;
+        }
+        gesture.previous = Some(cursor);
+    }
+    if !input.mouse.just_released(MouseButton::Left) {
+        input.clicks.clear();
+        return;
+    }
+    let mut changed = drag.finish(
         &mut game_ui.selected,
-        pressed,
-        hovered,
-        cards.iter().map(|(_, _, slot)| (slot.index, slot.card)),
+        input
+            .cards
+            .iter()
+            .map(|(_, _, _, slot, _, _)| (slot.index, slot.card)),
     );
+    for click in input.clicks.read() {
+        if gesture.moved || click.button != PointerButton::Primary || !click.count.is_multiple_of(2)
+        {
+            continue;
+        }
+        let Ok((_, _, _, clicked, _, _)) = input.cards.get(click.entity) else {
+            continue;
+        };
+        let column = input
+            .cards
+            .iter()
+            .filter(|(_, _, _, slot, _, _)| slot.column == clicked.column)
+            .map(|(_, _, _, slot, _, _)| slot.card)
+            .collect::<Vec<_>>();
+        changed |= game_ui.toggle_selection(column);
+    }
     ui.dirty |= changed;
 }
 
@@ -108,7 +243,7 @@ pub(super) fn animate_hand_cards(
     ) in &mut cards
     {
         let hovered = if drag.active {
-            visual.index == drag.current
+            visual.placement.index == drag.current
         } else {
             matches!(
                 slots.get(visual.button),
@@ -117,8 +252,7 @@ pub(super) fn animate_hand_cards(
         };
         let selected = ui.selected.contains(&visual.card);
         let card = visual.card;
-        let index = visual.index;
-        let hand_len = visual.hand_len;
+        let placement = visual.placement;
         let animation = &mut visual.animation;
         animation.face_hover_amount =
             advance_towards(animation.face_hover_amount, f32::from(hovered), response);
@@ -133,7 +267,7 @@ pub(super) fn animate_hand_cards(
                 Visibility::Inherited
             };
         }
-        let pose = hand_card_pose_for_layout(hand_layout(index, hand_len), *animation);
+        let pose = placement.pose(*animation);
         transform.translation = pose.translation;
         transform.rotation = pose.rotation;
         HandCardHighlight::new(

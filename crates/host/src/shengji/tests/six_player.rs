@@ -9,8 +9,17 @@ use leocard_shengji::{
 
 #[test]
 fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
-    let rules = ShengjiRuleSet::for_mode(ShengjiMode::SixPlayer);
-    let mut deck = build_deck_for(3);
+    for deck_count in [3, 4] {
+        assert_six_player_session(deck_count);
+    }
+}
+
+fn assert_six_player_session(deck_count: u8) {
+    let rules = ShengjiRuleSet {
+        deck_count,
+        ..ShengjiRuleSet::for_mode(ShengjiMode::SixPlayer)
+    };
+    let mut deck = build_deck_for(deck_count);
     let target = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Two);
     let index = deck.iter().position(|card| *card == target).unwrap();
     deck.swap(5, index);
@@ -62,7 +71,7 @@ fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
             .your_exposed_cards
             .is_empty()
     );
-    session.advance_time(DEAL_INTERVAL * 150);
+    session.advance_time(DEAL_INTERVAL * (rules.hand_size() as u32 * 6));
     for (index, connection) in connections.iter().copied().enumerate() {
         session.handle(
             connection,
@@ -75,7 +84,7 @@ fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
     }
     let game = session.game.as_ref().unwrap();
     assert_eq!(game.players().len(), 6);
-    assert_eq!(game.players()[5].hand.len(), 32);
+    assert_eq!(game.players()[5].hand.len(), rules.hand_size() + 6);
     let buried = game.players()[5].hand[..6].to_vec();
     let deliveries = session.handle(
         connections[5],
@@ -89,7 +98,8 @@ fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
     );
     for (index, connection) in connections.iter().copied().enumerate() {
         let snapshot = game_snapshot(&deliveries, connection);
-        assert_eq!(snapshot.your_hand.len(), 26);
+        assert_eq!(snapshot.your_hand.len(), rules.hand_size());
+        assert_eq!(snapshot.rules, rules);
         assert_eq!(snapshot.players.len(), 6);
         assert_eq!(snapshot.phase, ShengjiPhaseView::Playing);
         if index == 5 {
@@ -102,7 +112,11 @@ fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
             PlayerId(index as u8)
         );
     }
-    session.commit_hand(&result_for_reference_points(false, 1, 120));
+    session.commit_hand(&result_for_reference_points(
+        false,
+        1,
+        rules.takeover_score(),
+    ));
     let changes = session
         .statistics
         .hand

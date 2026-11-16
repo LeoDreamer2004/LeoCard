@@ -50,6 +50,13 @@ impl ShengjiMode {
         }
     }
 
+    pub const fn minimum_deck_count(self) -> u8 {
+        match self {
+            Self::Classic => 2,
+            Self::SixPlayer => 3,
+        }
+    }
+
     pub const fn label(self) -> &'static str {
         match self {
             Self::Classic => "双升",
@@ -97,7 +104,7 @@ impl ShengjiRuleSet {
     pub fn for_mode(mode: ShengjiMode) -> Self {
         Self {
             mode,
-            deck_count: if mode == ShengjiMode::SixPlayer { 3 } else { 2 },
+            deck_count: mode.minimum_deck_count(),
             ..Self::default()
         }
     }
@@ -108,7 +115,7 @@ impl ShengjiRuleSet {
 
     pub const fn validate(self) -> Result<Self, ShengjiRuleError> {
         if matches!(self.mode, ShengjiMode::SixPlayer)
-            && (self.deck_count != 3 || self.five_trump_crossing)
+            && (self.deck_count < self.mode.minimum_deck_count() || self.five_trump_crossing)
         {
             return Err(ShengjiRuleError::InvalidSixPlayerOptions);
         }
@@ -119,7 +126,11 @@ impl ShengjiRuleSet {
     }
 
     pub const fn kitty_size(self) -> usize {
-        if self.deck_count == 3 { 6 } else { 8 }
+        if matches!(self.mode, ShengjiMode::SixPlayer) || self.deck_count == 3 {
+            6
+        } else {
+            8
+        }
     }
 
     pub const fn hand_size(self) -> usize {
@@ -170,7 +181,9 @@ pub enum ShengjiRuleError {
 impl fmt::Display for ShengjiRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidSixPlayerOptions => write!(f, "六人拖拉机固定三副牌，且不支持五主过江"),
+            Self::InvalidSixPlayerOptions => {
+                write!(f, "六人拖拉机只支持三至四副牌，且不支持五主过江")
+            }
             Self::InvalidDeckCount(actual) => {
                 write!(f, "升级只支持两至四副牌，实际为 {actual} 副")
             }

@@ -16,4 +16,21 @@ pub(crate) trait HandSelection {
     fn replace_selection(&mut self, cards: impl IntoIterator<Item = Self::Card>) {
         *self.selected_cards_mut() = cards.into_iter().collect();
     }
+
+    fn toggle_selection(&mut self, cards: impl IntoIterator<Item = Self::Card>) -> bool {
+        let cards = cards.into_iter().collect::<Vec<_>>();
+        let select = !cards
+            .iter()
+            .all(|card| self.selected_cards().contains(card));
+        let selected = self.selected_cards_mut();
+        let mut changed = false;
+        for card in cards {
+            changed |= if select {
+                selected.insert(card)
+            } else {
+                selected.remove(&card)
+            };
+        }
+        changed
+    }
 }

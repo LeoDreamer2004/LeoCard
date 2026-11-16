@@ -139,6 +139,7 @@ pub(crate) fn load_ui_assets(
             recent_cards: ["clouds", "suits", "ribbons"]
                 .map(|surface| asset_server.load(format!("ui/home/recent-{surface}-luma.png"))),
             settings_page: asset_server.load("ui/home/cozy-settings-page.png"),
+            about_mascot: asset_server.load("ui/home/about-mascot.png"),
             page_frame: asset_server.load("ui/home/page-shell.png"),
             page_inset: asset_server.load("ui/home/page-inset.png"),
             panel: asset_server.load("ui/home/cozy-panel.png"),

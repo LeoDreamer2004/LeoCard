@@ -60,11 +60,12 @@ pub(super) fn finish_score(
         flower_points,
         u16::from(flower_points),
     );
-    let fans = values
+    let mut fans = values
         .entries
         .into_iter()
         .map(|(fan, (count, points))| MahjongFanValue { fan, count, points })
         .collect::<Vec<_>>();
+    fans.sort_by_key(|value| value.fan == MahjongFan::FlowerTiles);
     let points_without_flowers = fans
         .iter()
         .filter(|value| value.fan != MahjongFan::FlowerTiles)

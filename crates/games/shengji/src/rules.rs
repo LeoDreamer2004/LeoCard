@@ -59,8 +59,8 @@ impl ShengjiMode {
 
     pub const fn label(self) -> &'static str {
         match self {
-            Self::Classic => "双升",
-            Self::SixPlayer => "六人拖拉机",
+            Self::Classic => "四人标准",
+            Self::SixPlayer => "六人两队",
         }
     }
 }
@@ -182,7 +182,7 @@ impl fmt::Display for ShengjiRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidSixPlayerOptions => {
-                write!(f, "六人拖拉机只支持三至四副牌，且不支持五主过江")
+                write!(f, "六人两队只支持三至四副牌，且不支持五主过江")
             }
             Self::InvalidDeckCount(actual) => {
                 write!(f, "升级只支持两至四副牌，实际为 {actual} 副")

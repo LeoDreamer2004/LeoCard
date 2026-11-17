@@ -101,3 +101,57 @@ pub(super) fn render(
         }
     }
 }
+
+pub(super) fn render_hand_controls(
+    commands: &mut UiComposer,
+    parent: Entity,
+    game: &GuandanSnapshot,
+    ui: &GuandanUiState,
+    can_control: bool,
+    assets: &UiAssets,
+) {
+    let row = spawn_node(
+        commands,
+        parent,
+        Node {
+            height: px(34.0 * GAME_SIDE_CONTROL_SCALE),
+            column_gap: px(8),
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        None,
+    );
+    if !can_control || game.result.is_some() {
+        return;
+    }
+    let enabled = !ui.is_dealing()
+        && game
+            .players
+            .iter()
+            .any(|player| player.player.id == game.you && !player.auto_play);
+    for (label, action, available) in [
+        (
+            "理牌",
+            GuandanUiAction::GroupSelected,
+            ui.arrangement
+                .can_group(&ui.selected, &game.your_hand, game.level),
+        ),
+        (
+            "还原",
+            GuandanUiAction::ResetHandGroups,
+            ui.arrangement.has_groups(),
+        ),
+    ] {
+        TableActionButton {
+            size: Vec2::new(88.0, 30.0),
+            font_size: 16.0,
+            ..TableActionButton::new(
+                label,
+                (enabled && available).then_some(UiAction::Guandan(action)),
+                TableButtonSkin::PaperCard(PaperCardButtonTone::Stone),
+            )
+        }
+        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .mount(commands, row, assets);
+    }
+}

@@ -2,8 +2,8 @@ use super::super::*;
 use super::*;
 use crate::play::classify_cards;
 use crate::{
-    ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId, ShengjiThrowPenalty,
-    ShengjiTrump, build_deck,
+    ShengjiCard, ShengjiMode, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId,
+    ShengjiThrowPenalty, ShengjiTrump, build_deck,
 };
 use leocard_game_common::PlayerId;
 
@@ -185,31 +185,36 @@ fn four_deck_settlement_uses_eighty_point_bands() {
         (240, ShengjiTeamId(1), 1),
         (320, ShengjiTeamId(1), 2),
     ];
-    for (score, promoted_team, steps) in cases {
-        let mut game = dealt_game(ShengjiRuleSet {
-            deck_count: 4,
-            ..ShengjiRuleSet::default()
-        });
-        game.dealer = Some(PlayerId(0));
-        game.collecting_score = score;
-        game.buried.clear();
-        let play = classify_cards(
-            &[ShengjiCard::suited(
-                0,
-                ShengjiSuit::Diamond,
-                ShengjiRank::Three,
-            )],
-            game.trump.unwrap(),
-        )
-        .unwrap();
-        let last = ShengjiTrickRecord {
-            leader: PlayerId(0),
-            plays: vec![(PlayerId(0), play)],
-            winner: PlayerId(0),
-            points: 0,
-        };
-        let result = game.finish_hand(PlayerId(0), &last);
-        assert_eq!(result.promoted_team, promoted_team, "score={score}");
-        assert_eq!(result.promoted_steps, steps, "score={score}");
+    for mode in [ShengjiMode::Classic, ShengjiMode::SixPlayer] {
+        for (score, promoted_team, steps) in cases {
+            let mut game = dealt_game(ShengjiRuleSet {
+                deck_count: 4,
+                ..ShengjiRuleSet::for_mode(mode)
+            });
+            game.dealer = Some(PlayerId(0));
+            game.collecting_score = score;
+            game.buried.clear();
+            let play = classify_cards(
+                &[ShengjiCard::suited(
+                    0,
+                    ShengjiSuit::Diamond,
+                    ShengjiRank::Three,
+                )],
+                game.trump.unwrap(),
+            )
+            .unwrap();
+            let last = ShengjiTrickRecord {
+                leader: PlayerId(0),
+                plays: vec![(PlayerId(0), play)],
+                winner: PlayerId(0),
+                points: 0,
+            };
+            let result = game.finish_hand(PlayerId(0), &last);
+            assert_eq!(
+                result.promoted_team, promoted_team,
+                "mode={mode:?}, score={score}"
+            );
+            assert_eq!(result.promoted_steps, steps, "mode={mode:?}, score={score}");
+        }
     }
 }

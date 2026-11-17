@@ -43,28 +43,34 @@ pub(crate) fn render_shengji_lobby(
     let rules_panel = page.rules;
     let can_configure = page.can_configure;
 
-    if rules_value.mode == ShengjiMode::Classic {
-        let previous_deck_count = (rules_value.deck_count > 2).then_some(ShengjiRuleSet {
+    let previous_deck_count = (rules_value.deck_count > rules_value.mode.minimum_deck_count())
+        .then_some(ShengjiRuleSet {
             deck_count: rules_value.deck_count - 1,
             ..rules_value
         });
-        let next_deck_count = (rules_value.deck_count < 4).then_some(ShengjiRuleSet {
-            deck_count: rules_value.deck_count + 1,
-            ..rules_value
-        });
-        add_rule_config_row(
-            commands,
-            rules_panel,
-            ShengjiRuleConfigRow {
-                label: "牌副数",
-                value: format!("{} 副", rules_value.deck_count),
-                help: "两副牌：25 张手牌、8 张底牌；三副牌：39 张手牌、6 张底牌，加入三同张和泰坦尼克；四副牌：52 张手牌、8 张底牌，再加入炸弹和宇宙飞船。",
-                previous: previous_deck_count.filter(|_| can_configure),
-                next: next_deck_count.filter(|_| can_configure),
+    let next_deck_count = (rules_value.deck_count < 4).then_some(ShengjiRuleSet {
+        deck_count: rules_value.deck_count + 1,
+        ..rules_value
+    });
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        ShengjiRuleConfigRow {
+            label: "牌副数",
+            value: format!("{} 副", rules_value.deck_count),
+            help: match rules_value.mode {
+                ShengjiMode::Classic => {
+                    "两副牌：每人 25 张、底牌 8 张。三副牌：每人 39 张、底牌 6 张，加入三同张和泰坦尼克。四副牌：每人 52 张、底牌 8 张，再加入炸弹和宇宙飞船。"
+                }
+                ShengjiMode::SixPlayer => {
+                    "三副牌：每人 26 张、底牌 6 张，120 分上台，每档 60 分。四副牌：每人 35 张、底牌 6 张，160 分上台，每档 80 分，加入炸弹和宇宙飞船。"
+                }
             },
-            assets,
-        );
-    }
+            previous: previous_deck_count.filter(|_| can_configure),
+            next: next_deck_count.filter(|_| can_configure),
+        },
+        assets,
+    );
     let throw_toggled = ShengjiRuleSet {
         allow_throw: !rules_value.allow_throw,
         ..rules_value

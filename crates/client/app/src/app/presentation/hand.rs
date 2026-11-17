@@ -129,34 +129,19 @@ where
     if mouse.just_pressed(MouseButton::Left)
         && let Some((index, card)) = pressed
     {
-        drag.active = true;
-        drag.anchor = index;
-        drag.current = index;
-        drag.select = !selected.contains(&card);
+        drag.begin(index, !selected.contains(&card));
     }
     if drag.active
         && mouse.pressed(MouseButton::Left)
         && let Some(index) = hovered
     {
-        drag.current = index;
+        drag.visit(index);
     }
     if !drag.active || !mouse.just_released(MouseButton::Left) {
         return false;
     }
 
-    let mut changed = false;
-    for (index, card) in cards {
-        if !drag.contains(index) {
-            continue;
-        }
-        changed |= if drag.select {
-            selected.insert(card)
-        } else {
-            selected.remove(&card)
-        };
-    }
-    drag.active = false;
-    changed
+    drag.finish(selected, cards)
 }
 
 pub(crate) fn drag_preview_color(drag: &CardDragSelection, index: usize) -> Color {
@@ -213,24 +198,36 @@ pub(crate) fn hand_card_pose_for_layout(
         card_width,
         reveal,
     } = layout;
-    let lift =
-        animation.face_hover_amount * 5.0 + animation.selected_amount * HAND_CARD_SELECTED_LIFT;
-    let progress = if animation.dealing {
-        (animation.deal_elapsed / 0.20).clamp(0.0, 1.0)
-    } else {
-        1.0
-    };
-    let deal_offset = (1.0 - progress).powi(3);
     let hand_width = if hand_len == 0 {
         0.0
     } else {
         (hand_len.saturating_sub(1) as f32 * reveal) + card_width
     };
     let final_center_x = index as f32 * reveal + card_width * 0.5 - hand_width * 0.5;
+    hand_card_pose_at(
+        Vec2::new(final_center_x, 0.0),
+        animation,
+        Vec2::new(0.0, -HAND_CARD_SELECTED_LIFT),
+    )
+}
 
+pub(crate) fn hand_card_pose_at(
+    center: Vec2,
+    animation: CardAnimationState,
+    selection_offset: Vec2,
+) -> HandCardPose {
+    let progress = if animation.dealing {
+        (animation.deal_elapsed / 0.20).clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+    let deal_offset = (1.0 - progress).powi(3);
+    let offset = Vec2::new(-center.x, -270.0 - center.y) * deal_offset
+        + Vec2::new(0.0, -animation.face_hover_amount * 5.0)
+        + selection_offset * animation.selected_amount;
     HandCardPose {
-        translation: Val2::px(-final_center_x * deal_offset, -270.0 * deal_offset - lift),
-        rotation: Rot2::radians(final_center_x * 0.0015 * deal_offset),
+        translation: Val2::px(offset.x, offset.y),
+        rotation: Rot2::radians(center.x * 0.0015 * deal_offset),
     }
 }
 

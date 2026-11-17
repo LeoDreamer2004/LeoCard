@@ -1,4 +1,4 @@
-use super::hand::sorted_hand;
+use super::arrangement::sorted_cards;
 use super::state::GuandanUiState;
 use crate::app::presentation::{
     CardAnimationState, PendingDealSound, PlayEffectKind, PlayEffectState,
@@ -123,7 +123,10 @@ pub(super) fn queue_deal(
     }) else {
         return;
     };
-    for (index, card) in sorted_hand(game).into_iter().enumerate() {
+    for (index, card) in sorted_cards(&game.your_hand, game.level)
+        .into_iter()
+        .enumerate()
+    {
         let delay = index as f32 * 0.035;
         state.card_animations.insert(
             card,

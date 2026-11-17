@@ -1,7 +1,9 @@
 use super::actions::GuandanUiAction;
 use super::controls;
 use super::counter;
+use super::drawer;
 use super::hand::render_hand;
+use super::hand_layout::GuandanHandLayout;
 use super::state::GuandanUiState;
 use super::summary;
 use super::tribute;
@@ -43,6 +45,10 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
     let game = context.game;
     let assets = context.assets;
     let can_control = context.client.0.model().you() == Some(game.you);
+    let hand_layout = GuandanHandLayout::new(
+        &context.ui.arrangement.columns(&game.your_hand, game.level),
+        context.ui.arrangement.mode,
+    );
     let content = commands.mount(root, format!("guandan:{:?}", game.match_id), bsn! { @ui_component(Node {
         width: percent(100), flex_grow: 1.0, min_height: px(0), position_type: PositionType::Relative,
         flex_direction: FlexDirection::Column, ..default()
@@ -60,9 +66,9 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
             flex_grow: 1.0,
             width: percent(100),
             min_height: px(if cfg!(target_os = "android") {
-                330
+                180
             } else {
-                410
+                230
             }),
             position_type: PositionType::Relative,
             align_items: AlignItems::Center,
@@ -76,11 +82,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         content,
         Node {
             width: percent(100),
-            height: px(if cfg!(target_os = "android") {
-                312
-            } else {
-                210
-            }),
+            height: px(hand_layout.size.y + 88.0 * GAME_SIDE_CONTROL_SCALE + 12.0),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -152,17 +154,27 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         add_text(commands, status, "上一圈回看", 14.0, ACCENT, assets);
     }
     controls::render(commands, hand_area, game, context.ui, can_control, assets);
+    controls::render_hand_controls(commands, hand_area, game, context.ui, can_control, assets);
     let hand_row = spawn_node(
         commands,
         hand_area,
         Node {
-            height: px(146.0 * GAME_SIDE_CONTROL_SCALE),
-            justify_content: JustifyContent::Center,
+            width: px(hand_layout.size.x),
+            height: px(hand_layout.size.y),
+            position_type: PositionType::Relative,
             ..default()
         },
         None,
     );
-    render_hand(commands, hand_row, game, context.ui, can_control, assets);
+    render_hand(
+        commands,
+        hand_row,
+        game,
+        context.ui,
+        &hand_layout,
+        can_control,
+        assets,
+    );
     let auto = game
         .players
         .iter()
@@ -181,6 +193,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
     if can_control && auto == Some(true) && game.result.is_none() {
         add_auto_play_overlay(commands, content, assets);
     }
+    drawer::render(commands, content, context.ui, assets);
     counter::render(commands, content, game, context.ui, assets);
     if let Some(effect) = context
         .play_effect

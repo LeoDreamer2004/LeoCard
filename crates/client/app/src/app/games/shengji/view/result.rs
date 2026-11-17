@@ -17,7 +17,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
-use leocard_shengji::ShengjiCard;
+use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
 use leocard_ui::{UiComposer, spawn_node};
 
 #[expect(
@@ -278,7 +278,11 @@ fn add_shengji_settlement_modal(
     let outcome = add_title(
         commands,
         modal,
-        shengji_settlement_outcome(result, game.rules.deck_count),
+        shengji_settlement_outcome_for_score(
+            result.collecting_score,
+            result.promoted_steps,
+            game.rules,
+        ),
         20.0,
         TEXT,
         assets,
@@ -442,25 +446,16 @@ fn add_shengji_settlement_modal(
     let _ = animation;
 }
 
-fn shengji_settlement_outcome(result: &ShengjiHandResultView, deck_count: u8) -> String {
-    shengji_settlement_outcome_for_score(result.collecting_score, result.promoted_steps, deck_count)
-}
-
 pub(crate) fn shengji_settlement_outcome_for_score(
     collecting_score: u32,
     promoted_steps: u8,
-    deck_count: u8,
+    rules: ShengjiRuleSet,
 ) -> String {
-    let (small_light, takeover) = match deck_count {
-        4 => (80, 160),
-        3 => (60, 120),
-        _ => (40, 80),
-    };
     if collecting_score == 0 {
         "闲家大光".to_owned()
-    } else if collecting_score < small_light {
+    } else if collecting_score < rules.score_step() {
         "闲家小光".to_owned()
-    } else if collecting_score < takeover {
+    } else if collecting_score < rules.takeover_score() {
         "闲家脱贫".to_owned()
     } else if promoted_steps == 0 {
         "闲家上台".to_owned()

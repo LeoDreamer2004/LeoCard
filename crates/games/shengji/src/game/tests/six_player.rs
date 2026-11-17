@@ -1,79 +1,98 @@
 use super::dealt_game;
-use crate::ShengjiTeamId;
 use crate::{
     ShengjiAutoPlay, ShengjiAutoPlayRequest, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,
-    ShengjiCard, ShengjiGameState, ShengjiMode, ShengjiPhase, ShengjiRank, ShengjiRuleSet,
-    ShengjiSuit, ShengjiTeamProgress, build_deck_for,
+    ShengjiCard, ShengjiGameError, ShengjiGameState, ShengjiMode, ShengjiPhase, ShengjiRank,
+    ShengjiRuleSet, ShengjiSuit, ShengjiTeamId, ShengjiTeamProgress, build_deck_for,
 };
 use leocard_game_common::{PlayerId, SearchBudget};
-
 use std::time::Duration;
 
 #[test]
 fn six_players_deal_bury_follow_and_settle_a_complete_hand() {
-    let rules = ShengjiRuleSet::for_mode(ShengjiMode::SixPlayer);
-    assert_eq!(
-        (rules.player_count(), rules.hand_size(), rules.kitty_size()),
-        (6, 26, 6)
-    );
-    assert_eq!((rules.takeover_score(), rules.score_step()), (120, 60));
-    assert!(
-        ShengjiRuleSet {
-            deck_count: 2,
-            ..rules
+    for (deck_count, hand_size, takeover, step) in [(3, 26, 120, 60), (4, 35, 160, 80)] {
+        let rules = ShengjiRuleSet {
+            deck_count,
+            ..ShengjiRuleSet::for_mode(ShengjiMode::SixPlayer)
+        };
+        assert_eq!(
+            (rules.player_count(), rules.hand_size(), rules.kitty_size()),
+            (6, hand_size, 6)
+        );
+        assert_eq!(
+            (rules.takeover_score(), rules.score_step()),
+            (takeover, step)
+        );
+        assert!(
+            ShengjiRuleSet {
+                deck_count: 2,
+                ..rules
+            }
+            .validate()
+            .is_err()
+        );
+        assert!(
+            ShengjiRuleSet {
+                five_trump_crossing: true,
+                ..rules
+            }
+            .validate()
+            .is_err()
+        );
+        let mut game = dealt_game(rules);
+        let dealer = game.dealer().unwrap();
+        let wrong_burial = game.players()[usize::from(dealer.0)].hand[..8].to_vec();
+        assert!(matches!(
+            game.bury(dealer, &wrong_burial),
+            Err(ShengjiGameError::WrongBuryCount {
+                expected: 6,
+                actual: 8,
+            })
+        ));
+        let buried = game.players()[usize::from(dealer.0)].hand[..6].to_vec();
+        game.bury(dealer, &buried).unwrap();
+        assert!(
+            game.players()
+                .iter()
+                .all(|player| player.hand.len() == hand_size)
+        );
+        let observation = ShengjiBotObservation::from_game(&game, dealer).unwrap();
+        let action =
+            ShengjiBot::choose(&observation, &SearchBudget::new(Duration::from_millis(10)));
+        let ShengjiBotAction::Play(cards) = action else {
+            panic!("bot must play after burial");
+        };
+        game.play_cards(dealer, &cards).unwrap();
+        for _ in 0..hand_size * usize::from(rules.player_count()) {
+            if matches!(game.phase(), ShengjiPhase::Finished(_)) {
+                break;
+            }
+            let player = game.current_player().unwrap();
+            let trick = game.current_trick();
+            let lead = trick
+                .as_ref()
+                .and_then(|trick| trick.plays.first())
+                .map(|(_, play)| play);
+            let play = ShengjiAutoPlay::choose(ShengjiAutoPlayRequest {
+                hand: &game.players()[usize::from(player.0)].hand,
+                lead,
+                trump: game.trump().unwrap(),
+            })
+            .unwrap();
+            game.play_cards(player, &play.cards).unwrap();
         }
-        .validate()
-        .is_err()
-    );
-    assert!(
-        ShengjiRuleSet {
-            five_trump_crossing: true,
-            ..rules
-        }
-        .validate()
-        .is_err()
-    );
-    let mut game = dealt_game(rules);
-    let dealer = game.dealer().unwrap();
-    let buried = game.players()[usize::from(dealer.0)].hand[..6].to_vec();
-    game.bury(dealer, &buried).unwrap();
-    assert!(game.players().iter().all(|player| player.hand.len() == 26));
-    let observation = ShengjiBotObservation::from_game(&game, dealer).unwrap();
-    let action = ShengjiBot::choose(&observation, &SearchBudget::new(Duration::from_millis(10)));
-    let ShengjiBotAction::Play(cards) = action else {
-        panic!("bot must play after burial");
-    };
-    game.play_cards(dealer, &cards).unwrap();
-    for _ in 0..156 {
-        if matches!(game.phase(), ShengjiPhase::Finished(_)) {
-            break;
-        }
-        let player = game.current_player().unwrap();
-        let trick = game.current_trick();
-        let lead = trick
-            .as_ref()
-            .and_then(|trick| trick.plays.first())
-            .map(|(_, play)| play);
-        let play = ShengjiAutoPlay::choose(ShengjiAutoPlayRequest {
-            hand: &game.players()[usize::from(player.0)].hand,
-            lead,
-            trump: game.trump().unwrap(),
-        })
-        .unwrap();
-        game.play_cards(player, &play.cards).unwrap();
+        let ShengjiPhase::Finished(result) = game.phase() else {
+            panic!("hand did not finish");
+        };
+        assert!(game.players().iter().all(|player| player.hand.is_empty()));
+        assert!(game.history().iter().all(|trick| trick.plays.len() == 6));
+        let captured: u16 = game.history().iter().map(|trick| trick.points).sum();
+        assert_eq!(
+            captured + buried.iter().map(|card| card.points()).sum::<u16>(),
+            100 * u16::from(deck_count)
+        );
+        assert!(result.next_dealer.0 < 6);
+        assert_eq!(ShengjiTeamId::of(result.next_dealer), result.promoted_team);
     }
-    let ShengjiPhase::Finished(result) = game.phase() else {
-        panic!("hand did not finish");
-    };
-    assert!(game.players().iter().all(|player| player.hand.is_empty()));
-    assert!(game.history().iter().all(|trick| trick.plays.len() == 6));
-    let captured: u16 = game.history().iter().map(|trick| trick.points).sum();
-    assert_eq!(
-        captured + buried.iter().map(|card| card.points()).sum::<u16>(),
-        300
-    );
-    assert!(result.next_dealer.0 < 6);
-    assert_eq!(ShengjiTeamId::of(result.next_dealer), result.promoted_team);
 }
 
 #[test]

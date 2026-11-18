@@ -19,6 +19,7 @@ impl ScreenChangeCapture {
                     matches!(
                         game,
                         GameSnapshot::QiGui523(_)
+                            | GameSnapshot::DrawGuess(_)
                             | GameSnapshot::Shengji(_)
                             | GameSnapshot::Texas(_)
                             | GameSnapshot::McGuess(_)
@@ -31,6 +32,9 @@ impl ScreenChangeCapture {
 
     pub(crate) fn is_transient(&self, after: Option<&GameSnapshot>) -> bool {
         match (self.before.as_ref(), after) {
+            (Some(GameSnapshot::DrawGuess(before)), Some(GameSnapshot::DrawGuess(after))) => {
+                before.is_transient_change(after)
+            }
             (Some(GameSnapshot::Blackjack(before)), Some(GameSnapshot::Blackjack(after))) => {
                 before.is_transient_change(after)
             }

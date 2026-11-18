@@ -94,7 +94,10 @@ impl<'a> LobbyTable<'a> {
             TEXT,
             self.assets,
         );
-        if self.lobby.host.is_some() && self.client.0.model().you() == self.lobby.host {
+        if self.lobby.rules.supports_bots()
+            && self.lobby.host.is_some()
+            && self.client.0.model().you() == self.lobby.host
+        {
             add_text(
                 commands,
                 table,

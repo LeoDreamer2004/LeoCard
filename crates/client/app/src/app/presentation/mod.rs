@@ -1,5 +1,6 @@
 //! 与具体游戏和业务功能无关的控件、运动效果与共用演出设施。
 
+mod answer_reveal;
 mod button_feedback;
 mod card_audio;
 mod corner_notices;
@@ -7,6 +8,7 @@ mod hand;
 mod hand_style;
 pub(crate) mod mahjong;
 mod motion;
+mod ore;
 mod plugin;
 mod score_motion;
 pub(super) mod seat_transition;
@@ -17,6 +19,7 @@ mod tabletop;
 mod turn_border;
 pub(super) mod ui;
 
+pub(crate) use answer_reveal::*;
 pub(crate) use button_feedback::*;
 pub(crate) use card_audio::*;
 pub(crate) use corner_notices::CornerNotifications;
@@ -27,6 +30,7 @@ pub(crate) use mahjong::{
     attach_mahjong_tile_surface, mahjong_local_light,
 };
 pub(crate) use motion::*;
+pub(crate) use ore::OreUiSkin;
 pub(super) use plugin::*;
 pub(crate) use score_motion::*;
 pub(crate) use seat_transition::*;

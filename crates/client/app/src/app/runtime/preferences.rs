@@ -12,6 +12,7 @@ pub(crate) use leocard_client::{
     load_player_preferences, save_game_preferences, save_global_preferences,
 };
 use leocard_doudizhu::DoudizhuRuleSet;
+use leocard_draw_guess::DrawGuessRuleSet;
 use leocard_guandan::GuandanRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_mc_guess::McGuessRuleSet;
@@ -311,6 +312,7 @@ impl HostRulePreferences {
             GameKind::Doudizhu => normalize_rules(self.doudizhu_rules).into(),
             GameKind::Guandan => normalize_rules(self.guandan_rules).into(),
             GameKind::MahjongLink => leocard_mahjong_link::MahjongLinkRuleSet::default().into(),
+            GameKind::DrawGuess => DrawGuessRuleSet::default().into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::McGuess => normalize_rules(self.mc_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
@@ -323,7 +325,7 @@ impl HostRulePreferences {
 
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
-            GameRules::Blackjack(_) | GameRules::MahjongLink(_) => false,
+            GameRules::Blackjack(_) | GameRules::MahjongLink(_) | GameRules::DrawGuess(_) => false,
             GameRules::Doudizhu(rules) => {
                 let rules = normalize_rules(*rules);
                 replace_if_changed(&mut self.doudizhu_rules, rules)

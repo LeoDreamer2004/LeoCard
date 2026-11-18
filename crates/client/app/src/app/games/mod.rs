@@ -4,6 +4,7 @@ pub(super) mod blackjack;
 mod catalog;
 mod composition;
 pub(super) mod doudizhu;
+pub(super) mod draw_guess;
 mod feature;
 pub(super) mod guandan;
 pub(super) mod mahjong;

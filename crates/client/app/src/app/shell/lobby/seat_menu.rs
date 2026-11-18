@@ -110,7 +110,7 @@ pub(crate) fn handle_lobby_seat_right_click(
                 GlobalZIndex(1600),
             ));
         }
-        _ => {
+        _ if lobby.rules.supports_bots() => {
             let occupied = target.is_none();
             if let Some(client) = client.as_deref_mut() {
                 client
@@ -118,5 +118,6 @@ pub(crate) fn handle_lobby_seat_right_click(
                     .send(ClientCommand::ConfigureBotSeat { seat, occupied });
             }
         }
+        _ => {}
     }
 }

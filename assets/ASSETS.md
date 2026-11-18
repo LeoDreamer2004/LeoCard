@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | Kenney Boardgame Pack 2 | 普通牌面、牌背与德州扑克筹码 | `vendor/kenney/boardgame/` | CC0 1.0；<https://kenney.nl/assets/boardgame-pack> |
 | Kenney UI Pack 2.0 | 部分操作音效 | `vendor/kenney/ui/Sounds/` | CC0 1.0；<https://kenney.nl/assets/ui-pack> |
-| Kenney Interface Sounds 1.0 | 通用界面提示和德州、UNO、升级操作音效 | `vendor/kenney/interface-sounds/` | CC0 1.0；<https://kenney.nl/assets/interface-sounds> |
+| Kenney Interface Sounds 1.0 | 通用界面提示和德州、UNO、升级操作音效，以及你画我猜的猜中与答案揭晓音效 | `vendor/kenney/interface-sounds/` | CC0 1.0，<https://kenney.nl/assets/interface-sounds> |
 | Kenney Casino Audio 1.1 | 发牌、出牌、推牌、筹码、掷骰和结算音效 | `vendor/kenney/casino-audio/` | [CC0 1.0 · Kenney Casino Audio](https://kenney.nl/assets/casino-audio) |
 | VerzatileDev 4 Colour Cards | UNO 牌面、选色状态和 UNO 牌背 | `cards/uno/` | CC0 1.0；<https://verzatiledev.itch.io/4colour>，许可声明见 <https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license> |
 | BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
@@ -26,9 +26,8 @@
 | Detective_Lemons / Freesound | 麻将开局批量摸牌的连续碰牌声 | `audio/mahjong/table/deal.ogg` | [CC0 1.0](https://freesound.org/people/Detective_Lemons/sounds/785585/) |
 | SFXMint | 麻将单张摸牌与出牌音效 | `audio/mahjong/table/` | [CC0 1.0](https://sfxmint.com/sounds/mahjong)，AI 生成 |
 | BMacZero / Brian MacIntosh | UNO 反转、跳过、罚摸和 UNO 提醒音效的纸牌拟音底层 | `audio/uno/actions/` | [CC0 1.0](https://opengameart.org/content/playing-card-sounds) |
-
-UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同纹理。原始包、作者、下载
-日期和 SHA-256 记录在 `vendor/verzatiledev/4-colour-cards/SOURCE.md`。
+| farfadet46 | 你画我猜填充桶短音 | `audio/draw_guess/fill.ogg` | [CC0 1.0](https://opengameart.org/content/bubbles-pop) |
+| AntumDeluge / damsur / NachtmahrTV | 你画我猜绘画与擦除摩擦音 | `audio/draw_guess/draw.ogg`、`erase.ogg` | [CC0 1.0 Pencil Sounds](https://opengameart.org/node/132692) |
 
 ## 需保留署名或许可证的素材
 

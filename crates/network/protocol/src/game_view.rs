@@ -20,6 +20,7 @@ macro_rules! snapshot_field {
             GameSnapshot::Doudizhu($game) => $body,
             GameSnapshot::Guandan($game) => $body,
             GameSnapshot::MahjongLink($game) => $body,
+            GameSnapshot::DrawGuess($game) => $body,
         }
     };
 }
@@ -31,6 +32,7 @@ impl GameSnapshot {
             Self::Doudizhu(snapshot) => &snapshot.players,
             Self::Guandan(snapshot) => &snapshot.players,
             Self::MahjongLink(snapshot) => &snapshot.players,
+            Self::DrawGuess(snapshot) => &snapshot.players,
             Self::Texas(snapshot) => &snapshot.players,
             Self::Shengji(snapshot) => &snapshot.players,
             Self::Uno(snapshot) => &snapshot.players,
@@ -55,6 +57,7 @@ impl GameSnapshot {
             Self::Doudizhu(snapshot) => snapshot.host,
             Self::Guandan(snapshot) => snapshot.host,
             Self::MahjongLink(snapshot) => snapshot.host,
+            Self::DrawGuess(snapshot) => snapshot.host,
             Self::Texas(snapshot) => snapshot.host,
             Self::Shengji(snapshot) => snapshot.host,
             Self::Uno(snapshot) => snapshot.host,
@@ -90,7 +93,7 @@ impl GameSnapshot {
             Self::Mahjong(snapshot) => toggle!(snapshot, MahjongCommand),
             Self::Blackjack(snapshot) => toggle!(snapshot, BlackjackCommand),
             Self::MahjongLink(snapshot) => toggle!(snapshot, MahjongLinkCommand),
-            Self::McGuess(_) => None,
+            Self::McGuess(_) | Self::DrawGuess(_) => None,
         }
     }
 
@@ -109,6 +112,7 @@ impl GameSnapshot {
             Self::Doudizhu(game) => GameRules::Doudizhu(game.rules),
             Self::Guandan(game) => GameRules::Guandan(game.rules),
             Self::MahjongLink(game) => GameRules::MahjongLink(game.rules),
+            Self::DrawGuess(game) => GameRules::DrawGuess(game.rules),
         })
     }
 
@@ -158,6 +162,9 @@ impl GameSnapshot {
                 (game.match_id, &game.reference_changes)
             }
             Self::MahjongLink(game) if self.match_complete() => {
+                (game.match_id, &game.reference_changes)
+            }
+            Self::DrawGuess(game) if self.match_complete() => {
                 (game.match_id, &game.reference_changes)
             }
             Self::Guandan(game) if self.match_complete() => {

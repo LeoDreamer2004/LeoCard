@@ -104,6 +104,7 @@ trait ProfileTiming {
 impl ProfileTiming for PlayerGameProfiles {
     fn action_time(&self, game: GameKind) -> ActionTimeStats {
         match game {
+            GameKind::DrawGuess => None,
             GameKind::QiGui523 => self.qigui523.as_ref().map(|stats| stats.action_time),
             GameKind::Texas => self.texas.as_ref().map(|stats| stats.action_time),
             GameKind::Shengji => self.shengji.as_ref().map(|stats| stats.action_time),

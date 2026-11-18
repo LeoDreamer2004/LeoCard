@@ -2,6 +2,10 @@ use leocard_protocol::GameRules;
 
 /// Capacity and short lobby labels belong to the game's concrete rule set.
 pub(crate) trait GameLobbyRules {
+    fn supports_bots(&self) -> bool {
+        true
+    }
+
     fn seat_count(&self) -> u8;
 
     fn accepts_player_count(&self, count: u8) -> bool;
@@ -22,6 +26,7 @@ impl GameLobbyRules for GameRules {
             Self::Doudizhu(rules) => rules.seat_count(),
             Self::Guandan(rules) => rules.seat_count(),
             Self::MahjongLink(rules) => rules.seat_count(),
+            Self::DrawGuess(rules) => rules.seat_count(),
         }
     }
 
@@ -37,6 +42,7 @@ impl GameLobbyRules for GameRules {
             Self::Doudizhu(rules) => rules.accepts_player_count(count),
             Self::Guandan(rules) => rules.accepts_player_count(count),
             Self::MahjongLink(rules) => rules.accepts_player_count(count),
+            Self::DrawGuess(rules) => rules.accepts_player_count(count),
         }
     }
 
@@ -52,6 +58,7 @@ impl GameLobbyRules for GameRules {
             Self::Doudizhu(rules) => rules.lobby_rule_labels(),
             Self::Guandan(rules) => rules.lobby_rule_labels(),
             Self::MahjongLink(rules) => rules.lobby_rule_labels(),
+            Self::DrawGuess(rules) => rules.lobby_rule_labels(),
         }
     }
 }

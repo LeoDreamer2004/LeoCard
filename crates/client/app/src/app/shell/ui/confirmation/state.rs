@@ -11,6 +11,7 @@ pub(super) struct ConfirmationRequest {
     pub title: String,
     pub message: String,
     pub accept: Option<UiAction>,
+    pub cancel: Option<UiAction>,
     pub accept_label: &'static str,
     pub accept_variant: CozyButtonVariant,
 }
@@ -43,8 +44,46 @@ impl ConfirmationDialog {
             title,
             message,
             accept: Some(accept),
+            cancel: None,
             accept_label,
             accept_variant,
+        });
+    }
+
+    pub fn dismiss_if(&mut self, predicate: impl FnOnce(&UiAction) -> bool) -> bool {
+        if self.open
+            && self
+                .request
+                .as_ref()
+                .and_then(|request| request.accept.as_ref())
+                .is_some_and(predicate)
+        {
+            self.open = false;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.request.is_some()
+    }
+
+    pub fn show_choice(
+        &mut self,
+        title: String,
+        message: String,
+        accept: UiAction,
+        cancel: UiAction,
+        accept_label: &'static str,
+    ) {
+        self.open_request(ConfirmationRequest {
+            title,
+            message,
+            accept: Some(accept),
+            cancel: Some(cancel),
+            accept_label,
+            accept_variant: CozyButtonVariant::Cool,
         });
     }
 
@@ -53,6 +92,7 @@ impl ConfirmationDialog {
             title,
             message,
             accept: None,
+            cancel: None,
             accept_label: "知道了",
             accept_variant: CozyButtonVariant::Neutral,
         });

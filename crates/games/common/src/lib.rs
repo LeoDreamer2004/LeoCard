@@ -16,5 +16,5 @@ pub use player::PlayerId;
 pub use profile::{
     ActionTimeProfile, ActionTimeStats, GameCountStats, PlacementStats, ReferenceStats, ResultScope,
 };
-pub use ranking::ranked_awards;
+pub use ranking::{guessing_reference_point_deltas, ranked_awards};
 pub use search::{SearchBudget, SearchRandom};

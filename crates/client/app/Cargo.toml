@@ -34,6 +34,7 @@ leocard-achievements = { path = "../../games/achievements" }
 leocard-assets = { path = "../assets" }
 leocard-blackjack = { path = "../../games/blackjack" }
 leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
+leocard-draw-guess = { path = "../../games/draw-guess", features = ["serde"] }
 leocard-game-common = { path = "../../games/common" }
 leocard-guandan = { path = "../../games/guandan", features = ["serde"] }
 leocard-host = { path = "../../host" }

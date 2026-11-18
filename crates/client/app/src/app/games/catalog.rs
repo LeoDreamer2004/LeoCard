@@ -3,6 +3,7 @@
 use super::{GameDescriptor, GameMetadata};
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_doudizhu::DoudizhuRuleSet;
+use leocard_draw_guess::DrawGuessRuleSet;
 use leocard_guandan::GuandanRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_mahjong_link::MahjongLinkRuleSet;
@@ -12,7 +13,7 @@ use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 
-pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 10] = [
+pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 11] = [
     QiGuiRuleSet::DESCRIPTOR,
     TexasRuleSet::DESCRIPTOR,
     ShengjiRuleSet::DESCRIPTOR,
@@ -23,4 +24,5 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 10] = [
     DoudizhuRuleSet::DESCRIPTOR,
     GuandanRuleSet::DESCRIPTOR,
     MahjongLinkRuleSet::DESCRIPTOR,
+    DrawGuessRuleSet::DESCRIPTOR,
 ];

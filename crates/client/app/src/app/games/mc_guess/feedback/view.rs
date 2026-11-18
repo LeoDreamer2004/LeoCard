@@ -1,7 +1,9 @@
 use super::super::assets::EntryIcons;
 use super::super::view::GuessTable;
 use super::visuals::{RevealPanel, RevealPixel};
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title};
+use crate::app::presentation::{
+    ACCENT, AnswerRevealSpec, MUTED, TEXT, add_answer_reveal, add_text, add_title,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mc_guess::McGuessMode;
@@ -105,42 +107,6 @@ impl GuessTable<'_> {
 
     fn answer_banner(&self, commands: &mut UiComposer, page: Entity) {
         let answer = self.game.round.answer.as_ref().expect("revealed answer");
-        let banner = spawn_node(
-            commands,
-            page,
-            Node {
-                position_type: PositionType::Absolute,
-                left: percent(50),
-                top: percent(34),
-                max_width: percent(80),
-                min_width: px(360),
-                padding: UiRect::axes(px(26), px(20)),
-                align_items: AlignItems::Center,
-                column_gap: px(22),
-                ..default()
-            },
-            None,
-        );
-        commands.entity(banner).insert((
-            self.game_assets.popup_frame(),
-            RevealPanel::Banner,
-            UiTransform::from_translation(Val2::new(percent(-50), px(0))),
-            ZIndex(10),
-            Pickable::IGNORE,
-        ));
-        EntryIcons::spawn(commands, banner, self.game_assets.icon(answer), 96.0);
-        let labels = spawn_node(
-            commands,
-            banner,
-            Node {
-                flex_direction: FlexDirection::Column,
-                row_gap: px(8),
-                max_width: px(330),
-                ..default()
-            },
-            None,
-        );
-        add_title(commands, labels, &answer.name, 30.0, ACCENT, self.assets);
         let winner = self.game.round.winner.and_then(|id| {
             self.game
                 .players
@@ -157,7 +123,18 @@ impl GuessTable<'_> {
                 }
             },
         );
-        add_text(commands, labels, caption, 18.0, TEXT, self.assets);
+        let banner = add_answer_reveal(
+            commands,
+            page,
+            AnswerRevealSpec {
+                answer: &answer.name,
+                caption: &caption,
+                icon: Some(self.game_assets.icon(answer)),
+            },
+            self.game_assets.popup_frame(),
+            self.assets,
+        );
+        commands.entity(banner).insert(RevealPanel::Banner);
         if winner.is_some() {
             for i in 0..10 {
                 let sign = if i % 2 == 0 { -1.0 } else { 1.0 };

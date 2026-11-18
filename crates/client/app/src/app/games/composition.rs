@@ -2,6 +2,7 @@
 
 use super::blackjack::BlackjackScreen;
 use super::doudizhu::DoudizhuScreen;
+use super::draw_guess::DrawGuessScreen;
 use super::guandan::GuandanScreen;
 use super::mahjong::MahjongScreen;
 use super::mahjong_link::MahjongLinkScreen;
@@ -26,6 +27,7 @@ use leocard_ui::UiComposer;
 pub(crate) struct GameScreens<'w> {
     blackjack: BlackjackScreen<'w>,
     doudizhu: DoudizhuScreen<'w>,
+    draw_guess: DrawGuessScreen<'w>,
     guandan: GuandanScreen<'w>,
     mc_guess: McGuessScreen<'w>,
     qigui523: QiGui523Screen<'w>,
@@ -49,6 +51,7 @@ impl GameScreens<'_> {
         match game {
             GameSnapshot::Blackjack(game) => project!(blackjack, game),
             GameSnapshot::Doudizhu(game) => project!(doudizhu, game),
+            GameSnapshot::DrawGuess(game) => project!(draw_guess, game),
             GameSnapshot::Guandan(game) => project!(guandan, game),
             GameSnapshot::Mahjong(game) => project!(mahjong, game),
             GameSnapshot::MahjongLink(game) => project!(mahjong_link, game),
@@ -64,6 +67,7 @@ impl GameScreens<'_> {
         match game {
             GameSnapshot::Blackjack(game) => self.blackjack.requires_action(game),
             GameSnapshot::Doudizhu(game) => self.doudizhu.requires_action(game),
+            GameSnapshot::DrawGuess(game) => self.draw_guess.requires_action(game),
             GameSnapshot::Guandan(game) => self.guandan.requires_action(game),
             GameSnapshot::McGuess(game) => self.mc_guess.requires_action(game),
             GameSnapshot::QiGui523(game) => self.qigui523.requires_action(game),
@@ -82,6 +86,7 @@ impl GameScreens<'_> {
     ) {
         self.blackjack.reconcile(client, &mut shell.social);
         self.doudizhu.reconcile(client, &mut shell.social);
+        self.draw_guess.reconcile(client, &mut shell.social);
         self.guandan.reconcile(client, &mut shell.social);
         self.mc_guess.reconcile(client, &mut shell.social);
         self.qigui523.reconcile(client, &mut shell.social);
@@ -109,6 +114,7 @@ impl GameScreens<'_> {
     ) {
         match lobby.game {
             GameKind::Doudizhu => self.doudizhu.render_lobby(commands, root, lobby, context),
+            GameKind::DrawGuess => self.draw_guess.render_lobby(commands, root, lobby, context),
             GameKind::Guandan => self.guandan.render_lobby(commands, root, lobby, context),
             GameKind::Blackjack => self.blackjack.render_lobby(commands, root, lobby, context),
             GameKind::McGuess => self.mc_guess.render_lobby(commands, root, lobby, context),
@@ -135,6 +141,9 @@ impl GameScreens<'_> {
                 self.doudizhu.render_table(commands, root, game, context)
             }
             GameSnapshot::Guandan(game) => self.guandan.render_table(commands, root, game, context),
+            GameSnapshot::DrawGuess(game) => {
+                self.draw_guess.render_table(commands, root, game, context)
+            }
             GameSnapshot::Blackjack(game) => {
                 self.blackjack.render_table(commands, root, game, context)
             }

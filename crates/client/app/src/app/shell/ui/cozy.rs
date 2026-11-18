@@ -99,14 +99,27 @@ pub(crate) fn add_cozy_disabled_button(
     width: Val,
     height: f32,
 ) -> Entity {
+    add_cozy_disabled_button_scaled(commands, parent, label, assets, width, height, 1.0)
+}
+
+#[track_caller]
+pub(crate) fn add_cozy_disabled_button_scaled(
+    commands: &mut UiComposer,
+    parent: Entity,
+    label: &str,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+    scale: f32,
+) -> Entity {
     TextureButton::<UiAction> {
         node: button_node(width, height),
-        normal: sliced_image(assets.home.button.clone(), 32.0, 0.55)
+        normal: sliced_image(assets.home.button.clone(), 32.0, 0.55 * scale)
             .with_color(Color::WHITE.with_alpha(0.55)),
         hovered: ImageNode::default(),
         action: None,
         label: Some(label),
-        font_size: 14.0,
+        font_size: 14.0 * scale,
         color: MUTED,
         icon: None,
     }

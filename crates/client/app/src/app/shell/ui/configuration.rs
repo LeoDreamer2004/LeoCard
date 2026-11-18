@@ -4,7 +4,7 @@ use bevy::ui::RelativeCursorPosition;
 use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
-pub(super) struct ConfigurationScroll;
+pub(crate) struct ConfigurationScroll;
 
 #[track_caller]
 pub(crate) fn add_configuration_scroll(

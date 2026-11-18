@@ -19,7 +19,7 @@ use background::AmbientBackgroundPlugin;
 pub(crate) use background::add_page_background;
 pub(crate) use checkbox::*;
 use click_feedback::ClickFeedbackPlugin;
-pub(crate) use configuration::add_configuration_scroll;
+pub(crate) use configuration::{ConfigurationScroll, add_configuration_scroll};
 pub(crate) use confirmation::*;
 pub(crate) use cozy::*;
 pub(crate) use dropdown::*;

@@ -43,6 +43,11 @@ fn dispatch_confirmation(
                 .request
                 .as_ref()
                 .and_then(|request| request.accept.clone());
+        } else {
+            accepted = dialog
+                .request
+                .as_ref()
+                .and_then(|request| request.cancel.clone());
         }
         dialog.open = false;
     }

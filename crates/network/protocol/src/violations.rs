@@ -7,6 +7,7 @@ use crate::{
 };
 use leocard_blackjack::BlackjackGameError;
 use leocard_doudizhu::DoudizhuGameError;
+use leocard_draw_guess::DrawGuessError;
 use leocard_game_common::PlayerId;
 use leocard_guandan::GuandanGameError;
 use leocard_mc_guess::McGuessGameError;
@@ -147,6 +148,7 @@ pub enum GameViolation {
     Doudizhu(DoudizhuViolation),
     Guandan(GuandanViolation),
     MahjongLink(MahjongLinkViolation),
+    DrawGuess(DrawGuessError),
 }
 
 impl fmt::Display for GameViolation {
@@ -168,6 +170,7 @@ impl fmt::Display for GameViolation {
             Self::Doudizhu(reason) => reason.fmt(f),
             Self::Guandan(reason) => reason.fmt(f),
             Self::MahjongLink(reason) => reason.fmt(f),
+            Self::DrawGuess(reason) => reason.fmt(f),
         }
     }
 }
@@ -223,6 +226,12 @@ impl From<DoudizhuViolation> for GameViolation {
 impl From<leocard_mahjong_link::MahjongLinkError> for GameViolation {
     fn from(value: leocard_mahjong_link::MahjongLinkError) -> Self {
         Self::MahjongLink(value.into())
+    }
+}
+
+impl From<DrawGuessError> for GameViolation {
+    fn from(value: DrawGuessError) -> Self {
+        Self::DrawGuess(value)
     }
 }
 

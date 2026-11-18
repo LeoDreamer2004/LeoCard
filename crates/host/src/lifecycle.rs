@@ -312,12 +312,25 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
         deliveries
     }
 
+    fn lobby_state_event(&self, _recipient: PlayerId) -> Option<ServerEvent> {
+        None
+    }
+
     fn broadcast_lobby(&self, origin: Option<(ConnectionId, RequestId)>) -> Vec<Delivery> {
         let mut deliveries = self.room().broadcast_moderation(None);
         deliveries.extend(
             self.room()
                 .broadcast_lobby(Self::KIND, self.game_rules(), origin),
         );
+        for player in self
+            .room()
+            .participants()
+            .filter(|player| player.connected && !player.left && !player.is_bot)
+        {
+            if let Some(event) = self.lobby_state_event(player.id) {
+                deliveries.push(self.room().delivery(player.connection, None, event));
+            }
+        }
         deliveries
     }
 
@@ -350,14 +363,20 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
         } else {
             ServerEvent::LobbySnapshot(self.lobby_snapshot())
         };
-        vec![
+        let mut deliveries = vec![
             self.room().delivery(
                 connection,
                 None,
                 ServerEvent::RoomModerationSnapshot(self.room().moderation_snapshot()),
             ),
             self.room().delivery(connection, Some(request_id), event),
-        ]
+        ];
+        if !self.game_started()
+            && let Some(event) = self.lobby_state_event(player)
+        {
+            deliveries.push(self.room().delivery(connection, None, event));
+        }
+        deliveries
     }
 }
 

@@ -29,11 +29,6 @@
 | farfadet46 | 你画我猜填充桶短音 | `audio/draw_guess/fill.ogg` | [CC0 1.0](https://opengameart.org/content/bubbles-pop) |
 | AntumDeluge / damsur / NachtmahrTV | 你画我猜绘画与擦除摩擦音 | `audio/draw_guess/draw.ogg`、`erase.ogg` | [CC0 1.0 Pencil Sounds](https://opengameart.org/node/132692) |
 
-你画我猜的绘画音来自 NachtmahrTV 的 [Writing with pencil](https://freesound.org/people/NachtmahrTV/sounds/571800/)，擦除拟音来自 damsur 的 [window finger rub](https://freesound.org/people/damsur/sounds/443241/)，采用 AntumDeluge 整理的片段。运行时仅保留单声道 Vorbis 成品，书写和擦除片段首尾交叉淡化以便连续播放，填充音保留单次短音。
-
-UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同纹理。原始包、作者、下载
-日期和 SHA-256 记录在 `vendor/verzatiledev/4-colour-cards/SOURCE.md`。
-
 ## 需保留署名或许可证的素材
 
 ### Qwen3-TTS 生成语音

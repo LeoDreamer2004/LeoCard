@@ -21,6 +21,18 @@ fn with_activity<T>(call: impl FnOnce(&mut Env, &JObject) -> JniResult<T>) -> Re
     .map_err(|error| format!("Android 系统接口调用失败：{error}"))
 }
 
+pub fn open_directory(_path: &Path) -> Result<(), String> {
+    with_activity(|env, activity| {
+        env.call_method(
+            activity,
+            jni_str!("openWordLibraries"),
+            jni_sig!(() -> void),
+            &[],
+        )?;
+        Ok(())
+    })
+}
+
 pub fn open_url(url: &str) -> Result<(), String> {
     with_activity(|env, activity| {
         let url = env.new_string(url)?;
@@ -61,19 +73,26 @@ pub fn pick_image(title: &str) -> Result<Option<PathBuf>, String> {
     receiver.recv().map_err(|_| "图片选择器已关闭".to_owned())?
 }
 
-pub fn show_text_editor(token: u64, title: &str, value: &str, numeric: bool) -> Result<(), String> {
+pub fn show_text_editor(
+    token: u64,
+    title: &str,
+    value: &str,
+    numeric: bool,
+    multiline: bool,
+) -> Result<(), String> {
     with_activity(|env, activity| {
         let title = env.new_string(title)?;
         let value = env.new_string(value)?;
         env.call_method(
             activity,
             jni_str!("editText"),
-            jni_sig!((long, java.lang.String, java.lang.String, boolean) -> void),
+            jni_sig!((long, java.lang.String, java.lang.String, boolean, boolean) -> void),
             &[
                 JValue::Long(token as i64),
                 JValue::Object(&title),
                 JValue::Object(&value),
                 JValue::Bool(numeric),
+                JValue::Bool(multiline),
             ],
         )?;
         Ok(())

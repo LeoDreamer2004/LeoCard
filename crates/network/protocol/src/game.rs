@@ -1,6 +1,9 @@
-use crate::{BlackjackCommand, DoudizhuCommand, GuandanCommand, MahjongLinkCommand};
+use crate::{
+    BlackjackCommand, DoudizhuCommand, DrawGuessCommand, GuandanCommand, MahjongLinkCommand,
+};
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_doudizhu::DoudizhuRuleSet;
+use leocard_draw_guess::DrawGuessRuleSet;
 use leocard_game_common::PlayerId;
 use leocard_guandan::GuandanRuleSet;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
@@ -26,6 +29,7 @@ pub enum GameKind {
     Doudizhu,
     Guandan,
     MahjongLink,
+    DrawGuess,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -40,6 +44,7 @@ pub enum GameRules {
     Doudizhu(DoudizhuRuleSet),
     Guandan(GuandanRuleSet),
     MahjongLink(MahjongLinkRuleSet),
+    DrawGuess(DrawGuessRuleSet),
 }
 
 macro_rules! game_rule_projections {
@@ -68,6 +73,7 @@ impl GameRules {
             Self::Doudizhu(_) => GameKind::Doudizhu,
             Self::Guandan(_) => GameKind::Guandan,
             Self::MahjongLink(_) => GameKind::MahjongLink,
+            Self::DrawGuess(_) => GameKind::DrawGuess,
         }
     }
 
@@ -82,6 +88,7 @@ impl GameRules {
         doudizhu => Doudizhu(DoudizhuRuleSet),
         guandan => Guandan(GuandanRuleSet),
         mahjong_link => MahjongLink(MahjongLinkRuleSet),
+        draw_guess => DrawGuess(DrawGuessRuleSet),
     }
 }
 
@@ -128,6 +135,7 @@ pub enum GameCommand {
     Doudizhu(DoudizhuCommand),
     Guandan(GuandanCommand),
     MahjongLink(MahjongLinkCommand),
+    DrawGuess(DrawGuessCommand),
 }
 
 macro_rules! impl_game_command_from {
@@ -150,6 +158,7 @@ impl_game_command_from!(BlackjackCommand, Blackjack);
 impl_game_command_from!(DoudizhuCommand, Doudizhu);
 impl_game_command_from!(GuandanCommand, Guandan);
 impl_game_command_from!(MahjongLinkCommand, MahjongLink);
+impl_game_command_from!(DrawGuessCommand, DrawGuess);
 
 impl GameCommand {
     pub const fn kind(&self) -> GameKind {
@@ -164,6 +173,7 @@ impl GameCommand {
             Self::Doudizhu(_) => GameKind::Doudizhu,
             Self::Guandan(_) => GameKind::Guandan,
             Self::MahjongLink(_) => GameKind::MahjongLink,
+            Self::DrawGuess(_) => GameKind::DrawGuess,
         }
     }
 }
@@ -328,5 +338,11 @@ impl From<MahjongLinkRuleSet> for GameRules {
 impl From<GuandanRuleSet> for GameRules {
     fn from(value: GuandanRuleSet) -> Self {
         Self::Guandan(value)
+    }
+}
+
+impl From<DrawGuessRuleSet> for GameRules {
+    fn from(value: DrawGuessRuleSet) -> Self {
+        Self::DrawGuess(value)
     }
 }

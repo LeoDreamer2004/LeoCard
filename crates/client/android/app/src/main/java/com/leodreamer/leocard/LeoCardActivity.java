@@ -154,13 +154,36 @@ public final class LeoCardActivity extends GameActivity {
         }
     }
 
-    public void editText(long token, String title, String value, boolean numeric) {
+    public void openWordLibraries() {
+        runOnUiThread(() -> {
+            String authority = getPackageName() + ".word-libraries";
+            android.net.Uri root = android.provider.DocumentsContract.buildRootUri(authority, "libraries");
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW).setDataAndType(root,
+                    android.provider.DocumentsContract.Root.MIME_TYPE_ITEM)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                startActivity(intent);
+            } catch (android.content.ActivityNotFoundException error) {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                intent.putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI,
+                    android.provider.DocumentsContract.buildDocumentUri(authority, "libraries"));
+                try { startActivity(intent); }
+                catch (android.content.ActivityNotFoundException unavailable) {
+                    android.widget.Toast.makeText(this, "当前设备没有文件管理器", android.widget.Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    public void editText(long token, String title, String value, boolean numeric, boolean multiline) {
         runOnUiThread(() -> {
             if (editorDialog != null) editorDialog.cancel();
             EditText editor = new EditText(this);
-            editor.setSingleLine(true);
+            editor.setSingleLine(!multiline);
             editor.setInputType(numeric ? InputType.TYPE_CLASS_NUMBER :
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES |
+                    (multiline ? InputType.TYPE_TEXT_FLAG_MULTI_LINE : 0));
+            if (multiline) { editor.setMinLines(8); editor.setMaxLines(16); editor.setGravity(android.view.Gravity.TOP); }
             editor.setText(value);
             editor.setSelection(editor.length());
             int padding = (int)(24 * getResources().getDisplayMetrics().density);

@@ -32,10 +32,10 @@ impl HomeCategory {
         match self {
             Self::All => true,
             Self::Mahjong => matches!(game, GameKind::Mahjong | GameKind::MahjongLink),
-            Self::Other => game == GameKind::McGuess,
+            Self::Other => matches!(game, GameKind::McGuess | GameKind::DrawGuess),
             Self::Cards => !matches!(
                 game,
-                GameKind::Mahjong | GameKind::MahjongLink | GameKind::McGuess
+                GameKind::Mahjong | GameKind::MahjongLink | GameKind::McGuess | GameKind::DrawGuess
             ),
         }
     }

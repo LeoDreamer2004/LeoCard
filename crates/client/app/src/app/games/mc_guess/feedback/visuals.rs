@@ -1,6 +1,6 @@
 use super::super::GuessScorePlayback;
-use super::state::GuessFeedback;
-use crate::app::presentation::{ACCENT, ease_out_cubic};
+use super::state::{ANSWER_DURATION, GuessFeedback};
+use crate::app::presentation::{ACCENT, AnswerRevealMotion, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_ui::{TransitionOpacity, TransitionVisuals, UiComposer, fade_panel};
 
@@ -116,7 +116,8 @@ pub(in super::super) fn animate_reveal(
             };
             transform.translation.y = px(offset);
             if matches!(panel, RevealPanel::Banner) {
-                transform.scale = Vec2::splat(0.94 + 0.06 * progress);
+                *transform =
+                    AnswerRevealMotion::new(playback.answer_elapsed(), ANSWER_DURATION).transform;
             }
         }
     }

@@ -21,6 +21,7 @@ pub struct TextInput<'a> {
     pub tab_index: i32,
     pub skin: Option<TextInputSkin>,
     pub password: bool,
+    pub multiline: bool,
 }
 
 impl<'a> TextInput<'a> {
@@ -35,6 +36,7 @@ impl<'a> TextInput<'a> {
             tab_index: 0,
             skin: None,
             password: false,
+            multiline: false,
         }
     }
 
@@ -47,7 +49,11 @@ impl<'a> TextInput<'a> {
     ) -> Entity {
         let skin = self.skin.unwrap_or(style.skin);
         let image = skin.image(false).clone();
-        node.align_items = AlignItems::Center;
+        node.align_items = if self.multiline {
+            AlignItems::Stretch
+        } else {
+            AlignItems::Center
+        };
         let padding = node.padding;
         let slot = commands.mount(
             parent,
@@ -65,7 +71,7 @@ impl<'a> TextInput<'a> {
             .entry::<EditableText>()
             .or_insert(EditableText {
                 max_characters: Some(self.max_characters),
-                allow_newlines: false,
+                allow_newlines: self.multiline,
                 ..EditableText::new(self.value)
             });
         commands.entity(editor).insert((
@@ -84,10 +90,19 @@ impl<'a> TextInput<'a> {
                 unfocused_selection_color: Color::NONE,
                 ..default()
             },
-            TextLayout::no_wrap(),
+            if self.multiline {
+                TextLayout::default()
+            } else {
+                TextLayout::no_wrap()
+            },
             TabIndex(self.tab_index),
             Node {
                 width: percent(100),
+                height: if self.multiline {
+                    percent(100)
+                } else {
+                    Val::Auto
+                },
                 min_width: px(0),
                 overflow: Overflow::clip(),
                 ..default()
@@ -123,6 +138,7 @@ impl<'a> TextInput<'a> {
                 self.placeholder
             }
             .to_owned(),
+            multiline: self.multiline,
             numeric: !(self.filter)('a') && !(self.filter)('.'),
             filter: self.filter,
         });

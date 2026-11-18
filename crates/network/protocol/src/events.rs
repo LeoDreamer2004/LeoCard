@@ -1,7 +1,7 @@
 use crate::{
-    BlackjackEvent, DoudizhuEvent, GameKind, GuandanEvent, MahjongHandResultView, MahjongLinkEvent,
-    McGuessEvent, QiGui523PublicPlay, ShengjiDeclarationView, ShengjiHandResultView,
-    ShengjiPublicPlay,
+    BlackjackEvent, DoudizhuEvent, DrawGuessEvent, DrawGuessLibraryEvent, GameKind, GuandanEvent,
+    MahjongHandResultView, MahjongLinkEvent, McGuessEvent, QiGui523PublicPlay,
+    ShengjiDeclarationView, ShengjiHandResultView, ShengjiPublicPlay,
 };
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongDrawOrigin, MahjongTile, MahjongTileKind};
@@ -32,6 +32,8 @@ pub enum GameEvent {
     Doudizhu(DoudizhuEvent),
     Guandan(GuandanEvent),
     MahjongLink(MahjongLinkEvent),
+    DrawGuess(DrawGuessEvent),
+    DrawGuessLibrary(DrawGuessLibraryEvent),
 }
 
 macro_rules! impl_game_event_from {
@@ -54,6 +56,8 @@ impl_game_event_from!(BlackjackEvent, Blackjack);
 impl_game_event_from!(DoudizhuEvent, Doudizhu);
 impl_game_event_from!(GuandanEvent, Guandan);
 impl_game_event_from!(MahjongLinkEvent, MahjongLink);
+impl_game_event_from!(DrawGuessEvent, DrawGuess);
+impl_game_event_from!(DrawGuessLibraryEvent, DrawGuessLibrary);
 
 impl GameEvent {
     pub const fn kind(&self) -> GameKind {
@@ -68,6 +72,8 @@ impl GameEvent {
             Self::Doudizhu(_) => GameKind::Doudizhu,
             Self::Guandan(_) => GameKind::Guandan,
             Self::MahjongLink(_) => GameKind::MahjongLink,
+            Self::DrawGuessLibrary(_) => GameKind::DrawGuess,
+            Self::DrawGuess(_) => GameKind::DrawGuess,
         }
     }
 }

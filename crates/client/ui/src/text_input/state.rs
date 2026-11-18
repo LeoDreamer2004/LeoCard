@@ -33,5 +33,6 @@ pub enum TextInputSet {
 pub struct AndroidEditor {
     pub title: String,
     pub numeric: bool,
+    pub multiline: bool,
     pub filter: fn(char) -> bool,
 }

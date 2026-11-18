@@ -1,5 +1,6 @@
 mod password;
 mod plugin;
+mod scroll;
 mod skin;
 mod state;
 mod systems;

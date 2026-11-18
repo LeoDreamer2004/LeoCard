@@ -16,7 +16,7 @@ use std::time::Duration;
 const ROOM: RoomId = RoomId(91);
 const OBSERVER: u64 = 99;
 
-fn moderation_rules() -> [GameRules; 10] {
+fn moderation_rules() -> [GameRules; 11] {
     [
         GameRules::QiGui523(QiGuiRuleSet {
             player_count: 4,
@@ -34,6 +34,7 @@ fn moderation_rules() -> [GameRules; 10] {
         }),
         GameRules::Guandan(Default::default()),
         GameRules::MahjongLink(Default::default()),
+        GameRules::DrawGuess(Default::default()),
     ]
 }
 

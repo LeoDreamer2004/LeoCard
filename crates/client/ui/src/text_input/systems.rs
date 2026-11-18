@@ -42,7 +42,7 @@ pub(super) fn collect_submissions(
     // Bevy 0.20 clears focus during Escape dispatch, before Update runs.
     // Use the original input target so cancellation is still delivered once.
     let action = match input.input.key_code {
-        KeyCode::Enter => TextInputAction::Submit,
+        KeyCode::Enter if !editor.allow_newlines => TextInputAction::Submit,
         KeyCode::Escape => TextInputAction::Cancel,
         _ => return,
     };

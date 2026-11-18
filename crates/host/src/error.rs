@@ -2,6 +2,7 @@
 
 use leocard_blackjack::BlackjackGameError;
 use leocard_doudizhu::DoudizhuGameError;
+use leocard_draw_guess::DrawGuessError;
 use leocard_guandan::GuandanGameError;
 use leocard_mahjong::{MahjongGameError, MahjongRuleError};
 use leocard_mahjong_link::MahjongLinkError;
@@ -16,6 +17,7 @@ use std::fmt;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HostError {
     Doudizhu(DoudizhuGameError),
+    DrawGuess(DrawGuessError),
     Guandan(GuandanGameError),
     Blackjack(BlackjackGameError),
     Mahjong(MahjongGameError),
@@ -31,6 +33,7 @@ impl fmt::Display for HostError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Doudizhu(error) => error.fmt(f),
+            Self::DrawGuess(error) => error.fmt(f),
             Self::Guandan(error) => error.fmt(f),
             Self::Blackjack(error) => error.fmt(f),
             Self::Mahjong(error) => error.fmt(f),
@@ -48,6 +51,7 @@ impl Error for HostError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Doudizhu(error) => Some(error),
+            Self::DrawGuess(error) => Some(error),
             Self::Guandan(error) => Some(error),
             Self::Blackjack(error) => Some(error),
             Self::Mahjong(error) => Some(error),
@@ -142,6 +146,12 @@ impl From<UnoRuleError> for HostError {
 impl From<DoudizhuGameError> for HostError {
     fn from(error: DoudizhuGameError) -> Self {
         Self::Doudizhu(error)
+    }
+}
+
+impl From<DrawGuessError> for HostError {
+    fn from(error: DrawGuessError) -> Self {
+        Self::DrawGuess(error)
     }
 }
 

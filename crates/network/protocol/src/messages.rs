@@ -1,8 +1,8 @@
 use crate::{
     AchievementAnnouncement, ActionTimingSnapshot, AvatarFrameId, AvatarId, BlackjackSnapshot,
-    ChatContent, ChatMessage, DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules,
-    GuandanSnapshot, MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId,
-    McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction,
+    ChatContent, ChatMessage, DoudizhuSnapshot, DrawGuessSnapshot, GameCommand, GameEvent,
+    GameKind, GameRules, GuandanSnapshot, MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot,
+    MatchId, McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction,
     PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot,
     ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, RoomModerationSnapshot,
     SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
@@ -258,6 +258,7 @@ pub enum GameSnapshot {
     Doudizhu(DoudizhuSnapshot),
     Guandan(GuandanSnapshot),
     MahjongLink(MahjongLinkSnapshot),
+    DrawGuess(DrawGuessSnapshot),
 }
 
 macro_rules! game_snapshot_projections {
@@ -300,6 +301,7 @@ impl_game_snapshot_from!(BlackjackSnapshot, Blackjack);
 impl_game_snapshot_from!(DoudizhuSnapshot, Doudizhu);
 impl_game_snapshot_from!(GuandanSnapshot, Guandan);
 impl_game_snapshot_from!(MahjongLinkSnapshot, MahjongLink);
+impl_game_snapshot_from!(DrawGuessSnapshot, DrawGuess);
 
 impl GameSnapshot {
     /// A rematch can change the roster only after the whole match, never between hands.
@@ -328,6 +330,7 @@ impl GameSnapshot {
             Self::Doudizhu(snapshot) => snapshot.match_complete,
             Self::Guandan(snapshot) => snapshot.match_complete,
             Self::MahjongLink(snapshot) => snapshot.match_complete,
+            Self::DrawGuess(snapshot) => snapshot.match_complete,
         }
     }
 
@@ -344,6 +347,7 @@ impl GameSnapshot {
             Self::Doudizhu(snapshot) => snapshot.you,
             Self::Guandan(snapshot) => snapshot.you,
             Self::MahjongLink(snapshot) => snapshot.you,
+            Self::DrawGuess(snapshot) => snapshot.you,
         }
     }
 
@@ -359,6 +363,7 @@ impl GameSnapshot {
             Self::Doudizhu(snapshot) => snapshot.match_id,
             Self::Guandan(snapshot) => snapshot.match_id,
             Self::MahjongLink(snapshot) => snapshot.match_id,
+            Self::DrawGuess(snapshot) => snapshot.match_id,
         }
     }
 
@@ -374,6 +379,7 @@ impl GameSnapshot {
             Self::Doudizhu(_) => GameKind::Doudizhu,
             Self::Guandan(_) => GameKind::Guandan,
             Self::MahjongLink(_) => GameKind::MahjongLink,
+            Self::DrawGuess(_) => GameKind::DrawGuess,
         }
     }
 
@@ -388,5 +394,6 @@ impl GameSnapshot {
         doudizhu, into_doudizhu => Doudizhu(DoudizhuSnapshot),
         guandan, into_guandan => Guandan(GuandanSnapshot),
         mahjong_link, into_mahjong_link => MahjongLink(MahjongLinkSnapshot),
+        draw_guess, into_draw_guess => DrawGuess(DrawGuessSnapshot),
     }
 }

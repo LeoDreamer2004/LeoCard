@@ -3,8 +3,9 @@ use leocard_doudizhu::{DoudizhuAction, DoudizhuMode, DoudizhuRuleSet};
 use leocard_guandan::GuandanAction;
 use leocard_mahjong_link::MahjongLinkAction;
 use leocard_protocol::{
-    DoudizhuCommand, GameCommand, GuandanCommand, MahjongCommand, MahjongLinkCommand,
-    McGuessCommand, QiGui523Command, ShengjiCommand, ShengjiPhaseView, TexasCommand, UnoCommand,
+    DoudizhuCommand, DrawGuessCommand, GameCommand, GuandanCommand, MahjongCommand,
+    MahjongLinkCommand, McGuessCommand, QiGui523Command, ShengjiCommand, ShengjiPhaseView,
+    TexasCommand, UnoCommand,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_texas_holdem::TexasAction;
@@ -33,6 +34,11 @@ fn rules() -> [GameRules; 10] {
 
 fn decision(snapshot: &GameSnapshot) -> GameCommand {
     match snapshot {
+        GameSnapshot::DrawGuess(s) => DrawGuessCommand::ChooseWord {
+            turn: s.state.turn,
+            choice: 0,
+        }
+        .into(),
         GameSnapshot::QiGui523(s) => QiGui523Command::PlayCards {
             cards: vec![s.starting_card.card],
         }

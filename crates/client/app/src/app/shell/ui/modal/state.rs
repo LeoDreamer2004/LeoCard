@@ -10,6 +10,7 @@ pub(crate) enum CozyModalKind {
     TexasHandGuide,
     McGraphGuide,
     UnoExpansionSettings,
+    DrawGuessLibraries,
     Confirmation,
     #[cfg(not(target_os = "android"))]
     SakuraStartup,

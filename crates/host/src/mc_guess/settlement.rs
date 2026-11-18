@@ -1,6 +1,7 @@
 use super::McGuessSession;
 use crate::features::MatchSettlement;
-use leocard_mc_guess::{McGuessMode, McGuessProfileStats, reference_point_deltas};
+use leocard_game_common::guessing_reference_point_deltas;
+use leocard_mc_guess::{McGuessMode, McGuessProfileStats};
 
 impl MatchSettlement for McGuessSession {
     type Outcome = ();
@@ -19,7 +20,7 @@ impl MatchSettlement for McGuessSession {
             McGuessMode::Race | McGuessMode::Graph => 1,
         };
         let mut deltas =
-            reference_point_deltas(&values, ranked_rounds).expect("two to eight players");
+            guessing_reference_point_deltas(&values, ranked_rounds).expect("two to eight players");
         if self.rules.mode == McGuessMode::Graph {
             for delta in &mut deltas {
                 *delta = *delta * i16::from(self.rules.graph.nodes) / 16;

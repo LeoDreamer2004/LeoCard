@@ -153,3 +153,48 @@ fn native_ime_keeps_preedit_out_of_the_committed_value() {
     assert!(!input.is_composing());
     assert_eq!(input.value().to_string(), "玩家你");
 }
+
+#[test]
+fn multiline_editing_keeps_enter_as_a_line_break_and_does_not_submit() {
+    use leocard_ui::{TextInputAction, TextInputEvent};
+    let (mut app, window, editor) = input_app("");
+    app.world_mut()
+        .get_mut::<EditableText>(editor)
+        .unwrap()
+        .allow_newlines = true;
+    let mut submissions = app
+        .world()
+        .resource::<Messages<TextInputEvent>>()
+        .get_cursor_current();
+    press(
+        &mut app,
+        window,
+        KeyCode::KeyA,
+        Key::Character("苹".into()),
+        Some("苹果"),
+    );
+    app.update();
+    press(&mut app, window, KeyCode::Enter, Key::Enter, Some("\n"));
+    app.update();
+    press(
+        &mut app,
+        window,
+        KeyCode::KeyB,
+        Key::Character("香".into()),
+        Some("香蕉"),
+    );
+    app.update();
+    assert_eq!(
+        app.world()
+            .get::<EditableText>(editor)
+            .unwrap()
+            .value()
+            .to_string(),
+        "苹果\n香蕉"
+    );
+    assert!(
+        !submissions
+            .read(app.world().resource::<Messages<TextInputEvent>>())
+            .any(|event| event.action == TextInputAction::Submit)
+    );
+}

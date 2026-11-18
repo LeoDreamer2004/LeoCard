@@ -11,6 +11,7 @@ pub struct TextInputPlugin;
 
 impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(Update, super::scroll::scroll_multiline_inputs);
         app.add_systems(
             PostUpdate,
             super::password::sync_password_masks

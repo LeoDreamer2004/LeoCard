@@ -1,3 +1,4 @@
+use crate::app::presentation::AnswerRevealMotion;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mc_guess::McGuessMode;
@@ -103,9 +104,7 @@ impl GuessFeedback {
     }
 
     pub(super) fn banner_opacity(&self) -> f32 {
-        self.answer_elapsed().map_or(0.0, |elapsed| {
-            (elapsed / 0.20).clamp(0.0, 1.0) * ((ANSWER_DURATION - elapsed) / 0.30).clamp(0.0, 1.0)
-        })
+        AnswerRevealMotion::new(self.answer_elapsed(), ANSWER_DURATION).opacity
     }
 
     pub(crate) fn scoring_ready(&self) -> bool {

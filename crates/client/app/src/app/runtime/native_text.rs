@@ -41,6 +41,7 @@ pub(super) fn edit_native_text(
         &spec.title,
         &editor.value().to_string(),
         spec.numeric,
+        spec.multiline,
     );
     // The native editor owns keyboard focus until it returns. Prevent Winit from opening a second IME.
     focus.clear();

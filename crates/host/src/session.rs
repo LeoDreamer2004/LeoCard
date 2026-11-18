@@ -1,11 +1,12 @@
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
-    BlackjackSession, ConnectionId, Delivery, DoudizhuSession, GuandanSession, HostError,
-    MahjongLinkSession, MahjongSession, McGuessSession, QiGui523Session, ShengjiSession,
+    BlackjackSession, ConnectionId, Delivery, DoudizhuSession, DrawGuessSession, GuandanSession,
+    HostError, MahjongLinkSession, MahjongSession, McGuessSession, QiGui523Session, ShengjiSession,
     TexasSession, UnoSession,
 };
 use leocard_blackjack::{BlackjackCard, BlackjackRuleSet, build_shoe};
 use leocard_doudizhu::{DoudizhuCard, DoudizhuRuleSet};
+use leocard_draw_guess::DrawGuessRuleSet;
 use leocard_guandan::{GuandanCard, GuandanRuleSet};
 use leocard_mahjong::{MahjongRuleSet, MahjongTile};
 use leocard_mahjong_link::MahjongLinkRuleSet;
@@ -23,6 +24,10 @@ use std::time::Duration;
 /// 创建统一房主会话所需的具体游戏后端配置。
 #[derive(Clone, Debug)]
 pub enum GameSetup {
+    DrawGuess {
+        host_port: u16,
+        rules: DrawGuessRuleSet,
+    },
     Doudizhu {
         host_port: u16,
         rules: DoudizhuRuleSet,
@@ -76,6 +81,7 @@ pub enum GameSetup {
 impl GameSetup {
     pub fn shuffled(host_port: u16, rules: GameRules) -> Self {
         match rules {
+            GameRules::DrawGuess(rules) => Self::DrawGuess { host_port, rules },
             GameRules::Doudizhu(rules) => {
                 let mut shuffled_deck = leocard_doudizhu::build_deck(rules.mode);
                 fastrand::shuffle(&mut shuffled_deck);
@@ -155,6 +161,7 @@ impl GameSetup {
 
     pub const fn kind(&self) -> GameKind {
         match self {
+            Self::DrawGuess { .. } => GameKind::DrawGuess,
             Self::QiGui523 { .. } => GameKind::QiGui523,
             Self::Texas { .. } => GameKind::Texas,
             Self::Shengji { .. } => GameKind::Shengji,
@@ -172,6 +179,7 @@ impl GameSetup {
 /// TCP 层面对的统一游戏会话路由。
 #[derive(Clone, Debug)]
 pub enum HostSession {
+    DrawGuess(Box<DrawGuessSession>),
     Doudizhu(Box<DoudizhuSession>),
     Guandan(Box<GuandanSession>),
     Blackjack(Box<BlackjackSession>),
@@ -272,10 +280,16 @@ impl_host_backend!(BlackjackSession, Blackjack);
 impl_host_backend!(DoudizhuSession, Doudizhu);
 impl_host_backend!(GuandanSession, Guandan);
 impl_host_backend!(MahjongLinkSession, MahjongLink);
+impl_host_backend!(DrawGuessSession, DrawGuess);
 
 impl HostSession {
     pub fn new(room_id: RoomId, setup: GameSetup) -> Result<Self, HostError> {
         match setup {
+            GameSetup::DrawGuess { host_port, rules } => {
+                DrawGuessSession::new(room_id, host_port, rules)
+                    .map(Box::new)
+                    .map(Self::DrawGuess)
+            }
             GameSetup::Doudizhu {
                 host_port,
                 rules,
@@ -347,6 +361,7 @@ impl HostSession {
 
     fn backend(&self) -> &dyn HostBackend {
         match self {
+            Self::DrawGuess(session) => session.as_ref(),
             Self::QiGui523(session) => session.as_ref(),
             Self::Texas(session) => session.as_ref(),
             Self::Shengji(session) => session.as_ref(),
@@ -362,6 +377,7 @@ impl HostSession {
 
     fn backend_mut(&mut self) -> &mut dyn HostBackend {
         match self {
+            Self::DrawGuess(session) => session.as_mut(),
             Self::QiGui523(session) => session.as_mut(),
             Self::Texas(session) => session.as_mut(),
             Self::Shengji(session) => session.as_mut(),

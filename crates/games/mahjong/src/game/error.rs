@@ -1,10 +1,10 @@
 use crate::{MahjongRuleError, MahjongScoreError, MahjongTile, MahjongTileKind};
 use leocard_game_common::{DeckError, PlayerId};
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongHandReplacementError {
     WrongTileCount {
         expected: u16,

@@ -8,8 +8,4 @@ description = "Authoritative drawing and word guessing rules for LeoCard"
 
 [dependencies]
 leocard-game-common = { path = "../common" }
-serde = { workspace = true, optional = true }
-
-[features]
-default = []
-serde = ["dep:serde"]
+serde.workspace = true

@@ -1,10 +1,10 @@
 use crate::{MahjongKongKind, MahjongMeld, MahjongSuit, MahjongTileKind, MahjongWind};
 use leocard_game_common::PlayerId;
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum MahjongFan {
     BigFourWinds,
     BigThreeDragons,
@@ -263,16 +263,14 @@ impl MahjongFan {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongFanValue {
     pub fan: MahjongFan,
     pub count: u8,
     pub points: u16,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongWinSource {
     SelfDraw,
     Discard(PlayerId),
@@ -290,8 +288,7 @@ impl MahjongWinSource {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongWinContext {
     pub declared_ready: bool,
     pub source: MahjongWinSource,
@@ -302,8 +299,7 @@ pub struct MahjongWinContext {
     pub flower_count: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongScoreInput {
     /// 包含和牌张的立牌，不包含副露与花牌。
     pub concealed: Vec<MahjongTileKind>,
@@ -312,8 +308,7 @@ pub struct MahjongScoreInput {
     pub context: MahjongWinContext,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongScoreResult {
     pub fans: Vec<MahjongFanValue>,
     /// 不含花牌的番数，用于判断是否达到 8 番起和。

@@ -1,8 +1,8 @@
 use crate::{DoudizhuMode, DoudizhuPlayKind};
+use serde::{Deserialize, Serialize};
 
 /// Authority-produced, recipient-specific facts. Opening-hand details are released only at settlement.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuAchievementFacts {
     Play(DoudizhuPlayFacts),
     FlowerBomb,
@@ -10,8 +10,7 @@ pub enum DoudizhuAchievementFacts {
     Match(DoudizhuMatchFacts),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuPlayFacts {
     pub mode: DoudizhuMode,
     pub kind: DoudizhuPlayKind,
@@ -23,8 +22,7 @@ pub struct DoudizhuPlayFacts {
     pub consecutive_bombs: u32,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuHandFacts {
     pub landlord: bool,
     pub won: bool,
@@ -37,8 +35,7 @@ pub struct DoudizhuHandFacts {
     pub score: i32,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuMatchFacts {
     pub score: i32,
     pub perfect_spring: bool,

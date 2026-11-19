@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum UnoMode {
     #[default]
     Classic,
@@ -9,8 +9,7 @@ pub enum UnoMode {
     Flip,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UnoNoMercyRuleSet {
     pub draw_until_playable: bool,
     pub mercy_elimination: bool,
@@ -33,8 +32,7 @@ impl Default for UnoNoMercyRuleSet {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UnoFlipRuleSet {
     pub random_pairing: bool,
     pub action_stacking: bool,
@@ -55,8 +53,7 @@ impl Default for UnoFlipRuleSet {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UnoRuleSet {
     pub mode: UnoMode,
     pub action_stacking: bool,

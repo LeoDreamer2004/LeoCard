@@ -1,9 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt;
 
 /// 点数按真实牌面命名，游戏中的大小由 [`QiGuiRank::strength`] 决定。
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum QiGuiRank {
     Four,
     Six,
@@ -96,8 +96,7 @@ impl fmt::Display for QiGuiRank {
 }
 
 /// 花色从方块到黑桃递增。
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum QiGuiSuit {
     Diamond,
     Club,
@@ -130,8 +129,7 @@ impl fmt::Display for QiGuiSuit {
 }
 
 /// 一张物理牌。`deck` 用来区分多副牌中的重复牌，从 0 开始。
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct QiGuiCard {
     deck: u8,
     rank: QiGuiRank,

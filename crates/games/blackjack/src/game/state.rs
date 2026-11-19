@@ -1,10 +1,8 @@
 use crate::{BlackjackCard, BlackjackHandValue, BlackjackRuleSet};
 use leocard_game_common::PlayerId;
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlackjackAction {
     Bet { amount: u32 },
     Hit,
@@ -13,16 +11,14 @@ pub enum BlackjackAction {
     Split,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlackjackPhase {
     Betting,
     Playing,
     Complete,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlackjackHandStatus {
     Playing,
     Standing,
@@ -30,8 +26,7 @@ pub enum BlackjackHandStatus {
     Blackjack,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlackjackHandResult {
     Win,
     Loss,
@@ -39,8 +34,7 @@ pub enum BlackjackHandResult {
     Blackjack,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlackjackHandState {
     pub cards: Vec<BlackjackCard>,
     pub wager: u32,
@@ -58,8 +52,7 @@ impl BlackjackHandState {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlackjackPlayerStatistics {
     pub rounds: u32,
     pub hands: u32,
@@ -70,8 +63,7 @@ pub struct BlackjackPlayerStatistics {
     pub splits: u32,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlackjackPlayerState {
     pub stack: u32,
     pub hands: Vec<BlackjackHandState>,
@@ -79,8 +71,7 @@ pub struct BlackjackPlayerState {
     pub round_start_stack: u32,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlackjackAvailableActions {
     pub minimum_bet: u32,
     pub maximum_bet: u32,

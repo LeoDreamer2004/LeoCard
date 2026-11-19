@@ -1,16 +1,15 @@
 use crate::{ShengjiClassifiedPlay, ShengjiHandResult, ShengjiRuleSet};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiOpeningHandStatistics {
     pub card_count: u8,
     pub trump_count: u8,
     pub joker_count: u8,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiBurialStatistics {
     pub card_count: u8,
     pub scoring_card_count: u8,
@@ -18,8 +17,7 @@ pub struct ShengjiBurialStatistics {
 }
 
 /// Private facts are available only after a completed hand, never in a live snapshot.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiHandStatistics {
     pub player: PlayerId,
     pub deck_count: u8,
@@ -32,8 +30,7 @@ pub struct ShengjiHandStatistics {
     pub last_winning_play: ShengjiClassifiedPlay,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiMatchStatistics {
     pub consecutive_dealer_shutouts: [u32; 2],
 }
@@ -49,8 +46,7 @@ impl ShengjiMatchStatistics {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiRedealReason {
     NoDeclaration,
     BottomFlipExhausted { power_outage_used: bool },

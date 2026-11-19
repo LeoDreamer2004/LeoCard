@@ -6,13 +6,9 @@ license.workspace = true
 rust-version.workspace = true
 description = "Three and four player Dou Dizhu rules"
 
-[features]
-default = []
-serde = ["dep:serde"]
-
 [dependencies]
 half.workspace = true
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
 ndarray.workspace = true
-serde = { workspace = true, optional = true }
+serde.workspace = true

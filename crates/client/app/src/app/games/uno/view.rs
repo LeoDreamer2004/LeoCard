@@ -6,10 +6,10 @@ use super::{
     UnoJumpInDevice, UnoUiState, add_initial_color_choice, add_play_color_choice, add_uno_actions,
     add_uno_callout_actions, add_uno_eliminated_own_overlay, add_uno_own_area,
     add_uno_player_panel, add_uno_summary, add_uno_swap_selection_prompt, mount_uno_direction_loop,
-    uno_card_handle, uno_discard_pose, uno_ui_color,
+    uno_card_handle, uno_discard_pose,
 };
 use crate::app::presentation::{
-    ACCENT, ArcSeatLayout, CardTableSurface, DANGER, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE,
+    ArcSeatLayout, CardTableSurface, DANGER, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE,
     GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackgroundMaterial,
     TurnBorderMaterial, add_auto_play_overlay, add_text,
 };
@@ -409,6 +409,9 @@ fn add_uno_center(
         );
     }
 
+    if game.pending_kind.is_none() && game.pending_skip == 0 {
+        return;
+    }
     let status = spawn_node(
         commands,
         table,
@@ -427,22 +430,6 @@ fn add_uno_center(
             ..default()
         },
         None,
-    );
-    let current_name = game
-        .current_player
-        .and_then(|id| game.players.iter().find(|player| player.player.id == id))
-        .map(|player| player.player.name.as_str())
-        .unwrap_or("—");
-    let color = game.current_color.map_or("等待选色".to_owned(), |color| {
-        format!("当前颜色：{color}")
-    });
-    add_text(
-        commands,
-        status,
-        format!("{color}  ·  {current_name} 的回合"),
-        16.0,
-        game.current_color.map_or(ACCENT, uno_ui_color),
-        assets,
     );
     if game.pending_kind.is_some() {
         add_text(

@@ -6,6 +6,7 @@ use crate::ShengjiTeamId;
 use crate::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump};
 use leocard_game_common::{PlayerId, contains_unique_cards};
 
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error, fmt};
 
 /// 带王亮时，红色花色配大王，黑色花色配小王。
@@ -16,8 +17,7 @@ pub const fn bid_joker_for_suit(suit: ShengjiSuit) -> ShengjiRank {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiBidKind {
     Initial,
     Protect,
@@ -25,8 +25,7 @@ pub enum ShengjiBidKind {
     SelfCounter,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiDeclaration {
     pub player: PlayerId,
     pub trump: ShengjiBidTrump,

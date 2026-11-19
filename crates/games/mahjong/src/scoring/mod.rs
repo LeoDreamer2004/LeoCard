@@ -7,6 +7,9 @@ mod patterns;
 mod special;
 mod types;
 
+#[cfg(test)]
+mod tests;
+
 use context::*;
 pub use evaluation::*;
 use finalize::*;

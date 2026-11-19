@@ -1,18 +1,17 @@
 use crate::{DoudizhuCard, DoudizhuPlay, DoudizhuRuleSet, build_deck};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuAction {
     Bid(u8),
     Play(Vec<DoudizhuCard>),
     Pass,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuPhase {
     Bidding,
     Playing,
@@ -20,8 +19,7 @@ pub enum DoudizhuPhase {
     Finished,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuResultView {
     pub winner: PlayerId,
     pub landlord_won: bool,
@@ -29,8 +27,7 @@ pub struct DoudizhuResultView {
     pub scores: Vec<i32>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuGameError {
     InvalidRules,
     InvalidDeck,

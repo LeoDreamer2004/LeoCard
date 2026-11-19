@@ -1,9 +1,9 @@
 use super::structure::component_priority;
 use crate::{ShengjiCard, ShengjiSuit};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ShengjiCategory {
     Trump,
     Suit(ShengjiSuit),
@@ -11,8 +11,7 @@ pub enum ShengjiCategory {
     Mixed,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiComponent {
     Single {
         card: ShengjiCard,
@@ -100,8 +99,7 @@ impl ShengjiComponent {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiClassifiedPlay {
     pub cards: Vec<ShengjiCard>,
     pub category: ShengjiCategory,

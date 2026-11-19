@@ -1,8 +1,8 @@
 use crate::{TexasCard, TexasHandCategory, TexasStreet};
+use serde::{Deserialize, Serialize};
 
 /// Facts about an accepted action, before street transitions and pot settlement.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasActionStatistics {
     pub street: TexasStreet,
     /// Total wager on this street for a voluntary all-in, including chips already invested.
@@ -14,8 +14,7 @@ pub struct TexasActionStatistics {
 }
 
 /// One player's running statistics within the current match.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasMatchStatistics {
     pub hands: u32,
     pub won_hands: u32,
@@ -27,8 +26,7 @@ pub struct TexasMatchStatistics {
 }
 
 /// Recipient-specific settlement facts. Contains no other player's hole cards or ID.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasHandStatistics {
     pub hole_cards: Vec<TexasCard>,
     pub category: Option<TexasHandCategory>,

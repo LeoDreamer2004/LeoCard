@@ -1,5 +1,5 @@
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+use serde::{Deserialize, Serialize};
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuMode {
     #[default]
     Three,
@@ -36,13 +36,12 @@ impl DoudizhuMode {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuRuleSet {
     pub mode: DoudizhuMode,
     pub rounds: u8,
     /// 四人玩法允许三带一及飞机带单张，三人玩法始终允许。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub allow_single_wings: bool,
 }
 

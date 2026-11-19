@@ -1,8 +1,8 @@
 use crate::MahjongFan;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongMatchLength {
     #[default]
     SingleHand,
@@ -22,8 +22,7 @@ impl MahjongMatchLength {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongUmaStyle {
     #[default]
     Balanced,
@@ -66,17 +65,16 @@ pub fn mahjong_reference_deltas(scores: &[i32; 4], rules: MahjongRuleSet) -> [i1
     deltas
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongRuleSet {
     pub match_length: MahjongMatchLength,
     pub uma_style: MahjongUmaStyle,
     pub minimum_eight_points: bool,
     pub multiple_winners: bool,
     pub false_win: bool,
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub balanced_scoring: bool,
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub declared_ready: bool,
 }
 

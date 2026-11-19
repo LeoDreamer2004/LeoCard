@@ -33,13 +33,13 @@ image.workspace = true
 leocard-achievements = { path = "../../games/achievements" }
 leocard-assets = { path = "../assets" }
 leocard-blackjack = { path = "../../games/blackjack" }
-leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
-leocard-draw-guess = { path = "../../games/draw-guess", features = ["serde"] }
+leocard-doudizhu = { path = "../../games/doudizhu" }
+leocard-draw-guess = { path = "../../games/draw-guess" }
 leocard-game-common = { path = "../../games/common" }
-leocard-guandan = { path = "../../games/guandan", features = ["serde"] }
+leocard-guandan = { path = "../../games/guandan" }
 leocard-host = { path = "../../host" }
 leocard-mahjong = { path = "../../games/mahjong" }
-leocard-mahjong-link = { path = "../../games/mahjong-link", features = ["serde"] }
+leocard-mahjong-link = { path = "../../games/mahjong-link" }
 leocard_mc_guess = { path = "../../games/mc-guess" }
 leocard-protocol = { path = "../../network/protocol" }
 leocard-qigui523 = { path = "../../games/qigui523" }

@@ -4,10 +4,10 @@ use crate::TexasRuleSet;
 use leocard_game_common::{
     ActionTimeProfile, ActionTimeStats, GameCountStats, PlacementStats, ReferenceStats, ResultScope,
 };
+use serde::{Deserialize, Serialize};
 
 /// 普通德州扑克与奥马哈共用的长期档案。
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasProfileStats {
     pub completed_games: u32,
     pub total_reference_delta: i64,

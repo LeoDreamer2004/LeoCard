@@ -1,9 +1,9 @@
 use crate::{GuandanCard, GuandanPlay, GuandanPlayError, GuandanRuleSet};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GuandanPlayerState {
     pub(super) id: PlayerId,
     pub(super) hand: Vec<GuandanCard>,
@@ -19,8 +19,7 @@ impl GuandanPlayerState {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GuandanGameResult {
     /// Only this many leading placements are known. A double finish ends as
     /// soon as the partners take first and second; the other two are unranked.
@@ -30,23 +29,20 @@ pub struct GuandanGameResult {
     pub level_gain: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GuandanPhase {
     Tribute,
     Playing,
     Finished(GuandanGameResult),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GuandanTributeAction {
     Tribute,
     ReturnTribute,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GuandanAction {
     Tribute(GuandanCard),
     ReturnTribute(GuandanCard),

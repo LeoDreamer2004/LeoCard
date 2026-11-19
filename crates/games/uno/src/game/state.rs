@@ -4,6 +4,7 @@ use crate::{
 use leocard_game_common::{
     DeckError, PlayerId, has_unique_cards, validate_deck as validate_physical_deck,
 };
+use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, fmt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,8 +32,7 @@ impl UnoPlayerState {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum UnoDirection {
     Clockwise,
     CounterClockwise,
@@ -47,8 +47,7 @@ impl UnoDirection {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum UnoPendingDrawKind {
     DrawTwo,
     WildDrawFour,
@@ -165,8 +164,7 @@ pub enum UnoPhase {
     Finished(UnoGameResult),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum UnoChallengeResult {
     Successful,
     Failed,

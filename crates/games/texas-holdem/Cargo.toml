@@ -10,11 +10,7 @@ description = "Pure Texas Hold'em rules for LeoCard"
 fastrand.workspace = true
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
-serde = { workspace = true, optional = true }
+serde.workspace = true
 
 [dev-dependencies]
 serde_json = "1.0"
-
-[features]
-default = []
-serde = ["dep:serde"]

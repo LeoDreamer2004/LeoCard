@@ -1,10 +1,10 @@
 use crate::{TexasCard, TexasRank, TexasRuleSet};
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum TexasHandCategory {
     HighCard,
     OnePair,
@@ -25,8 +25,7 @@ impl TexasHandCategory {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TexasEvaluatedHand {
     pub(super) category: TexasHandCategory,
     pub(super) category_strength: u8,

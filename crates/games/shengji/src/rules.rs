@@ -1,9 +1,9 @@
 use crate::{ShengjiCard, ShengjiRank, ShengjiSuit};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ShengjiTeamId(pub u8);
 
 impl ShengjiTeamId {
@@ -16,8 +16,7 @@ impl ShengjiTeamId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiThrowPenalty {
     None,
     FivePerCard,
@@ -34,8 +33,7 @@ impl ShengjiThrowPenalty {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiMode {
     #[default]
     Classic,
@@ -65,8 +63,7 @@ impl ShengjiMode {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiRuleSet {
     pub mode: ShengjiMode,
     /// 使用两至四副牌，三副加入泰坦尼克，四副再加入炸弹和宇宙飞船。
@@ -75,19 +72,19 @@ pub struct ShengjiRuleSet {
     pub throw_penalty: ShengjiThrowPenalty,
     pub mandatory_five_ten_king_ace: bool,
     /// 开启后有花色亮主必须同时带同色王，且无主只能用于反主。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub bid_with_joker: bool,
     /// 第一次无人亮主时不重新发牌，改由当前庄家的下家接庄并再亮十秒。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub power_outage_dealer: bool,
     /// 最终无人亮主时逐张翻开底牌，并按手牌中的同牌数量确定庄家和主牌。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub bottom_flip: bool,
     /// 庄家首次埋底后，允许尚未亮出的更强反主牌按座次依次抄底并重新埋底。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub bottom_copy: bool,
     /// 开启后有主局在埋底完成后允许主牌不多于五张的玩家与对家交换。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub five_trump_crossing: bool,
     /// 开启后四张 2 永远属于主牌，双方从 3 级开始。
     pub constant_trump: bool,
@@ -193,8 +190,7 @@ impl fmt::Display for ShengjiRuleError {
 
 impl std::error::Error for ShengjiRuleError {}
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiBidTrump {
     Suit(ShengjiSuit),
     NoTrumpSmallJoker,
@@ -258,8 +254,7 @@ impl ShengjiBidTrump {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiTrump {
     pub level: ShengjiRank,
     pub suit: Option<ShengjiSuit>,

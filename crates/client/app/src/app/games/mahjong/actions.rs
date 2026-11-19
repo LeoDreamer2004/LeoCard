@@ -30,6 +30,7 @@ pub(crate) enum MahjongUiAction {
     ContinueFanSummary,
     ShowFinalSummary,
     Discard(MahjongTile),
+    DiscardDrawnTile(MahjongTile),
     Respond(MahjongClaim),
     SelfDraw,
     ConcealedKong(MahjongTileKind),
@@ -51,6 +52,7 @@ impl DomainUiAction for MahjongUiAction {
                 | Self::CloseFanGuide
                 | Self::SelectFanGuideTier(_)
                 | Self::Discard(_)
+                | Self::DiscardDrawnTile(_)
                 | Self::SetAutoFlower(_)
                 | Self::ToggleReadyHandPeek
         )
@@ -199,7 +201,7 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 }
                 return;
             }
-            Self::Discard(tile) | Self::DeclareReady(tile) => {
+            Self::Discard(tile) | Self::DiscardDrawnTile(tile) | Self::DeclareReady(tile) => {
                 let Some(game) = context.client.as_deref().and_then(|client| {
                     client
                         .0
@@ -215,7 +217,12 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 {
                     return;
                 }
-                if cfg!(target_os = "android") && context.ui.selected_discard != Some(*tile) {
+                if matches!(self, Self::DiscardDrawnTile(_)) {
+                    if game.your_drawn_tile != Some(*tile) {
+                        return;
+                    }
+                } else if cfg!(target_os = "android") && context.ui.selected_discard != Some(*tile)
+                {
                     context.ui.selected_discard = Some(*tile);
                     return;
                 }
@@ -227,7 +234,9 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
         context.ui.declaring_ready = false;
         let command = match self {
             MahjongUiAction::UpdateRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
-            MahjongUiAction::Discard(tile) => MahjongCommand::Discard { tile: *tile },
+            MahjongUiAction::Discard(tile) | MahjongUiAction::DiscardDrawnTile(tile) => {
+                MahjongCommand::Discard { tile: *tile }
+            }
             MahjongUiAction::DeclareReady(tile) => MahjongCommand::DeclareReady { tile: *tile },
             MahjongUiAction::Respond(claim) => MahjongCommand::RespondToClaim { claim: *claim },
             MahjongUiAction::SelfDraw => MahjongCommand::DeclareSelfDraw,

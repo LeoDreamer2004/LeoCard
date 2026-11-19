@@ -1,4 +1,4 @@
-use super::super::client::DrawGuessClient;
+use super::client::DrawGuessClient;
 use crate::app::runtime::GameProjection;
 use leocard_draw_guess::{
     CanvasPoint, DrawAction, DrawGuessGame, DrawGuessRuleSet, Ink, word_bank,

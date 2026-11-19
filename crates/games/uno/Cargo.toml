@@ -10,8 +10,4 @@ description = "Pure game rules for LeoCard UNO"
 fastrand.workspace = true
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
-serde = { workspace = true, optional = true }
-
-[features]
-default = []
-serde = ["dep:serde"]
+serde.workspace = true

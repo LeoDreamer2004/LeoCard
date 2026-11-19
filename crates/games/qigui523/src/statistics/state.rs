@@ -1,9 +1,9 @@
 use crate::{QiGuiPlayKind, QiGuiRuleSet};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 
 /// Match facts owned by the rule core; independent of persistence and achievements.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct QiGuiPlayerStatistics {
     pub plays: u32,
     pub straight_plays: u32,
@@ -25,8 +25,7 @@ pub struct QiGuiPlayerStatistics {
 
 /// Private projection for one player, emitted only after an accepted action.
 /// Captured card and point counts are deltas, not repeated match totals.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct QiGuiActionStatistics {
     pub player: PlayerId,
     pub rules: QiGuiRuleSet,

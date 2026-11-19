@@ -1,9 +1,9 @@
 use crate::{CanvasDocument, DrawGuessError, DrawGuessRuleSet, WordLibrary};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DrawGuessPhase {
     Choosing,
     Drawing,
@@ -11,8 +11,7 @@ pub enum DrawGuessPhase {
     Finished,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GuessPlayer {
     pub id: PlayerId,
     pub score: u32,
@@ -20,8 +19,7 @@ pub struct GuessPlayer {
     pub connected: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GuessMessage {
     pub serial: u32,
     pub player: PlayerId,

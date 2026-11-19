@@ -230,6 +230,18 @@ pub(super) fn render_action_bar(
             materials,
         );
     }
+    if (game.your_declared_ready() || ui.auto_draw_discard)
+        && let Some(tile) = game.your_drawn_tile
+    {
+        add_mahjong_button(
+            commands,
+            bar,
+            "过",
+            MahjongUiAction::DiscardDrawnTile(tile),
+            GinkgoButtonTone::Ash,
+            assets,
+        );
+    }
 }
 
 #[expect(

@@ -1,9 +1,9 @@
 use crate::{DrawGuessError, DrawGuessGame, GuessMessage, word_bank};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// A portable word library. Local filenames and filesystem paths never cross the network.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct WordLibrary {
     pub title: String,
     pub words: Vec<String>,

@@ -290,7 +290,7 @@ fn collect_wait_fan(values: &mut FanValues, context: &ScoreContext<'_>, unique_w
         pair == context.input.winning_tile && !context.melded_hand && context.kongs.len() < 4;
     let mut edge = false;
     let mut closed = false;
-    for set in sets {
+    for set in sets.iter().filter(|set| !set.open) {
         if let SetKind::Chow { suit, start } = set.kind
             && let MahjongTileKind::Suited {
                 suit: win_suit,

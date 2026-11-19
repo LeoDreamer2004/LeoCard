@@ -73,13 +73,15 @@ pub(super) fn concealed_pung_count(input: &MahjongScoreInput, sets: &[Set]) -> u
         let winning_pung = sets.iter().any(|set| {
             matches!(set.kind, SetKind::Pung(tile) if tile == input.winning_tile) && !set.open
         });
-        let winning_can_belong_elsewhere = sets.iter().any(|set| match set.kind {
-            SetKind::Chow { suit, start } => matches!(
+        let winning_can_belong_elsewhere = sets.iter().filter(|set| !set.open).any(|set| {
+            let SetKind::Chow { suit, start } = set.kind else {
+                return false;
+            };
+            matches!(
                 input.winning_tile,
                 MahjongTileKind::Suited { suit: win_suit, rank }
                     if suit == win_suit && rank >= start && rank <= start + 2
-            ),
-            SetKind::Pung(_) => false,
+            )
         });
         if winning_pung && !winning_can_belong_elsewhere {
             count -= 1;

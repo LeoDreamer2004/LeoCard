@@ -37,7 +37,16 @@ fn player_can_replace_only_their_own_hand() {
         })),
     );
 
-    assert_eq!(deliveries.len(), 3);
+    assert!(rejection(&deliveries).is_none());
+    for connection in [HOST, SECOND, THIRD] {
+        let snapshots: Vec<_> = deliveries
+            .iter()
+            .filter(|delivery| delivery.recipient == connection)
+            .filter_map(|delivery| qigui523_snapshot(&delivery.message.event))
+            .collect();
+        assert_eq!(snapshots.len(), 1);
+        assert_eq!(snapshots[0].you, session.player_id(connection).unwrap());
+    }
     let hand = session.game().unwrap().player(player).unwrap().hand();
     assert_eq!(hand.len(), replacement.len());
     assert_eq!(

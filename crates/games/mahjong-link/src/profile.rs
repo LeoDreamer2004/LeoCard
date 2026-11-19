@@ -1,7 +1,7 @@
 use leocard_game_common::{ActionTimeProfile, ActionTimeStats};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongLinkProfileStats {
     pub action_time: ActionTimeStats,
 }

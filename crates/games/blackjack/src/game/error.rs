@@ -1,10 +1,8 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlackjackGameError {
     InvalidRules,
     InvalidPlayerCount,

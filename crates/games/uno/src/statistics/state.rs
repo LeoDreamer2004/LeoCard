@@ -1,10 +1,10 @@
 use crate::{UnoCard, UnoColor, UnoRuleSet};
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Game facts only: no achievement IDs, presentation or persistence.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UnoPlayerStatistics {
     pub uno_calls: u32,
     pub uno_reports: u32,
@@ -39,8 +39,7 @@ pub struct UnoPlayerStatistics {
 
 /// One accepted transition's private report. Cumulative counters are accompanied
 /// by deltas so callers can maintain lifetime progress without recounting a game.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UnoActionStatistics {
     pub player: PlayerId,
     pub rules: UnoRuleSet,

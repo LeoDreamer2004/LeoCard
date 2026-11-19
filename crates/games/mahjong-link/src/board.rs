@@ -1,5 +1,6 @@
 use crate::{LinkCell, LinkMovement, LinkPoint, MahjongLinkError, PushSide};
 use leocard_game_common::mahjong::{MahjongTileKind, build_deck as build_mahjong_deck};
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::ops::Range;
 
@@ -24,8 +25,7 @@ pub const fn tile_points(tile: MahjongTileKind) -> u16 {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongLinkBoard {
     cells: Vec<Option<MahjongTileKind>>,
 }

@@ -1,5 +1,5 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+use serde::{Deserialize, Serialize};
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GuandanRuleSet {
     /// The rank both teams play in the opening hand (2 through ace).
     pub starting_level: u8,

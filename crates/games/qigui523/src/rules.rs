@@ -1,16 +1,15 @@
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// 所选花色比较方式判定两手牌相同后，是否允许后出的整手牌跟牌。
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum QiGuiSameCardPolicy {
     MustBeHigher,
     CanFollow,
 }
 
 /// 同牌型且点数组成相同时，如何比较花色。
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum QiGuiSuitComparison {
     /// 只比较整手牌中最大的牌，最大牌相同即为相同强度。
     HighestCard,
@@ -21,8 +20,7 @@ pub enum QiGuiSuitComparison {
 }
 
 /// 每回合固定时间 + 每名玩家整局共享的保留时间。
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum QiGuiTimeControl {
     Unlimited,
     FivePlusTen,
@@ -63,8 +61,7 @@ impl QiGuiTimeControl {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct QiGuiRuleSet {
     pub deck_count: u8,
     pub player_count: u8,

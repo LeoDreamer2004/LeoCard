@@ -1,12 +1,10 @@
 use super::{MahjongGameError, MahjongGameState, MahjongPhase};
 use crate::{MahjongRuleSet, MahjongTile};
 use leocard_game_common::PlayerId;
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "[u8; 2]", into = "[u8; 2]"))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(try_from = "[u8; 2]", into = "[u8; 2]")]
 pub struct MahjongWallBreak {
     dice: [u8; 2],
 }
@@ -43,7 +41,6 @@ impl MahjongWallBreak {
     }
 }
 
-#[cfg(feature = "serde")]
 impl TryFrom<[u8; 2]> for MahjongWallBreak {
     type Error = &'static str;
 
@@ -52,7 +49,6 @@ impl TryFrom<[u8; 2]> for MahjongWallBreak {
     }
 }
 
-#[cfg(feature = "serde")]
 impl From<MahjongWallBreak> for [u8; 2] {
     fn from(opening: MahjongWallBreak) -> Self {
         opening.dice()

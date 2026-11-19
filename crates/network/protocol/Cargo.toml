@@ -8,17 +8,17 @@ description = "Wire protocol and client-safe views for LeoCard"
 
 [dependencies]
 leocard-achievements = { path = "../../games/achievements" }
-leocard-blackjack = { path = "../../games/blackjack", features = ["serde"] }
-leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
-leocard-draw-guess = { path = "../../games/draw-guess", features = ["serde"] }
+leocard-blackjack = { path = "../../games/blackjack" }
+leocard-doudizhu = { path = "../../games/doudizhu" }
+leocard-draw-guess = { path = "../../games/draw-guess" }
 leocard-game-common = { path = "../../games/common" }
-leocard-guandan = { path = "../../games/guandan", features = ["serde"] }
-leocard-mahjong = { path = "../../games/mahjong", features = ["serde"] }
-leocard-mahjong-link = { path = "../../games/mahjong-link", features = ["serde"] }
+leocard-guandan = { path = "../../games/guandan" }
+leocard-mahjong = { path = "../../games/mahjong" }
+leocard-mahjong-link = { path = "../../games/mahjong-link" }
 leocard_mc_guess = { path = "../../games/mc-guess" }
-leocard-qigui523 = { path = "../../games/qigui523", features = ["serde"] }
-leocard-shengji = { path = "../../games/shengji", features = ["serde"] }
-leocard-texas-holdem = { path = "../../games/texas-holdem", features = ["serde"] }
-leocard-uno = { path = "../../games/uno", features = ["serde"] }
+leocard-qigui523 = { path = "../../games/qigui523" }
+leocard-shengji = { path = "../../games/shengji" }
+leocard-texas-holdem = { path = "../../games/texas-holdem" }
+leocard-uno = { path = "../../games/uno" }
 postcard.workspace = true
 serde.workspace = true

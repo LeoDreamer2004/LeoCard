@@ -1,9 +1,9 @@
 use super::{DrawGuessGame, DrawGuessPhase, GuessMessage, GuessPlayer};
 use crate::CanvasDocument;
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DrawGuessView {
     pub phase: DrawGuessPhase,
     pub artist: Option<PlayerId>,

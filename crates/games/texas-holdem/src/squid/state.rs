@@ -3,11 +3,11 @@ use crate::{TexasPotAward, TexasRuleSet};
 use fastrand::Rng;
 use leocard_game_common::PlayerId;
 
+use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 
 /// A single newly awarded marker and the recipient's holdings in this round.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasSquidAwardStatistics {
     pub deepseek: bool,
     /// Includes both ordinary and DeepSeek markers.
@@ -15,8 +15,7 @@ pub struct TexasSquidAwardStatistics {
     pub deepseek_owned: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasSquidTransfer {
     pub from: PlayerId,
     pub to: PlayerId,

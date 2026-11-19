@@ -1,8 +1,8 @@
 use crate::DoudizhuMode;
+use serde::{Deserialize, Serialize};
 
 /// Unique physical card. Each deck uses 0..52 for 3 through 2, then two jokers.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct DoudizhuCard(pub u8);
 
 impl DoudizhuCard {

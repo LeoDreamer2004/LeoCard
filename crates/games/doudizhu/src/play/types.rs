@@ -1,7 +1,7 @@
 use crate::{DoudizhuCard, DoudizhuMode};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuPlayKind {
     Single,
     Pair,
@@ -40,8 +40,7 @@ impl DoudizhuPlayKind {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuPlay {
     pub cards: Vec<DoudizhuCard>,
     pub kind: DoudizhuPlayKind,

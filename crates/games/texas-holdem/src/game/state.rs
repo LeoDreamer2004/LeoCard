@@ -5,10 +5,10 @@ use crate::{
     build_deck,
 };
 use leocard_game_common::{DeckError, PlayerId, validate_deck as validate_physical_deck};
+use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, fmt};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasStreet {
     PreFlop,
     Flop,
@@ -16,15 +16,13 @@ pub enum TexasStreet {
     River,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasBlindKind {
     Small,
     Big,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasAction {
     PostBlind,
     Fold,

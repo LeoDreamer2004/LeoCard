@@ -9,9 +9,8 @@ description = "Pure game rules for the Qi Gui Wu Er San card game"
 [dependencies]
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
-serde = { workspace = true, optional = true }
+serde.workspace = true
 
 [features]
 default = []
 developer = []
-serde = ["dep:serde"]

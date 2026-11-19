@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasRuleSet {
     pub player_count: u8,
     pub starting_chips: u16,
@@ -10,19 +10,19 @@ pub struct TexasRuleSet {
     pub short_deck: bool,
     /// 只比较构成牌型的点数，忽略对子、两对、三条和四条之外的踢脚牌。
     /// 高牌与同花只比较最大的一张牌。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub ignore_kickers: bool,
     /// 奥马哈高牌：每人四张底牌，成牌时必须恰好使用两张底牌和三张公共牌。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub omaha: bool,
     /// 固定限注：前两街每次 2，后两街每次 4，每街最多四次完整下注。
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub fixed_limit: bool,
     /// Layer contributions into side pots. Disabled games freeze betting at the first all-in.
-    #[cfg_attr(feature = "serde", serde(default = "default_side_pots"))]
+    #[serde(default = "default_side_pots")]
     pub side_pots: bool,
     /// Offer unanimous runout voting after betting closes before the river.
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub run_it_twice: bool,
     /// DeepSeek squid markers cost 2BB instead of 1BB when squid is enabled.
     pub deepseek_squid_double: bool,
@@ -73,7 +73,6 @@ impl TexasRuleSet {
     }
 }
 
-#[cfg(feature = "serde")]
 const fn default_side_pots() -> bool {
     true
 }
@@ -152,7 +151,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "serde")]
     #[test]
     fn missing_serde_options_use_true_for_side_pots_and_false_for_runout() {
         let mut value = serde_json::to_value(TexasRuleSet::default()).unwrap();

@@ -1,8 +1,8 @@
 use crate::{GuandanCard, GuandanSuit};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, error::Error, fmt};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GuandanPlayKind {
     Single,
     Pair,
@@ -16,8 +16,7 @@ pub enum GuandanPlayKind {
     JokerBomb,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GuandanPlay {
     pub cards: Vec<GuandanCard>,
     pub kind: GuandanPlayKind,

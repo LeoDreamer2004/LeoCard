@@ -1,8 +1,8 @@
 use crate::{DoudizhuGameError, DoudizhuMode, DoudizhuResultView, DoudizhuRuleSet};
 use leocard_game_common::{PlayerId, ranked_awards};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DoudizhuMatchProgress {
     pub hand_number: u8,
     pub rounds: u8,

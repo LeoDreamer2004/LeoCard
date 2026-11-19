@@ -1,13 +1,13 @@
 use super::{DrawAction, DrawOperation, Stroke};
 use crate::DrawGuessError;
+use serde::{Deserialize, Serialize};
 
 const MAX_OPERATIONS: usize = 1024;
 const MAX_POINTS: usize = 32_768;
 const MAX_STROKE_POINTS: usize = 4096;
 const MAX_BATCH_POINTS: usize = 64;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CanvasDocument {
     operations: Vec<DrawOperation>,
     cursor: usize,

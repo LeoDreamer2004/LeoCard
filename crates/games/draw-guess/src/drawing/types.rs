@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 pub const CANVAS_WIDTH: u16 = 960;
 pub const CANVAS_HEIGHT: u16 = 600;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CanvasPoint {
     pub x: u16,
     pub y: u16,
@@ -14,8 +14,7 @@ impl CanvasPoint {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Ink(pub [u8; 3]);
 
 impl Ink {
@@ -23,8 +22,7 @@ impl Ink {
     pub const WHITE: Self = Self([255; 3]);
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Stroke {
     pub id: u64,
     pub color: Ink,
@@ -33,8 +31,7 @@ pub struct Stroke {
     pub points: Vec<CanvasPoint>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DrawOperation {
     Stroke(Stroke),
     Fill { point: CanvasPoint, color: Ink },
@@ -42,8 +39,7 @@ pub enum DrawOperation {
     Clear,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DrawAction {
     Begin {
         point: CanvasPoint,

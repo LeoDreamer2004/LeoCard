@@ -5,6 +5,7 @@ use crate::{
 };
 use leocard_game_common::PlayerId;
 
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,8 +57,7 @@ pub struct ShengjiTrickRecord {
     pub points: u16,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiHandResult {
     pub dealer: PlayerId,
     pub dealer_team: ShengjiTeamId,
@@ -87,22 +87,19 @@ pub enum ShengjiPhase {
     RedealRequired(ShengjiRedealReason),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ShengjiFiveTrumpCrossingStage {
     Deciding,
     Returning,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiBottomFlipMatch {
     pub player: PlayerId,
     pub cards: Vec<ShengjiCard>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiBottomFlipReveal {
     pub card: ShengjiCard,
     pub matches: Vec<ShengjiBottomFlipMatch>,

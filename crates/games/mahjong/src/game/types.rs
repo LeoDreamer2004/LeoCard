@@ -3,17 +3,16 @@ use crate::{
     MahjongTile, MahjongTileKind,
 };
 use leocard_game_common::PlayerId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongDrawOrigin {
     Normal,
     KongReplacement,
     FlowerReplacement,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongPlayerState {
     pub(super) id: PlayerId,
     pub(super) hand: Vec<MahjongTile>,
@@ -59,8 +58,7 @@ impl MahjongPlayerState {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongPublicPlayerState {
     pub id: PlayerId,
     pub concealed_count: usize,
@@ -71,8 +69,7 @@ pub struct MahjongPublicPlayerState {
     pub declared_ready: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongPublicMeld {
     pub kind: MahjongMeldKind,
     /// 他人的暗杠在本盘结算前只公开为四张牌背。
@@ -80,8 +77,7 @@ pub struct MahjongPublicMeld {
     pub claimed_from: Option<PlayerId>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongDiscard {
     pub player: PlayerId,
     pub tile: MahjongTile,
@@ -90,8 +86,7 @@ pub struct MahjongDiscard {
     pub from_drawn: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongClaimOption {
     Chow { start: u8 },
     Pung,
@@ -99,8 +94,7 @@ pub enum MahjongClaimOption {
     Win,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongClaim {
     Pass,
     Chow { start: u8 },
@@ -127,8 +121,7 @@ pub(super) struct ClaimPriority {
     pub(super) proximity: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub(super) enum ClaimTrigger {
     Discard {
         discard_index: usize,
@@ -142,8 +135,7 @@ pub(super) enum ClaimTrigger {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongPendingClaim {
     pub(super) trigger: ClaimTrigger,
     pub(super) options: [Vec<MahjongClaimOption>; MahjongRuleSet::PLAYER_COUNT as usize],
@@ -184,8 +176,7 @@ impl MahjongPendingClaim {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongWinRecord {
     pub player: PlayerId,
     pub from: Option<PlayerId>,
@@ -196,15 +187,13 @@ pub struct MahjongWinRecord {
     pub wait_kind_count: u8,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongMatchProgress {
     pub completed_hands: u8,
     pub exhaustive_draws: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongHandResult {
     pub winners: Vec<MahjongWinRecord>,
     pub exhaustive_draw: bool,
@@ -216,8 +205,7 @@ pub struct MahjongHandResult {
     pub sequence_index: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongPhase {
     Dealing { batch: u8 },
     ReplacingFlower { player: PlayerId },
@@ -226,8 +214,7 @@ pub enum MahjongPhase {
     Finished(MahjongHandResult),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongActionOutcome {
     Discarded {
         player: PlayerId,

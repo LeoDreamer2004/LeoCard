@@ -4,6 +4,7 @@ use crate::MahjongFan;
 use leocard_game_common::{
     ActionTimeProfile, ActionTimeStats, GameCountStats, PlacementStats, ReferenceStats, ResultScope,
 };
+use serde::{Deserialize, Serialize};
 
 pub const MAHJONG_MAJOR_FANS: [MahjongFan; 15] = [
     MahjongFan::BigFourWinds,
@@ -23,8 +24,7 @@ pub const MAHJONG_MAJOR_FANS: [MahjongFan; 15] = [
     MahjongFan::FourPureShiftedPungs,
 ];
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongProfileStats {
     pub completed_games: u32,
     pub total_reference_delta: i64,

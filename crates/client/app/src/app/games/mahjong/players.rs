@@ -4,12 +4,12 @@ use super::{
     ActiveMahjongClaimPresentation, MAHJONG_REMOTE_DRAW_GAP, MAHJONG_REMOTE_MELD_WIDTH,
     MahjongAssets, MahjongClaimHandShift, MahjongDiscardRiverTile, MahjongDisplayedHand,
     MahjongMeldPresentation, MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation,
-    MahjongRemoteDiscardRiverTile, MahjongRemoteHandShift, MahjongTileHighlight,
-    MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSize, MahjongTileVisual,
-    MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_response_indicator,
-    add_mahjong_tile_material, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
-    mahjong_own_row_left, mahjong_remote_tile_advance, mahjong_win_tile_cues,
-    mahjong_winning_hand_progress, mark_mahjong_win_tile, render_mahjong_meld,
+    MahjongRemoteHandShift, MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation,
+    MahjongTileSize, MahjongTileVisual, MahjongWinningHand, MahjongWinningHandVisual,
+    add_mahjong_response_indicator, add_mahjong_tile_material, apply_mahjong_winning_hand_visual,
+    mahjong_claim_hand_shift_x, mahjong_own_row_left, mahjong_remote_tile_advance,
+    mahjong_win_tile_cues, mahjong_winning_hand_progress, mark_mahjong_win_tile,
+    render_mahjong_meld, render_remote_discard_river_tile,
 };
 use crate::app::presentation::mahjong::{own_overlay, world_layout};
 use crate::app::presentation::{
@@ -501,6 +501,7 @@ pub(super) fn render_mahjong_player_tiles(
                     if start_x > 0.0 {
                         commands.entity(entity).insert((
                             MahjongRemoteHandShift {
+                                discard_index: active.discard_index,
                                 start_x,
                                 end_x: 0.0,
                             },
@@ -517,15 +518,17 @@ pub(super) fn render_mahjong_player_tiles(
                 } else {
                     discarded_index as f32 * advance
                 };
+                if let Some(active) = ghost {
+                    active.render_source(commands, concealed, tile_left);
+                    return;
+                }
                 let entity = add_mahjong_tile_material(
                     commands,
                     concealed,
                     MahjongTileVisual {
                         elevation: 0.0,
-                        kind: ghost
-                            .map(|active| active.tile.kind())
-                            .or(robbing_tile.map(|tile| tile.kind())),
-                        size: if ghost.is_some() || robbing_tile.is_some() {
+                        kind: robbing_tile.map(|tile| tile.kind()),
+                        size: if robbing_tile.is_some() {
                             MahjongTileSize::River
                         } else {
                             standing_size
@@ -536,14 +539,13 @@ pub(super) fn render_mahjong_player_tiles(
                             discarded_index
                         },
                         highlight: MahjongTileHighlight::None,
-                        deal: (ghost.is_none() && drawn_tile_falling)
-                            .then(|| mahjong_draw_spec(relative)),
+                        deal: drawn_tile_falling.then(|| mahjong_draw_spec(relative)),
                         relative,
                     },
                     game_assets,
                     materials,
                 );
-                let tile_bottom = if face_down && ghost.is_none() && robbing_tile.is_none() {
+                let tile_bottom = if face_down && robbing_tile.is_none() {
                     (Layout::MINI_HEIGHT - standing_size.dimensions().1) * 0.5
                 } else {
                     0.0
@@ -566,10 +568,6 @@ pub(super) fn render_mahjong_player_tiles(
                         true,
                         ui_assets,
                     );
-                }
-                if let Some(active) = ghost {
-                    let (ghost, transform) = active.ghost_visual(0.0);
-                    commands.entity(entity).insert((ghost, transform));
                 }
             }
         }
@@ -685,12 +683,17 @@ pub(super) fn render_discard_rivers(
             if discard_animation.is_some_and(|animation| animation.discard_index == index) {
                 commands
                     .entity(entity)
-                    .insert((MahjongDiscardRiverTile, Visibility::Hidden));
+                    .insert((MahjongDiscardRiverTile(index), Visibility::Hidden));
             }
-            if remote_discard.is_some_and(|animation| animation.discard_index == index) {
-                commands
-                    .entity(entity)
-                    .insert((MahjongRemoteDiscardRiverTile, Visibility::Hidden));
+            if relative != 0 {
+                render_remote_discard_river_tile(
+                    commands,
+                    entity,
+                    index,
+                    discard.tile,
+                    rest_rotation,
+                    remote_discard,
+                );
             }
             if let (Some(result), Some(cues)) = (result, cues) {
                 mark_mahjong_win_tile(commands, entity, result, cues, None);

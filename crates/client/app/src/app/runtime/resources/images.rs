@@ -2,8 +2,12 @@
 
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
+use image::{ImageFormat, ImageReader};
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES};
-use std::{f32::consts, fs, io::Cursor, path::Path};
+use std::f32::consts;
+use std::fs;
+use std::io::Cursor;
+use std::path::Path;
 
 pub(crate) fn normalize_avatar(path: &Path) -> Result<Vec<u8>, String> {
     let source = fs::read(path).map_err(|error| format!("无法读取头像文件：{error}"))?;
@@ -22,7 +26,7 @@ pub(crate) fn normalize_avatar_bytes(source: &[u8]) -> Result<Vec<u8>, String> {
     );
     let mut output = Cursor::new(Vec::new());
     image
-        .write_to(&mut output, image::ImageFormat::Png)
+        .write_to(&mut output, ImageFormat::Png)
         .map_err(|error| format!("头像压缩失败：{error}"))?;
     let png = output.into_inner();
     if png.len() > MAX_AVATAR_BYTES {
@@ -36,7 +40,10 @@ pub(crate) fn normalize_avatar_bytes(source: &[u8]) -> Result<Vec<u8>, String> {
 
 pub(crate) fn valid_normalized_avatar(png: &[u8]) -> bool {
     png.len() <= MAX_AVATAR_BYTES
-        && image::load_from_memory_with_format(png, image::ImageFormat::Png).is_ok_and(|image| {
+        && ImageReader::with_format(Cursor::new(png), ImageFormat::Png)
+            .into_dimensions()
+            .is_ok_and(|size| size == (AVATAR_DIMENSION, AVATAR_DIMENSION))
+        && image::load_from_memory_with_format(png, ImageFormat::Png).is_ok_and(|image| {
             image.width() == AVATAR_DIMENSION && image.height() == AVATAR_DIMENSION
         })
 }
@@ -45,7 +52,7 @@ pub(crate) fn image_handle_from_png(
     png: &[u8],
     images: &mut Assets<Image>,
 ) -> Option<Handle<Image>> {
-    let dynamic = image::load_from_memory_with_format(png, image::ImageFormat::Png).ok()?;
+    let dynamic = image::load_from_memory_with_format(png, ImageFormat::Png).ok()?;
     Some(images.add(Image::from_dynamic(
         dynamic,
         true,

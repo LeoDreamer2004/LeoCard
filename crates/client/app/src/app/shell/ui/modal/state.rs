@@ -5,7 +5,7 @@ use bevy::prelude::*;
 pub(crate) enum CozyModalKind {
     Settings,
     Profile,
-    JoinRoom,
+    JoinRoomEditor,
     MahjongFanGuide,
     TexasHandGuide,
     McGraphGuide,

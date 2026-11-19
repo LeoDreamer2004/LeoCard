@@ -54,7 +54,7 @@ impl NetworkUiContext<'_, '_> {
                 client.model().phase(),
                 ClientPhaseRef::Idle | ClientPhaseRef::Closed
             ),
-            was_host: local_player_is_host(client.model()),
+            was_host: client.model().is_host(),
             was_game: client.model().active_game_meta().is_some(),
             lobby_seat_snapshots: collect_lobby_seats(client.model().lobby(), &self.lobby_seats),
             game_change: ScreenChangeCapture::capture(client.model().game_snapshot()),
@@ -117,8 +117,16 @@ impl NetworkUiContext<'_, '_> {
         );
 
         if let Some(error) = connection_end {
+            if !was_home {
+                self.ui.rooms.set_open(!was_host);
+                self.ui.achievements.open = false;
+                self.ui.shop.open = false;
+                self.close_modals();
+            }
+            self.ui.rooms.connecting = false;
             page_error.error = error;
             self.ui.leaving_room = false;
+            self.ui.dirty = true;
             self.commands.remove_resource::<ClientResource>();
         }
         if previous_moderation.as_ref() != client.model().room_moderation()
@@ -167,14 +175,6 @@ fn collect_lobby_seats(
             })
         })
         .collect()
-}
-
-fn local_player_is_host(model: &ClientModel) -> bool {
-    model.active_game_meta().is_some_and(|game| game.is_host())
-        || model
-            .lobby()
-            .zip(model.you())
-            .is_some_and(|(lobby, you)| lobby.host == Some(you))
 }
 
 fn sync_start_game_transition(

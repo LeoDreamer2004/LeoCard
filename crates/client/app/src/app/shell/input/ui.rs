@@ -32,6 +32,7 @@ pub(crate) fn update_ui_scale(
     let design_height = if cfg!(target_os = "android")
         && !ui.shop.open
         && !ui.achievements.open
+        && !ui.rooms.open
         && client
             .as_deref()
             .is_none_or(|client| !matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))

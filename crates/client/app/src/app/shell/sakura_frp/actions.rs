@@ -65,6 +65,7 @@ pub(super) fn dispatch_sakura_actions(
         ui.dirty = true;
         match action {
             SakuraUiAction::Show => {
+                ui.rooms.open = false;
                 if !state.open {
                     page_motion.begin();
                 }

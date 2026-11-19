@@ -57,7 +57,6 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 save_connection_draft(&context.connection, &mut context.economy).err();
         }
         ui.home.identity_open = false;
-        ui.home.join_open = false;
         match self {
             NavigationUiAction::ToggleProfile => {
                 context.profile_motion.toggle(ui);
@@ -82,6 +81,7 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 }
             }
             NavigationUiAction::ToggleAchievements => {
+                ui.rooms.open = false;
                 #[cfg(not(target_os = "android"))]
                 {
                     context.sakura.open = false;
@@ -98,6 +98,7 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 }
             }
             NavigationUiAction::ToggleShop => {
+                ui.rooms.open = false;
                 #[cfg(not(target_os = "android"))]
                 {
                     context.sakura.open = false;

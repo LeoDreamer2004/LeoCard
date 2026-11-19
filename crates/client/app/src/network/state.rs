@@ -134,7 +134,7 @@ pub(super) fn push_event(events: &EventQueue, event: NetworkEvent) {
     queue.push_back(event);
 }
 
-pub(super) fn normalize_server_address(address: &str) -> Result<String, NetworkStartError> {
+pub(crate) fn normalize_server_address(address: &str) -> Result<String, NetworkStartError> {
     let address = address.trim();
     let invalid = || NetworkStartError::InvalidAddress(address.to_owned());
     let (host, port) = address.rsplit_once(':').ok_or_else(invalid)?;

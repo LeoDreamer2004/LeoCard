@@ -71,9 +71,10 @@
 - 运行时文件：`audio/minecraft_guess/note_block/{guitar,harp,pling,bass,bell}.ogg`。
 - 来源：Java 版 26.3 官方资源索引中的 `minecraft/sounds/note/`，保留原始单声道 Vorbis 文件。原文件未重新合成或转码；音高、音量和多音节奏由播放层控制，音高采用原版音符盒的 25 档调音规则，整体音量跟随游戏全局音量。
 
-### CozyUI+ 首页纹理（GPL-3.0）
+### CozyUI+ 首页与房间列表纹理（GPL-3.0）
 
 - 作者：零雾〇五 Fogg05；来源：<https://github.com/Fogg05/CozyUI-Plus>
+- `ui/rooms/` 的信号图取自对应的 Minecraft GUI 素材，房间列表复用既有的 CozyUI+ 九宫格按钮和公共圆角滚动条。
 - `cozy-button-purple-plain.png` 和 `cozy-button-arrows.png` 从原版 `button_highlighted.png` 分离而来。
 - 两张 `compact` 按钮图保留原图的两端与中段，统一短按钮的圆角和亮边尺寸。
 - 两张红色 `compact` 按钮图分别从灰色常态和紫色高亮按钮的颜色层次转换而来；悬停态保留普通高亮贴图的原始白边，仅将彩色部分转为较暗的红色，两张图的透明轮廓一致。

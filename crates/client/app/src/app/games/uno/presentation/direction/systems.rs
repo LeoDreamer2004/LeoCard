@@ -1,12 +1,15 @@
+use super::super::super::uno_ui_color;
 use super::geometry::DirectionLoopGeometry;
 use super::material::UnoDirectionMaterial;
 use super::view::UnoDirectionLoop;
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, ease_out_cubic};
 use crate::app::runtime::ClientResource;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use leocard_protocol::{GameSnapshot, MatchId, UnoPhaseView};
-use leocard_uno::UnoDirection;
+use leocard_uno::{UnoColor, UnoDirection};
+
+const COLOR_TRANSITION_DURATION: f32 = 0.35;
 
 #[derive(Resource, Default)]
 pub(crate) struct UnoDirectionState {
@@ -14,6 +17,10 @@ pub(crate) struct UnoDirectionState {
     phase: f32,
     speed: f32,
     elapsed: f32,
+    color: LinearRgba,
+    color_from: LinearRgba,
+    color_target: Option<UnoColor>,
+    color_elapsed: f32,
     geometry: Option<DirectionLoopGeometry>,
     material: Option<Handle<UnoDirectionMaterial>>,
 }
@@ -47,10 +54,20 @@ pub(crate) fn animate_uno_direction_loop(
         UnoDirection::Clockwise => 1.0,
         UnoDirection::CounterClockwise => -1.0,
     };
+    let target_color = game
+        .current_color
+        .map_or_else(
+            || Color::srgba(0.86, 0.84, 0.74, 0.045),
+            |color| uno_ui_color(color).with_alpha(0.22),
+        )
+        .to_linear();
     if state.match_id != Some(game.match_id) {
         *state = UnoDirectionState {
             match_id: Some(game.match_id),
             speed: target,
+            color: target_color,
+            color_from: target_color,
+            color_target: game.current_color,
             ..default()
         };
     }
@@ -73,6 +90,16 @@ pub(crate) fn animate_uno_direction_loop(
         ));
     }
     let delta = time.delta_secs().min(0.1);
+    if state.color_target != game.current_color {
+        state.color_target = game.current_color;
+        state.color_from = state.color;
+        state.color_elapsed = 0.0;
+    }
+    state.color_elapsed = (state.color_elapsed + delta).min(COLOR_TRANSITION_DURATION);
+    state.color = state.color_from.mix(
+        &target_color,
+        ease_out_cubic(state.color_elapsed / COLOR_TRANSITION_DURATION),
+    );
     state.speed += (target - state.speed).clamp(-6.0 * delta, 6.0 * delta);
     state.phase = state
         .geometry
@@ -96,7 +123,7 @@ pub(crate) fn animate_uno_direction_loop(
             geometry.perimeter,
         ),
         motion: Vec4::new(state.phase, direction, state.speed.abs(), opacity),
-        color: Color::srgba(0.86, 0.84, 0.74, 0.045).to_linear(),
+        color: state.color,
     };
     let handle = if let Some(handle) = state.material.as_ref() {
         *materials

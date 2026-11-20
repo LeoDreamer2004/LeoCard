@@ -3,7 +3,6 @@ name = "leocard-sakura-frp"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "SakuraFrp account, tunnel and frpc integration"
 
 [dependencies]

@@ -3,7 +3,6 @@ name = "leocard-host"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Authoritative in-memory room/session host for LeoCard"
 
 [features]

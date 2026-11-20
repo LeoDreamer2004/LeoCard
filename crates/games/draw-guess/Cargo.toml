@@ -3,7 +3,6 @@ name = "leocard-draw-guess"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Authoritative drawing and word guessing rules for LeoCard"
 
 [dependencies]

@@ -3,7 +3,6 @@ name = "leocard-qigui523"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Pure game rules for the Qi Gui Wu Er San card game"
 
 [dependencies]

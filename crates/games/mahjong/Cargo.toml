@@ -3,7 +3,6 @@ name = "leocard-mahjong"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Pure 2014 MCR mahjong rules for LeoCard"
 
 [dependencies]

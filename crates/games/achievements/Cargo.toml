@@ -3,7 +3,6 @@ name = "leocard-achievements"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Game-independent achievement registry and progress evaluation for LeoCard"
 
 [dependencies]

@@ -1,0 +1,111 @@
+name: Web Pages
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Published release tag to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leocard-pages
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Resolve published release
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.release.outputs.published }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Verify release is published
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
+        run: |
+          metadata="$(gh release view "$RELEASE_TAG" --json tagName,isDraft,publishedAt)"
+          if ! jq --exit-status '.isDraft == false and .publishedAt != null' <<< "$metadata" >/dev/null; then
+            echo "Release is still a draft, skipping Pages deployment."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$(jq --raw-output '.tagName' <<< "$metadata")" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build release web client
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: "2"
+    steps:
+      - name: Check out released source
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ needs.release.outputs.tag }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends clang mold
+
+      - name: Select current stable Rust
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+
+      - name: Cache Web build dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: Linux-cargo-web-release-${{ hashFiles('Cargo.lock', 'Cargo.toml', '.cargo/config.toml') }}
+          restore-keys: |
+            Linux-cargo-web-release-
+
+      - name: Build static site
+        run: python3 web/run.py --release --build-only
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: output/web
+
+  deploy:
+    name: Deploy Project Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy static site
+        id: deployment
+        uses: actions/deploy-pages@v4

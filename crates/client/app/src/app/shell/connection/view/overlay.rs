@@ -1,4 +1,4 @@
-use crate::app::shell::{CozyModalKind, ModalAnimations, UiState, advance_modal};
+use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 
@@ -8,17 +8,12 @@ pub(in crate::app::shell::connection) struct HomeIdentityPanel;
 pub(in crate::app::shell::connection) fn animate_home_overlays(
     time: Res<Time>,
     mut ui: ResMut<UiState>,
-    mut animations: ResMut<ModalAnimations>,
     mut commands: UiComposer,
     mut panels: Query<(Entity, &mut UiTransform), With<HomeIdentityPanel>>,
     children: Query<&Children>,
     mut visuals: TransitionVisuals,
 ) {
     let home = &mut ui.home;
-    let previous_join = home.join_progress;
-    advance_modal(&mut home.join_progress, home.join_open, time.delta_secs());
-    animations.set(CozyModalKind::JoinRoom, home.join_progress);
-    let join_finished = previous_join > 0.0 && home.join_progress == 0.0;
     let previous = home.identity_progress;
     let direction = if home.identity_open { 1.0 } else { -1.0 };
     home.identity_progress =
@@ -36,7 +31,7 @@ pub(in crate::app::shell::connection) fn animate_home_overlays(
             &mut commands,
         );
     }
-    if (previous > 0.0 && progress == 0.0) || join_finished {
+    if previous > 0.0 && progress == 0.0 {
         ui.dirty = true;
     }
 }

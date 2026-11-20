@@ -269,6 +269,7 @@ pub(super) fn render_own_hand(
                 let start_x = old_x - new_x;
                 commands.entity(entity).insert((
                     MahjongDiscardHandShift {
+                        discard_index: animation.discard_index,
                         start_x,
                         drawn: animation.old_drawn == Some(tile),
                     },

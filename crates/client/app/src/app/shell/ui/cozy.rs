@@ -147,25 +147,6 @@ pub(crate) fn add_cozy_close_button(
 }
 
 #[track_caller]
-pub(crate) fn add_cozy_refresh_button(
-    commands: &mut UiComposer,
-    parent: Entity,
-    action: UiAction,
-    assets: &UiAssets,
-) -> Entity {
-    add_cozy_control_button(
-        commands,
-        parent,
-        action,
-        assets,
-        [
-            assets.home.refresh_button.clone(),
-            assets.home.refresh_button_highlighted.clone(),
-        ],
-    )
-}
-
-#[track_caller]
 fn add_cozy_control_button(
     commands: &mut UiComposer,
     parent: Entity,

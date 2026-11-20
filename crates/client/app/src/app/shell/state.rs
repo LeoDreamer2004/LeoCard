@@ -1,6 +1,6 @@
 //! 顶层 UI 状态，仅组合各功能域自行维护的局部状态。
 
-use super::connection::{HomeUiState, LanUiState};
+use super::connection::{HomeUiState, JoinRoomUiState};
 use super::{AchievementsUiState, ProfileUiState, SettingsUiState, ShopUiState, SocialUiState};
 use bevy::prelude::*;
 
@@ -8,7 +8,7 @@ use bevy::prelude::*;
 pub(crate) struct UiState {
     pub home: HomeUiState,
     pub achievements: AchievementsUiState,
-    pub lan: LanUiState,
+    pub rooms: JoinRoomUiState,
     pub shop: ShopUiState,
     pub profile: ProfileUiState,
     pub settings: SettingsUiState,

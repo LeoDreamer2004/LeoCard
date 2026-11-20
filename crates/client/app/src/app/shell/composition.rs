@@ -1,6 +1,6 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
-use super::connection::LanDiscovery;
+use super::connection::{JoinRoomAssets, LanDiscovery, RoomDirectory};
 use super::{
     AchievementPageViewport, AchievementsPage, ChatPanelState, ConfirmationDialog,
     ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
@@ -29,6 +29,8 @@ struct VisualAssets<'w> {
     ui: Res<'w, UiAssets>,
     avatars: Res<'w, AvatarImages>,
     lan: Res<'w, LanDiscovery>,
+    rooms: Res<'w, RoomDirectory>,
+    room_assets: Res<'w, JoinRoomAssets>,
     table: Res<'w, TableAppearance>,
     play_error: Res<'w, PlayErrorToast>,
     game_summary: Res<'w, GameSummaryAnimation>,
@@ -173,7 +175,10 @@ impl ScreenRenderer<'_, '_, '_> {
         .render(
             self.commands,
             root,
-            !self.ui.shop.open && !self.ui.achievements.open && !self.sakura_open(),
+            !self.ui.shop.open
+                && !self.ui.achievements.open
+                && !self.ui.rooms.open
+                && !self.sakura_open(),
         );
         self.render_primary_screen(root);
         self.render_overlays(root);
@@ -209,6 +214,24 @@ impl ScreenRenderer<'_, '_, '_> {
                 &self.visuals.ui,
             )
             .render(self.commands, root);
+            return;
+        }
+        if self.ui.rooms.open && can_edit_identity(self.client) {
+            ConnectionScreen::new(
+                self.connection,
+                self.appearance,
+                &self.visuals.ui,
+                &self.visuals.avatars,
+                &self.ui.home,
+            )
+            .render_join_page(
+                self.commands,
+                root,
+                &self.ui.rooms,
+                &self.visuals.rooms,
+                &self.visuals.lan,
+                &self.visuals.room_assets,
+            );
             return;
         }
         let Some(client) = self.client else {
@@ -298,14 +321,15 @@ impl ScreenRenderer<'_, '_, '_> {
 
     fn render_overlays(&mut self, root: Entity) {
         if can_edit_identity(self.client) {
-            ConnectionScreen::new(
+            let connection = ConnectionScreen::new(
                 self.connection,
                 self.appearance,
                 &self.visuals.ui,
                 &self.visuals.avatars,
                 &self.ui.home,
-            )
-            .render_home_overlays(self.commands, root, &self.ui.lan, &self.visuals.lan);
+            );
+            connection.render_home_overlays(self.commands, root);
+            connection.render_room_dialog(self.commands, root, &self.ui.rooms);
         }
         #[cfg(not(target_os = "android"))]
         render_startup_dialog(self.commands, root, &self.visuals.sakura, &self.visuals.ui);

@@ -1,5 +1,6 @@
 use crate::app::shell::{
-    ModalInputScope, NavigationUiAction, PageMotion, PressedUiAction, UiAction, UiState,
+    ConnectionUiAction, ModalInputScope, NavigationUiAction, PageMotion, PressedUiAction, UiAction,
+    UiState,
 };
 use bevy::prelude::*;
 
@@ -13,6 +14,12 @@ pub(super) fn dispatch_back(
             return true;
         };
         dismiss.0.clone()
+    } else if ui.rooms.open {
+        UiAction::Connection(if ui.rooms.dialog_open {
+            ConnectionUiAction::CancelRoomEdit
+        } else {
+            ConnectionUiAction::ToggleJoin
+        })
     } else if ui.shop.open {
         UiAction::Navigation(NavigationUiAction::ToggleShop)
     } else if ui.achievements.open {

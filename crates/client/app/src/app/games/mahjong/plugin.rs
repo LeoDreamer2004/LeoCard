@@ -12,9 +12,10 @@ use super::{
     animate_mahjong_showcase_tiles, animate_mahjong_turn_sector, animate_mahjong_win_effects,
     animate_mahjong_win_showcases, animate_mahjong_win_tile_shakes, animate_mahjong_winning_hands,
     animate_own_discard, animate_remote_discard, apply_automatic_mahjong_action, assets,
-    play_mahjong_action_prompt, play_mahjong_fan_voices, play_mahjong_showcase_sounds,
-    play_mahjong_tile_sounds, sync_mahjong_claim_presentation, sync_mahjong_fan_guide,
-    sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints, sync_mahjong_ready_hand_peek,
+    capture_remote_discard_source, play_mahjong_action_prompt, play_mahjong_fan_voices,
+    play_mahjong_showcase_sounds, play_mahjong_tile_sounds, sync_mahjong_claim_presentation,
+    sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints,
+    sync_mahjong_ready_hand_peek,
 };
 use crate::app::presentation::mahjong::MahjongAssetsSet;
 use crate::app::presentation::start_game_intro_finished;
@@ -23,6 +24,7 @@ use crate::app::shell::{
     ModalAnimationSet, UiActionSet, animate_cozy_modals, scroll_modal_content,
 };
 use bevy::prelude::*;
+use bevy::ui::UiSystems;
 use leocard_protocol::{GameEvent, GameKind, MahjongEvent};
 
 pub(crate) struct MahjongPlugin;
@@ -47,6 +49,12 @@ impl Plugin for MahjongPlugin {
                 advance_mahjong_modal.in_set(ModalAnimationSet::Progress),
             )
             .add_systems(Startup, assets::load_mahjong_assets.after(MahjongAssetsSet))
+            .add_systems(
+                PostUpdate,
+                capture_remote_discard_source
+                    .after(UiSystems::Layout)
+                    .before(UiSystems::PostLayout),
+            )
             .add_systems(
                 Update,
                 actions::dispatch_mahjong_actions.in_set(UiActionSet),
@@ -91,7 +99,7 @@ impl Plugin for MahjongPlugin {
                     animate_mahjong_response_indicators,
                     animate_mahjong_deal_tiles,
                     animate_own_discard,
-                    animate_remote_discard,
+                    animate_remote_discard.before(animate_mahjong_win_tile_shakes),
                     animate_mahjong_turn_sector,
                     animate_mahjong_winning_hands,
                 )

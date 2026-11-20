@@ -1,12 +1,13 @@
 //! 建房、加入房间与连接身份设置。
 
 use super::super::{
-    ChatPanelState, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
-    dispatch_domain_actions, start_avatar_picker,
+    ChatPanelState, DomainUiAction, PageMotion, PressedUiAction, UiAction, UiActionHandler,
+    UiState, dispatch_domain_actions, start_avatar_picker,
 };
 use super::can_edit_identity;
 use super::form::{ConnectionField, InputField};
 use super::lan::LanDiscovery;
+use super::rooms::{JoinRoomDialog, JoinRoomDialogKind, RoomDirectory, RoomSelection};
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
     HostRulePreferences, PageErrorState, save_appearance_preferences, save_connection_draft,
@@ -28,10 +29,16 @@ pub(crate) enum ConnectionUiAction {
     ToggleJoin,
     CreateRoom(GameKind),
     JoinRoom,
-    OpenLan,
-    CloseLan,
-    RefreshLan,
-    JoinDiscovered(u64),
+    SelectRoom(RoomSelection),
+    JoinSelected,
+    DirectConnect,
+    AddRoom,
+    EditRoom,
+    SaveRoom,
+    DeleteRoom,
+    ConfirmDeleteRoom,
+    CancelRoomEdit,
+    RefreshRooms,
     ChooseAvatar,
     ClearAvatar,
     ToggleGender,
@@ -60,6 +67,9 @@ pub(crate) struct ConnectionActionContext<'w, 's> {
     appearance: ResMut<'w, AppearancePreferences>,
     host_rules: Res<'w, HostRulePreferences>,
     lan: Res<'w, LanDiscovery>,
+    rooms: ResMut<'w, RoomDirectory>,
+    time: Res<'w, Time>,
+    page_motion: ResMut<'w, PageMotion>,
     page_error: ResMut<'w, PageErrorState>,
     profile: Res<'w, LocalPlayerProfile>,
     economy: ResMut<'w, PlayerEconomy>,
@@ -86,19 +96,43 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
         {
             return;
         }
+        if context.ui.rooms.connecting
+            && matches!(
+                self,
+                Self::JoinRoom
+                    | Self::JoinSelected
+                    | Self::SelectRoom(_)
+                    | Self::DirectConnect
+                    | Self::AddRoom
+                    | Self::EditRoom
+                    | Self::DeleteRoom
+                    | Self::SaveRoom
+                    | Self::ConfirmDeleteRoom
+                    | Self::RefreshRooms
+            )
+        {
+            return;
+        }
         context.ui.dirty = true;
+        if !matches!(self, Self::SelectRoom(_)) {
+            context.ui.rooms.last_click = None;
+        }
         match self {
             Self::SelectCategory(category) => context.ui.home.category = *category,
             Self::ToggleIdentity => {
                 context.ui.home.identity_open = !context.ui.home.identity_open;
-                context.ui.home.join_open = false;
                 if !context.ui.home.identity_open {
                     context.page_error.error =
                         save_connection_draft(&context.connection, &mut context.economy).err();
                 }
             }
             Self::ToggleJoin => {
-                context.ui.home.join_open = !context.ui.home.join_open;
+                cancel_join(context);
+                context.page_motion.begin();
+                context.ui.shop.open = false;
+                context.ui.achievements.open = false;
+                let open = !context.ui.rooms.open;
+                context.ui.rooms.set_open(open);
                 context.ui.home.identity_open = false;
                 context.page_error.error =
                     save_connection_draft(&context.connection, &mut context.economy).err();
@@ -106,39 +140,95 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
 
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
-            ConnectionUiAction::OpenLan => {
-                if !context.ui.home.join_open {
-                    return;
+            Self::SelectRoom(selection) => {
+                let now = context.time.elapsed_secs_f64();
+                let double = context
+                    .ui
+                    .rooms
+                    .last_click
+                    .as_ref()
+                    .is_some_and(|(last, time)| last == selection && now - time < 0.4);
+                context.ui.rooms.selected = Some(selection.clone());
+                context.ui.rooms.last_click = Some((selection.clone(), now));
+                if double {
+                    join_selected(context);
                 }
-                // Switching panes retires the editor before its next PostUpdate publish.
-                if let Some((_, editor)) = context
-                    .fields
-                    .iter()
-                    .find(|(field, _)| matches!(field.0, InputField::JoinAddress))
-                {
-                    context.connection.join_address = editor.value().to_string();
-                }
-                context.ui.lan.open = true;
-                context.ui.lan.scroll_y = 0.0;
-                context.ui.lan.generation = context.ui.lan.generation.wrapping_add(1);
             }
-            ConnectionUiAction::CloseLan => context.ui.lan.open = false,
-            ConnectionUiAction::RefreshLan => {
-                context.ui.lan.scroll_y = 0.0;
-                context.ui.lan.generation = context.ui.lan.generation.wrapping_add(1);
+            Self::JoinSelected => join_selected(context),
+            Self::DirectConnect => {
+                context.ui.rooms.show_dialog(JoinRoomDialog {
+                    kind: JoinRoomDialogKind::Direct,
+                    name: String::new(),
+                    address: context.connection.join_address.clone(),
+                });
             }
-            ConnectionUiAction::JoinDiscovered(id) => {
-                if let Some(room) = context
-                    .lan
-                    .rooms()
-                    .iter()
-                    .find(|room| room.server_id == *id)
-                {
-                    context.connection.join_address = room.address.to_string();
-                    join_room(context);
-                } else {
-                    context.page_error.error = Some("此房间已离线，请刷新后重试".to_owned());
+            Self::AddRoom => open_room_editor(false, context),
+            Self::EditRoom => open_room_editor(true, context),
+            Self::SaveRoom => {
+                capture_room_inputs(context);
+                if let Some(editor) = context.ui.rooms.dialog.as_ref().filter(|dialog| {
+                    matches!(
+                        dialog.kind,
+                        JoinRoomDialogKind::Add | JoinRoomDialogKind::Edit(_)
+                    )
+                }) {
+                    let result = context.rooms.store.save(
+                        editor.original_address(),
+                        &editor.name,
+                        &editor.address,
+                    );
+                    match result {
+                        Ok(address) => {
+                            context.ui.rooms.selected = Some(RoomSelection::Saved(address));
+                            context.ui.rooms.dialog_open = false;
+                            context.ui.rooms.generation =
+                                context.ui.rooms.generation.wrapping_add(1);
+                            context.page_error.error = None;
+                        }
+                        Err(error) => context.page_error.error = Some(error),
+                    }
                 }
+            }
+            Self::DeleteRoom => {
+                if let Some(RoomSelection::Saved(address)) = context.ui.rooms.selected.as_ref()
+                    && let Some(room) = context
+                        .rooms
+                        .entries()
+                        .iter()
+                        .find(|room| &room.address == address)
+                {
+                    let dialog = JoinRoomDialog {
+                        kind: JoinRoomDialogKind::Delete(address.clone()),
+                        name: room.name.clone(),
+                        address: address.clone(),
+                    };
+                    context.ui.rooms.show_dialog(dialog);
+                }
+            }
+            Self::ConfirmDeleteRoom => {
+                if let Some(JoinRoomDialog {
+                    kind: JoinRoomDialogKind::Delete(address),
+                    ..
+                }) = context.ui.rooms.dialog.as_ref()
+                {
+                    let result = context.rooms.store.remove(address);
+                    match result {
+                        Ok(()) => {
+                            context.ui.rooms.selected = None;
+                            context.ui.rooms.dialog_open = false;
+                            context.ui.rooms.generation =
+                                context.ui.rooms.generation.wrapping_add(1);
+                        }
+                        Err(error) => context.page_error.error = Some(error),
+                    }
+                }
+            }
+            Self::CancelRoomEdit => {
+                cancel_join(context);
+                context.ui.rooms.dialog_open = false;
+            }
+            Self::RefreshRooms => {
+                context.ui.rooms.generation = context.ui.rooms.generation.wrapping_add(1)
             }
             ConnectionUiAction::ChooseAvatar => {
                 if context.local.avatar_picker.pending.is_none() {
@@ -167,6 +257,96 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
     }
 }
 
+fn cancel_join(context: &mut ConnectionActionContext<'_, '_>) {
+    if context.ui.rooms.connecting {
+        context.commands.remove_resource::<ClientResource>();
+        context.ui.rooms.connecting = false;
+        context.rooms.pending_join = None;
+    }
+}
+
+fn capture_room_inputs(context: &mut ConnectionActionContext<'_, '_>) {
+    if context.ui.rooms.dialog.is_none() {
+        return;
+    }
+    for (field, editor) in &context.fields {
+        match field.0 {
+            InputField::JoinAddress => {
+                if let Some(draft) = context.ui.rooms.dialog.as_mut() {
+                    draft.address = editor.value().to_string();
+                }
+            }
+            InputField::RoomName => {
+                if let Some(draft) = context.ui.rooms.dialog.as_mut() {
+                    draft.name = editor.value().to_string();
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn open_room_editor(edit: bool, context: &mut ConnectionActionContext<'_, '_>) {
+    let selected = context.ui.rooms.selected.as_ref();
+    let saved = match selected {
+        Some(RoomSelection::Saved(address)) => context
+            .rooms
+            .entries()
+            .iter()
+            .find(|room| &room.address == address),
+        _ => None,
+    };
+    if edit && saved.is_none() {
+        return;
+    }
+    let lan = match selected {
+        Some(RoomSelection::Lan(id)) => context
+            .lan
+            .rooms()
+            .iter()
+            .find(|room| room.server_id == *id),
+        _ => None,
+    };
+    let (name, address) = if let Some(room) = saved.filter(|_| edit) {
+        (room.name.clone(), room.address.clone())
+    } else if let Some(room) = lan {
+        (
+            format!("{}的房间", room.info.host_name),
+            room.address.to_string(),
+        )
+    } else {
+        (String::new(), String::new())
+    };
+    context.ui.rooms.show_dialog(JoinRoomDialog {
+        kind: if edit {
+            JoinRoomDialogKind::Edit(address.clone())
+        } else {
+            JoinRoomDialogKind::Add
+        },
+        name,
+        address,
+    });
+}
+
+fn join_selected(context: &mut ConnectionActionContext<'_, '_>) {
+    let address = match context.ui.rooms.selected.as_ref() {
+        Some(RoomSelection::Saved(address)) => Some(address.clone()),
+        Some(RoomSelection::Lan(id)) => context
+            .lan
+            .rooms()
+            .iter()
+            .find(|room| room.server_id == *id)
+            .map(|room| room.address.to_string()),
+        None => None,
+    };
+    if let Some(address) = address {
+        context.connection.join_address = address;
+        join_room(context);
+    } else {
+        context.page_error.error = Some("请选择一个房间，或使用直接连接".to_owned());
+    }
+}
+
 fn validated_host_form(form: &ConnectionDraft) -> Result<(String, u16), String> {
     let name = form.player_name.trim().to_owned();
     if name.is_empty() {
@@ -186,6 +366,9 @@ fn validated_host_form(form: &ConnectionDraft) -> Result<(String, u16), String> 
 }
 
 fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_>) {
+    context.rooms.pending_join = None;
+    context.ui.rooms.connecting = false;
+    context.ui.rooms.open = false;
     let result = validated_host_form(&context.connection).and_then(|(name, port)| {
         let player = LocalPlayerConnection::from_profile(
             &name,
@@ -201,6 +384,19 @@ fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_
 }
 
 fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
+    if context.ui.rooms.connecting {
+        return;
+    }
+    capture_room_inputs(context);
+    if let Some(dialog) = context
+        .ui
+        .rooms
+        .dialog
+        .as_ref()
+        .filter(|dialog| matches!(dialog.kind, JoinRoomDialogKind::Direct))
+    {
+        context.connection.join_address.clone_from(&dialog.address);
+    }
     let name = context.connection.player_name.trim().to_owned();
     let result = if name.is_empty() {
         Err("玩家名称不能为空".to_owned())
@@ -217,6 +413,10 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
         TcpGameClient::join_with_profile(context.connection.join_address.trim(), player)
             .map_err(|error| error.to_string())
     };
+    if result.is_ok() {
+        context.rooms.pending_join = Some(context.connection.join_address.trim().to_owned());
+        context.ui.rooms.connecting = true;
+    }
     finish_connection(result, context);
 }
 
@@ -233,7 +433,7 @@ fn finish_connection(
             context.local.avatar_images.remote.clear();
             context.commands.insert_resource(ClientResource(network));
             context.ui.leaving_room = false;
-            context.ui.lan.open = false;
+            context.ui.home.identity_open = false;
             context.page_error.error = None;
         }
         Err(error) => context.page_error.error = Some(error),

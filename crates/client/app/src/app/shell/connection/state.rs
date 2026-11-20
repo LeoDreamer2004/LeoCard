@@ -50,8 +50,6 @@ pub(crate) struct HomeUiState {
     pub category: HomeCategory,
     pub identity_open: bool,
     pub identity_progress: f32,
-    pub join_open: bool,
-    pub join_progress: f32,
     history: HomeHistory,
 }
 
@@ -65,8 +63,6 @@ impl Default for HomeUiState {
             category: HomeCategory::All,
             identity_open: false,
             identity_progress: 0.0,
-            join_open: false,
-            join_progress: 0.0,
             history,
         }
     }
@@ -89,7 +85,6 @@ impl HomeUiState {
         self.history.recent.insert(0, game);
         self.history.recent.truncate(3);
         self.identity_open = false;
-        self.join_open = false;
         if let Some(path) = config_file("home-history.json") {
             let save = || -> Result<(), String> {
                 if let Some(parent) = path.parent() {
@@ -129,6 +124,8 @@ pub(super) fn track_recent_game(
         && *last != Some(kind)
     {
         ui.home.record(kind);
+        ui.rooms.open = false;
+        ui.rooms.connecting = false;
         *last = Some(kind);
         ui.dirty = true;
     }

@@ -1,4 +1,4 @@
-use super::{LanDiscovery, LanRoomList};
+use super::LanDiscovery;
 use crate::app::runtime::{ClientResource, image_handle_from_png};
 use crate::app::shell::{UiState, can_edit_identity};
 use bevy::prelude::*;
@@ -12,26 +12,16 @@ pub(crate) fn sync_lan_discovery(
     mut ui: ResMut<UiState>,
     client: Option<Res<ClientResource>>,
     mut images: ResMut<Assets<Image>>,
-    scrolls: Query<&ScrollPosition, With<LanRoomList>>,
 ) {
-    if ui.lan.open && (!ui.home.join_open || !can_edit_identity(client.as_deref())) {
-        ui.lan.open = false;
-        ui.dirty = true;
-    }
-    if !ui.lan.open {
+    if !ui.rooms.open || !can_edit_identity(client.as_deref()) {
         if discovery.generation.is_some() {
             *discovery = LanDiscovery::default();
         }
         return;
     }
-    if discovery.generation == Some(ui.lan.generation)
-        && let Some(scroll) = scrolls.iter().next()
-    {
-        ui.lan.scroll_y = scroll.y;
-    }
-    if discovery.generation != Some(ui.lan.generation) {
+    if discovery.generation != Some(ui.rooms.generation) {
         *discovery = LanDiscovery::default();
-        discovery.generation = Some(ui.lan.generation);
+        discovery.generation = Some(ui.rooms.generation);
         match LanRoomBrowser::start() {
             Ok(browser) => discovery.browser = Some(browser),
             Err(error) => discovery.error = Some(format!("无法搜索局域网房间：{error}")),
@@ -41,6 +31,7 @@ pub(crate) fn sync_lan_discovery(
     if !discovery.browser.as_mut().is_some_and(LanRoomBrowser::poll) {
         return;
     }
+    discovery.revision = discovery.revision.wrapping_add(1);
     let LanDiscovery {
         browser, avatars, ..
     } = &mut *discovery;

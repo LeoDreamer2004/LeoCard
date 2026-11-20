@@ -1,20 +1,17 @@
 use super::NETWORK_ROOM_ID;
+use leocard_platform::time::{Duration, Instant};
 use leocard_protocol::RoomInfo;
 use leocard_tcp::query_room_info;
 use std::io;
 use std::sync::Mutex;
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
-use std::time::{Duration, Instant};
 use tokio::net::lookup_host;
 use tokio::sync::oneshot;
 use tokio::task::JoinSet;
 use tokio::time::timeout;
 
-pub(crate) struct RoomInfoResult {
-    pub address: String,
-    pub info: Option<(RoomInfo, u32)>,
-}
+use super::state::RoomInfoResult;
 
 /// Metadata requests never join a room or occupy a player seat.
 pub(crate) struct RoomInfoQueries {

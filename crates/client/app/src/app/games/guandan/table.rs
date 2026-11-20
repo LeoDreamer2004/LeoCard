@@ -8,10 +8,9 @@ use super::state::GuandanUiState;
 use super::summary;
 use super::tribute;
 use crate::app::presentation::{
-    ACCENT, CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectState,
-    StartGameSeatTransition, TEXT, TableBackgroundMaterial, TableSeat, TableSeats,
-    TurnBorderMaterial, add_auto_play_overlay, add_hanging_table_sign, add_play_effect_overlay,
-    add_text,
+    ACCENT, CardTableSurface, GameSummaryAnimation, PlayEffectState, StartGameSeatTransition, TEXT,
+    TableBackgroundMaterial, TableSeat, TableSeats, TurnBorderMaterial, add_auto_play_overlay,
+    add_hanging_table_sign, add_play_effect_overlay, add_text, game_side_control_scale,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -20,6 +19,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_guandan::{GuandanPhase, rank_label};
+use leocard_platform::is_mobile;
 use leocard_protocol::GuandanSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 use std::mem;
@@ -65,11 +65,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         Node {
             flex_grow: 1.0,
             width: percent(100),
-            min_height: px(if cfg!(target_os = "android") {
-                180
-            } else {
-                230
-            }),
+            min_height: px(if is_mobile() { 180 } else { 230 }),
             position_type: PositionType::Relative,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -82,7 +78,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         content,
         Node {
             width: percent(100),
-            height: px(hand_layout.size.y + 88.0 * GAME_SIDE_CONTROL_SCALE + 12.0),
+            height: px(hand_layout.size.y + 88.0 * game_side_control_scale() + 12.0),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -107,7 +103,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         commands,
         table,
         assets,
-        GAME_SIDE_CONTROL_SCALE,
+        game_side_control_scale(),
         false,
         326.0,
     );

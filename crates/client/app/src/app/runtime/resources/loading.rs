@@ -166,7 +166,7 @@ pub(crate) fn load_ui_assets(
             button_arrows: asset_server.load("ui/home/cozy-button-arrows.png"),
             close_button: asset_server.load("ui/home/cross_button.png"),
             close_button_highlighted: asset_server.load("ui/home/cross_button_highlighted.png"),
-            #[cfg(not(target_os = "android"))]
+            #[cfg(feature = "desktop")]
             network_icon: asset_server.load("icons/network.png"),
             settings_icon: asset_server.load("icons/settings.png"),
             exit_icon: asset_server.load("icons/exit-room.png"),

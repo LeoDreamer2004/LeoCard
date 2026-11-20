@@ -4,6 +4,7 @@ use super::linux::NotificationBackend;
 use super::macos::NotificationBackend;
 #[cfg(target_os = "windows")]
 use super::windows::NotificationBackend;
+use leocard_platform::time::{Duration, Instant};
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -11,7 +12,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
 
 pub struct DesktopNotification {
     pub title: String,

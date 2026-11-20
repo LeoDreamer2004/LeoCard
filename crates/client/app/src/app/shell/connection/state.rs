@@ -3,9 +3,9 @@ use crate::app::shell::UiState;
 use crate::player::config_file;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
+use leocard_platform::storage as fs;
 use leocard_protocol::GameKind;
 use serde::{Deserialize, Serialize};
-use std::fs;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum HomeCategory {

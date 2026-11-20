@@ -11,7 +11,7 @@ mod modal;
 mod overlay_layer;
 mod page_heading;
 mod plugin;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 mod switch;
 mod transition;
 
@@ -31,7 +31,7 @@ pub(crate) use modal::*;
 pub(crate) use overlay_layer::ShellOverlayLayer;
 pub(crate) use page_heading::add_page_back_title;
 pub(crate) use plugin::ShellUiPlugin;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub(crate) use switch::add_cozy_switch;
 pub(crate) use transition::*;
 

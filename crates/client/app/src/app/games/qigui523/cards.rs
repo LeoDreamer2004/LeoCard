@@ -9,6 +9,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
+use leocard_platform::is_mobile;
 use leocard_qigui523::QiGuiCard;
 use leocard_ui::UiComposer;
 
@@ -81,7 +82,7 @@ pub(super) fn add_card_button(
                 width: px(if is_last {
                     width
                 } else {
-                    if cfg!(target_os = "android") {
+                    if is_mobile() {
                         qigui_hand_card_reveal(hand_len)
                     } else {
                         32.0

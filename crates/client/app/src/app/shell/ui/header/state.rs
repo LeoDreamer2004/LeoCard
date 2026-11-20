@@ -1,15 +1,26 @@
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 
-pub(super) const HEIGHT: f32 = 66.0 * GAME_SIDE_CONTROL_SCALE;
-pub(super) const AVATAR_SIZE: f32 = 38.0 * GAME_SIDE_CONTROL_SCALE;
-pub(super) const RIGHT_INSET: f32 = if cfg!(target_os = "android") {
-    36.0
-} else {
-    12.0
-};
-pub(super) const ITEM_WIDTH: f32 = 44.0 * GAME_SIDE_CONTROL_SCALE;
-pub(super) const ITEM_GAP: f32 = 8.0 * GAME_SIDE_CONTROL_SCALE;
+pub(super) fn height() -> f32 {
+    66.0 * game_side_control_scale()
+}
+
+pub(super) fn avatar_size() -> f32 {
+    38.0 * game_side_control_scale()
+}
+
+pub(super) fn right_inset() -> f32 {
+    if is_mobile() { 36.0 } else { 12.0 }
+}
+
+pub(super) fn item_width() -> f32 {
+    44.0 * game_side_control_scale()
+}
+
+pub(super) fn item_gap() -> f32 {
+    8.0 * game_side_control_scale()
+}
 
 #[derive(Component, Default)]
 pub(super) struct GameHeaderMotion {
@@ -29,10 +40,10 @@ pub(super) struct GameHeaderItem {
 
 impl GameHeaderItem {
     pub fn right(&self) -> f32 {
-        RIGHT_INSET + AVATAR_SIZE + ITEM_GAP + self.slot as f32 * (ITEM_WIDTH + ITEM_GAP)
+        right_inset() + avatar_size() + item_gap() + self.slot as f32 * (item_width() + item_gap())
     }
 
     pub fn folded_offset(&self) -> f32 {
-        self.right() + ITEM_WIDTH * 0.5 - (RIGHT_INSET + AVATAR_SIZE * 0.5)
+        self.right() + item_width() * 0.5 - (right_inset() + avatar_size() * 0.5)
     }
 }

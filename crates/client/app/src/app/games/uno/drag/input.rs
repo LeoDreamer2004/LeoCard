@@ -5,7 +5,6 @@ use crate::app::runtime::ClientResource;
 use crate::app::shell::{ConfirmationDialog, PageMotion, PressedUiAction, UiAction, UiState};
 use bevy::camera::NormalizedRenderTarget;
 use bevy::ecs::system::SystemParam;
-#[cfg(target_os = "android")]
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::picking::events::PointerPress;
 use bevy::picking::pointer::{PointerAction, PointerButton, PointerInput};
@@ -26,7 +25,6 @@ pub(in super::super) struct UnoDragInput<'w, 's> {
     buttons: Query<'w, 's, &'static UnoDraggableCard>,
     faces: Query<'w, 's, (&'static UnoHandCardVisual, &'static UiGlobalTransform)>,
     discards: Query<'w, 's, &'static UiGlobalTransform, With<UnoDiscardPileAnchor>>,
-    #[cfg(target_os = "android")]
     touches: MessageReader<'w, 's, TouchInput>,
 }
 
@@ -51,7 +49,6 @@ pub(in super::super) fn update_uno_drag(
     mut context: UnoDragInput,
 ) {
     // Android adapts a canceled finger to a mouse release; it must never play a card.
-    #[cfg(target_os = "android")]
     if context
         .touches
         .read()

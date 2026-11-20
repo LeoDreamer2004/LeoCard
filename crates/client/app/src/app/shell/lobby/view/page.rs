@@ -9,6 +9,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
+use leocard_platform::is_mobile;
 use leocard_protocol::LobbySnapshot;
 use leocard_ui::{PageFrame, UiComposer, spawn_node};
 
@@ -55,11 +56,7 @@ impl LobbyPage {
         config: LobbyPageConfig,
     ) -> Self {
         let style = config.style;
-        let panel_height = if cfg!(target_os = "android") {
-            560.0
-        } else {
-            530.0
-        };
+        let panel_height = if is_mobile() { 560.0 } else { 530.0 };
         let canvas = spawn_node(
             commands,
             root,
@@ -83,14 +80,14 @@ impl LobbyPage {
                 min_height: px(0),
                 flex_grow: 1.0,
                 align_self: AlignSelf::Center,
-                padding: UiRect::axes(px(22), px(if cfg!(target_os = "android") { 6 } else { 22 })),
+                padding: UiRect::axes(px(22), px(if is_mobile() { 6 } else { 22 })),
                 flex_direction: FlexDirection::Row,
                 flex_wrap: if style.wrap {
                     FlexWrap::Wrap
                 } else {
                     FlexWrap::NoWrap
                 },
-                row_gap: px(if cfg!(target_os = "android") { 10 } else { 18 }),
+                row_gap: px(if is_mobile() { 10 } else { 18 }),
                 column_gap: px(18),
                 align_items: AlignItems::Center,
                 align_content: AlignContent::Center,

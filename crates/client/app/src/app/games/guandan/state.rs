@@ -7,6 +7,7 @@ use leocard_guandan::{
     GuandanAction, GuandanCard, GuandanPhase, GuandanPlay, GuandanTributeAction, can_offer_tribute,
     can_return_tribute, hint_options,
 };
+use leocard_platform::is_mobile;
 use leocard_protocol::{GuandanSnapshot, MatchId};
 use leocard_ui::{DraggableWindowOwner, DraggableWindowState};
 use std::collections::{HashMap, HashSet};
@@ -30,7 +31,7 @@ pub(super) struct GuandanUiState {
 impl Default for GuandanUiState {
     fn default() -> Self {
         let mut counter = CardCounterWindowState::default();
-        if cfg!(target_os = "android") {
+        if is_mobile() {
             counter.drag.position.y = 34.0;
         }
         Self {

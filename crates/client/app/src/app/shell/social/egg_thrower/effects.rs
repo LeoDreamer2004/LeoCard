@@ -3,9 +3,9 @@ use super::choreography::EggBarrageTimeline;
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::prelude::*;
 use leocard_client::NetworkState;
+use leocard_platform::time::Duration;
 use leocard_protocol::{PlayerInteraction, PlayerInteractionKind, ProfileId, RoomId};
 use leocard_ui::UiComposer;
-use std::time::Duration;
 
 #[derive(Component)]
 pub(crate) struct EggBarrageAnimation {

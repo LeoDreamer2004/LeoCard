@@ -4,6 +4,7 @@ use crate::app::presentation::{
 };
 use bevy::prelude::Vec2;
 use leocard_game_common::PlayerId;
+use leocard_platform::is_mobile;
 use leocard_protocol::{SeatId, TexasSnapshot};
 use leocard_texas_holdem::TexasRuleSet;
 
@@ -14,49 +15,44 @@ pub(super) struct TexasTableLayout {
 }
 
 impl TexasTableLayout {
-    pub(super) const BOARD_CARD_SIZE: Vec2 = if cfg!(target_os = "android") {
-        Vec2::new(92.0, 122.0)
-    } else {
-        Vec2::new(62.0, 82.0)
-    };
-    pub(super) const BOARD_TOP: f32 = if cfg!(target_os = "android") {
-        154.0
-    } else {
-        180.0
-    };
-    pub(super) const BOARD_ROW_HEIGHT: f32 = if cfg!(target_os = "android") {
-        140.0
-    } else {
-        100.0
-    };
-    pub(super) const SQUID_POOL_ANCHOR_Y: f32 = if cfg!(target_os = "android") {
-        304.0
-    } else {
-        318.0
-    };
-    pub(super) const LOCAL_BET_TOP: f32 = if cfg!(target_os = "android") {
-        350.0
-    } else {
-        405.0
-    };
-    pub(super) const HAND_SCALE: f32 = if cfg!(target_os = "android") {
-        1.4
-    } else {
-        1.0
-    };
-    pub(super) const ACTION_SCALE: f32 = if cfg!(target_os = "android") {
-        1.4
-    } else {
-        1.0
-    };
-    pub(super) const ACTION_BOTTOM: f32 = if cfg!(target_os = "android") {
-        177.0
-    } else {
-        124.0
-    };
+    pub(super) fn board_card_size() -> Vec2 {
+        if is_mobile() {
+            Vec2::new(92.0, 122.0)
+        } else {
+            Vec2::new(62.0, 82.0)
+        }
+    }
+
+    pub(super) fn board_top() -> f32 {
+        if is_mobile() { 154.0 } else { 180.0 }
+    }
+
+    pub(super) fn board_row_height() -> f32 {
+        if is_mobile() { 140.0 } else { 100.0 }
+    }
+
+    pub(super) fn squid_pool_anchor_y() -> f32 {
+        if is_mobile() { 304.0 } else { 318.0 }
+    }
+
+    pub(super) fn local_bet_top() -> f32 {
+        if is_mobile() { 350.0 } else { 405.0 }
+    }
+
+    pub(super) fn hand_scale() -> f32 {
+        if is_mobile() { 1.4 } else { 1.0 }
+    }
+
+    pub(super) fn action_scale() -> f32 {
+        if is_mobile() { 1.4 } else { 1.0 }
+    }
+
+    pub(super) fn action_bottom() -> f32 {
+        if is_mobile() { 177.0 } else { 124.0 }
+    }
 
     pub(super) fn board_width() -> f32 {
-        54.0 + 8.0 + 5.0 * Self::BOARD_CARD_SIZE.x + 6.0 * 7.0
+        54.0 + 8.0 + 5.0 * Self::board_card_size().x + 6.0 * 7.0
     }
 
     pub(super) fn board_card_origin(index: usize) -> Vec2 {
@@ -65,8 +61,8 @@ impl TexasTableLayout {
                 + 54.0
                 + 8.0
                 + 14.0
-                + index as f32 * (Self::BOARD_CARD_SIZE.x + 7.0),
-            Self::BOARD_TOP + (Self::BOARD_ROW_HEIGHT - Self::BOARD_CARD_SIZE.y) * 0.5,
+                + index as f32 * (Self::board_card_size().x + 7.0),
+            Self::board_top() + (Self::board_row_height() - Self::board_card_size().y) * 0.5,
         )
     }
 
@@ -74,7 +70,7 @@ impl TexasTableLayout {
         // The 50px pile is centred in a 54px column, 8px below the row top.
         Vec2::new(
             640.0 - Self::board_width() * 0.5 + 2.0,
-            Self::BOARD_TOP + 8.0,
+            Self::board_top() + 8.0,
         ) + table_card_pile_top_center()
     }
 
@@ -134,27 +130,25 @@ impl TexasTableLayout {
     pub(super) fn chip_zone(self, slot: u8) -> ChipZoneLayout {
         let expanded = self.player_count > 6;
         let seat = self.seats().seat(slot);
-        let width = if cfg!(target_os = "android")
-            && matches!(seat, TableSeat::Left(_) | TableSeat::Right(_))
-        {
+        let width = if is_mobile() && matches!(seat, TableSeat::Left(_) | TableSeat::Right(_)) {
             194.0
         } else {
             210.0
         };
         let position = seat.position(TableSeatAnchors {
-            bottom: Vec2::new(640.0, Self::LOCAL_BET_TOP),
+            bottom: Vec2::new(640.0, Self::local_bet_top()),
             top: Vec2::new(640.0, 23.0),
-            columns: if cfg!(target_os = "android") {
+            columns: if is_mobile() {
                 Vec2::new(224.0, 1056.0)
             } else if expanded {
                 Vec2::new(258.0, 1022.0)
             } else {
                 Vec2::new(282.0, 998.0)
             },
-            rows: if cfg!(target_os = "android") && expanded {
+            rows: if is_mobile() && expanded {
                 // Keep all three portrait/stack rows clear of the enlarged mobile header.
                 &[356.0, 228.0, 100.0]
-            } else if cfg!(target_os = "android") {
+            } else if is_mobile() {
                 &[346.0, 116.0]
             } else if expanded {
                 &[346.0, 201.0, 56.0]
@@ -166,11 +160,7 @@ impl TexasTableLayout {
             left: position.x - width * 0.5,
             top: position.y,
             width,
-            height: if cfg!(target_os = "android") {
-                96.0
-            } else {
-                130.0
-            },
+            height: if is_mobile() { 96.0 } else { 130.0 },
         }
     }
 

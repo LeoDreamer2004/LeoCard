@@ -3,21 +3,21 @@
 use bevy::asset::AssetApp;
 use bevy::asset::io::memory::{Dir, MemoryAssetReader};
 use bevy::asset::io::{AssetSourceBuilder, AssetSourceId};
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use bevy::ecs::system::NonSendMarker;
 use bevy::prelude::*;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use bevy::window::WindowCreated;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use bevy::winit::WINIT_WINDOWS;
 use std::env;
 use std::path::Path;
 #[cfg(target_os = "windows")]
 use winit::platform::windows::WindowExtWindows;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use winit::window::Icon;
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub(super) const APP_ICON_PNG: &[u8] =
     include_bytes!("../../../../../../assets/icons/app-icon.png");
 
@@ -45,7 +45,7 @@ pub fn configure_runtime_asset_source(app: &mut App) {
     }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub(super) fn set_app_window_icon(
     mut created_windows: MessageReader<WindowCreated>,
     _main_thread: NonSendMarker,
@@ -62,7 +62,7 @@ pub(super) fn set_app_window_icon(
     }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 fn decode_app_icon() -> Icon {
     let pixels = image::load_from_memory(APP_ICON_PNG)
         .expect("the compiled application icon must be a valid PNG")
@@ -73,5 +73,5 @@ fn decode_app_icon() -> Icon {
         .expect("the compiled application icon must contain RGBA pixels")
 }
 
-#[cfg(target_os = "android")]
+#[cfg(not(feature = "desktop"))]
 pub(super) fn set_app_window_icon() {}

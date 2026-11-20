@@ -10,7 +10,6 @@ use crate::app::shell::{
 use bevy::camera::NormalizedRenderTarget;
 use bevy::ecs::system::SystemParam;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
-#[cfg(target_os = "android")]
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::picking::events::PointerPress;
 use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerInput};
@@ -44,7 +43,6 @@ pub(in super::super) struct GraphPointerContext<'w, 's> {
     >,
     workspace:
         Query<'w, 's, (&'static ComputedNode, &'static UiGlobalTransform), With<GraphWorkspace>>,
-    #[cfg(target_os = "android")]
     touches: MessageReader<'w, 's, TouchInput>,
     windows: Query<'w, 's, &'static Window>,
 }
@@ -166,7 +164,6 @@ pub(in super::super) fn graph_pointer_input(
     mut wheels: MessageReader<MouseWheel>,
     mut context: GraphPointerContext,
 ) {
-    #[cfg(target_os = "android")]
     if context
         .touches
         .read()

@@ -3,14 +3,17 @@ use super::super::input::SakuraScroll;
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
 use crate::app::presentation::{
-    MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, card_background_image,
+    MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, card_background_image, rule_help_style,
 };
-use crate::app::shell::{PageTransitionElement, UiAction, add_cozy_button, add_cozy_switch};
+use crate::app::shell::{
+    CozyButtonVariant, PageTransitionElement, UiAction, add_cozy_button, add_cozy_button_variant,
+    add_cozy_disabled_button, add_cozy_switch,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_sakura_frp::Tunnel;
-use leocard_ui::UiComposer;
+use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
 
 impl SakuraPage<'_> {
     pub(super) fn render_tunnels(&self, commands: &mut UiComposer, body: Entity) {
@@ -65,7 +68,14 @@ impl SakuraPage<'_> {
             ),
         );
         let heading = row(commands, card, 12.0);
-        let title = add_title(commands, heading, &tunnel.name, 22.0, TEXT, self.assets);
+        let title = add_title(
+            commands,
+            heading,
+            format!("[{}] {}", tunnel.protocol_label(), tunnel.title()),
+            22.0,
+            TEXT,
+            self.assets,
+        );
         commands.entity(title).insert(Node {
             flex_grow: 1.0,
             flex_basis: px(0),
@@ -87,6 +97,7 @@ impl SakuraPage<'_> {
         );
         self.render_delete(commands, heading, tunnel.id);
         let address_row = row(commands, card, 10.0);
+        let public_address = tunnel.address(&self.state.nodes);
         let address = add_text(
             commands,
             address_row,
@@ -94,7 +105,7 @@ impl SakuraPage<'_> {
                 "{}:{} -> {}",
                 tunnel.local_ip,
                 tunnel.local_port,
-                tunnel.address(&self.state.nodes)
+                public_address.as_deref().unwrap_or("公网地址尚不可用")
             ),
             15.0,
             TEXT,
@@ -110,15 +121,19 @@ impl SakuraPage<'_> {
             .state
             .copied_address
             .is_some_and(|(id, _)| id == tunnel.id);
-        let copy = add_cozy_button(
-            commands,
-            address_row,
-            if copied { "已复制" } else { "复制地址" },
-            UiAction::Sakura(SakuraUiAction::CopyAddress(tunnel.id)),
-            self.assets,
-            px(86),
-            32.0,
-        );
+        let copy = if public_address.is_some() {
+            add_cozy_button(
+                commands,
+                address_row,
+                if copied { "已复制" } else { "复制地址" },
+                UiAction::Sakura(SakuraUiAction::CopyAddress(tunnel.id)),
+                self.assets,
+                px(86),
+                32.0,
+            )
+        } else {
+            add_cozy_disabled_button(commands, address_row, "复制地址", self.assets, px(86), 32.0)
+        };
         commands.entity(copy).insert(Node {
             width: px(86),
             height: px(32),
@@ -133,14 +148,63 @@ impl SakuraPage<'_> {
             .iter()
             .find(|node| node.id == tunnel.node)
             .map_or("未知节点", |node| node.name.as_str());
+        let footer = row(commands, card, 10.0);
+        let info = spawn_node(
+            commands,
+            footer,
+            Node {
+                flex_grow: 1.0,
+                min_width: px(0),
+                ..default()
+            },
+            None,
+        );
         add_text(
             commands,
-            card,
+            info,
             format!("#{}  {node}", tunnel.id),
             13.0,
             MUTED,
             self.assets,
         );
+        if tunnel.can_create_wss() {
+            let exists = self
+                .state
+                .tunnels
+                .iter()
+                .any(|candidate| candidate.wss_source() == Some(tunnel.id));
+            if exists || self.state.busy || tunnel.status != 0 {
+                add_cozy_disabled_button(
+                    commands,
+                    footer,
+                    if exists {
+                        "已创建 WSS"
+                    } else {
+                        "创建 WSS"
+                    },
+                    self.assets,
+                    px(116),
+                    34.0,
+                );
+            } else {
+                add_cozy_button_variant(
+                    commands,
+                    footer,
+                    "创建 WSS",
+                    UiAction::Sakura(SakuraUiAction::CreateWss(tunnel.id)),
+                    self.assets,
+                    px(116),
+                    34.0,
+                    CozyButtonVariant::Cool,
+                );
+            }
+            add_help_tooltip(
+                commands,
+                footer,
+                "为网页端创建 WSS 加密联机入口，复用当前隧道的节点和本地地址。\n会额外占用一个隧道名额，可独立启停。网页端请使用 WSS 条目的复制地址。",
+                rule_help_style(self.assets),
+            );
+        }
     }
 
     fn render_delete(&self, commands: &mut UiComposer, heading: Entity, id: u64) {

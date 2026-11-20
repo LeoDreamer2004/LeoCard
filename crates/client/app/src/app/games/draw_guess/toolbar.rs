@@ -3,12 +3,13 @@ use super::assets::DrawGuessAssets;
 use super::palette::{self, ink_color};
 use super::state::{DrawGuessUiState, DrawTool};
 use super::widgets::{ButtonKind, ButtonSpec, button};
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_draw_guess::{DrawAction, Ink};
+use leocard_platform::is_mobile;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn render(
@@ -18,7 +19,7 @@ pub(super) fn render(
     assets: &UiAssets,
     art: &DrawGuessAssets,
 ) {
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let panel = spawn_node(
         commands,
         parent,
@@ -36,17 +37,17 @@ pub(super) fn render(
         None,
     );
     commands.entity(panel).insert(art.skin.inset());
-    if cfg!(target_os = "android") {
+    if is_mobile() {
         tools(commands, panel, assets, art);
         history_actions(commands, panel, assets, art);
     }
     palette::render(commands, panel, ui);
     presets(commands, panel, assets, art);
-    if !cfg!(target_os = "android") {
+    if !is_mobile() {
         tools(commands, panel, assets, art);
     }
     sizes(commands, panel, assets, art);
-    if !cfg!(target_os = "android") {
+    if !is_mobile() {
         history_actions(commands, panel, assets, art);
     }
     let mut clear = ButtonSpec::new(
@@ -68,8 +69,8 @@ fn row(commands: &mut UiComposer, parent: Entity, wrap: bool) -> Entity {
         Node {
             width: percent(100),
             flex_shrink: 0.0,
-            column_gap: px(3.0 * GAME_SIDE_CONTROL_SCALE),
-            row_gap: px(3.0 * GAME_SIDE_CONTROL_SCALE),
+            column_gap: px(3.0 * game_side_control_scale()),
+            row_gap: px(3.0 * game_side_control_scale()),
             flex_wrap: if wrap {
                 FlexWrap::Wrap
             } else {
@@ -101,7 +102,7 @@ fn presets(commands: &mut UiComposer, parent: Entity, assets: &UiAssets, art: &D
         spec.height = 21.0;
         spec.kind = ButtonKind::Color(color);
         let button = button(commands, row, spec, assets, art);
-        let inset = px(4.0 * GAME_SIDE_CONTROL_SCALE);
+        let inset = px(4.0 * game_side_control_scale());
         commands.child(
             button,
             (
@@ -177,21 +178,13 @@ fn history_actions(
         ),
     ] {
         let mut spec = ButtonSpec::new(
-            if cfg!(target_os = "android") {
-                ""
-            } else {
-                label
-            },
+            if is_mobile() { "" } else { label },
             Some(UiAction::DrawGuess(DrawGuessUiAction::Draw(action))),
             percent(48),
         );
         spec.kind = kind;
         spec.icon = Some(icon);
-        spec.height = if cfg!(target_os = "android") {
-            32.0
-        } else {
-            40.0
-        };
+        spec.height = if is_mobile() { 32.0 } else { 40.0 };
         button(commands, row, spec, assets, art);
     }
 }

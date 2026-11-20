@@ -2,6 +2,7 @@ use super::super::TexasTableLayout;
 use crate::app::presentation::{DESIGN_WIDTH, SeatSide, table_random_signed};
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
+use leocard_platform::is_mobile;
 use leocard_protocol::{MatchId, TexasSnapshot};
 use leocard_texas_holdem::deepseek_squid_marker;
 
@@ -102,7 +103,7 @@ fn marker_position(game: &TexasSnapshot, index: usize, owner: Option<PlayerId>, 
         // Awarded markers leave gaps until the pool resets for the next round.
         let count = game.squid.markers.len();
         let slot = index;
-        if cfg!(target_os = "android") {
+        if is_mobile() {
             // One overlapping row leaves the compressed pot area free for actual wagers.
             let step = ((208.0 - MARKER_SIZE) / count.saturating_sub(1).max(1) as f32)
                 .min(MARKER_SIZE + 4.0);
@@ -112,7 +113,7 @@ fn marker_position(game: &TexasSnapshot, index: usize, owner: Option<PlayerId>, 
                 .max(349.0 + width * 0.5);
             return Vec3::new(
                 center - width * 0.5 + slot as f32 * step + random_x * 3.0,
-                TexasTableLayout::SQUID_POOL_ANCHOR_Y - 26.0 + random_y * 4.0,
+                TexasTableLayout::squid_pool_anchor_y() - 26.0 + random_y * 4.0,
                 0.0,
             );
         }
@@ -124,7 +125,7 @@ fn marker_position(game: &TexasSnapshot, index: usize, owner: Option<PlayerId>, 
             475.0 - MARKER_SIZE * 0.5 + (slot % columns) as f32 * (MARKER_SIZE + 4.0)
                 - row_count.saturating_sub(1) as f32 * (MARKER_SIZE + 4.0) * 0.5
                 + random_x * 3.0,
-            TexasTableLayout::SQUID_POOL_ANCHOR_Y - 24.0
+            TexasTableLayout::squid_pool_anchor_y() - 24.0
                 + row as f32 * (MARKER_SIZE + 4.0)
                 + random_y * 4.0,
             0.0,

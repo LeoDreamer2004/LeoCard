@@ -1,5 +1,5 @@
 mod game;
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 mod input;
 mod motion;
 mod page;

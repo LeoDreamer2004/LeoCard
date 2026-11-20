@@ -1,6 +1,6 @@
 use super::back::handle_escape;
 use crate::app::runtime::ClientUpdateSet;
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 use crate::app::shell::LobbyEntranceState;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
@@ -9,7 +9,9 @@ pub(crate) struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(target_os = "android")]
+        #[cfg(feature = "web")]
+        app.add_systems(PreUpdate, super::web::handle_back);
+        #[cfg(feature = "android")]
         app.add_systems(
             PreUpdate,
             super::android::handle_back

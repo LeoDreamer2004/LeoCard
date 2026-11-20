@@ -2,11 +2,11 @@
 
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText};
 use leocard_client::platform::{show_text_editor, take_text_results};
-use leocard_ui::{AndroidEditor, TextInputAction, TextInputEvent};
+use leocard_ui::{PlatformEditor, TextInputAction, TextInputEvent};
 
 pub(super) fn edit_native_text(
     mut focus: ResMut<InputFocus>,
-    mut editors: Query<(Entity, &mut EditableText, &AndroidEditor)>,
+    mut editors: Query<(Entity, &mut EditableText, &PlatformEditor)>,
     mut events: MessageWriter<TextInputEvent>,
 ) {
     for result in take_text_results() {

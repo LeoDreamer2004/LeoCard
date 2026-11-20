@@ -1,5 +1,5 @@
 use super::assets::DrawGuessAssets;
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use leocard_ui::{TextInputSkin, sliced_image};
@@ -39,7 +39,7 @@ impl DrawingControlSkin {
     }
 
     fn image(texture: &Handle<Image>) -> ImageNode {
-        sliced_image(texture.clone(), 3.0, GAME_SIDE_CONTROL_SCALE)
+        sliced_image(texture.clone(), 3.0, game_side_control_scale())
     }
 
     fn compact(source: &Image) -> Image {

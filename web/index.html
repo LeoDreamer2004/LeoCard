@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#171620">
+    <title>LeoCard</title>
+    <link rel="icon" type="image/png" href="./icon.png">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <main id="game"><canvas id="leocard" aria-label="LeoCard 棋牌桌"></canvas></main>
+    <section id="loading" aria-live="polite">
+        <h1>LeoCard</h1>
+        <p id="status">正在准备游戏…</p>
+        <progress id="progress" value="0" max="1"></progress>
+        <button id="retry" hidden>重新加载</button>
+    </section>
+    <button id="fullscreen" title="全屏" aria-label="全屏" hidden>⛶</button>
+    <aside id="portrait">横屏可获得更完整的牌桌视野</aside>
+    <script type="module" src="./app.js"></script>
+</body>
+</html>

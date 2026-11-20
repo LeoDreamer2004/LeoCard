@@ -1,9 +1,9 @@
 //! 本地弃牌飞行与手牌补位共用一段动画进度。
 use super::super::layout::MahjongLayout as Layout;
 use super::super::{
-    MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongHandTile, MahjongTableRoot, MahjongTileHighlight,
-    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiState,
-    add_mahjong_tile_material, mahjong_own_row_left,
+    MahjongAssets, MahjongHandTile, MahjongTableRoot, MahjongTileHighlight, MahjongTileMaterial,
+    MahjongTileSize, MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
+    mahjong_own_meld_width, mahjong_own_row_left,
 };
 use crate::app::presentation::ease_out_cubic;
 use crate::app::presentation::mahjong::{
@@ -16,7 +16,9 @@ use leocard_mahjong::MahjongTile;
 use leocard_ui::UiComposer;
 
 pub(in super::super) const DISCARD_DURATION: f32 = 0.48;
-const HAND_TILE_ADVANCE: f32 = Layout::OWN_STEP;
+fn hand_tile_advance() -> f32 {
+    Layout::own_step()
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct MahjongOwnDiscardAnimation {
@@ -42,11 +44,11 @@ impl MahjongOwnDiscardAnimation {
 
     fn flight_transform(&self, source_x: f32, target: Vec2) -> UiTransform {
         let source_center = Vec2::new(
-            source_x + Layout::OWN_WIDTH / 2.0,
+            source_x + Layout::own_width() / 2.0,
             REFERENCE_DESIGN_HEIGHT
-                - Layout::OWN_BOTTOM
+                - Layout::own_bottom()
                 - Layout::OWN_HAND_LIFT
-                - Layout::OWN_HEIGHT / 2.0,
+                - Layout::own_height() / 2.0,
         );
         let target_center =
             target + Vec2::new(Layout::RIVER_WIDTH / 2.0, Layout::RIVER_HEIGHT / 2.0);
@@ -57,7 +59,7 @@ impl MahjongOwnDiscardAnimation {
         let scale = overlay_tile_scale(
             source_center,
             self.table_viewport,
-            Layout::OWN_WIDTH * canvas_scale,
+            Layout::own_width() * canvas_scale,
         );
         let offset = (source_layout - target_center) * (1.0 - self.movement());
         UiTransform {
@@ -74,12 +76,12 @@ impl MahjongOwnDiscardAnimation {
             .and_then(|drawn| self.old_hand.iter().position(|old| *old == drawn));
         let regular_count = self.old_hand.len() - usize::from(drawn_index.is_some());
         let left = mahjong_own_row_left(self.old_meld_count, regular_count)
-            + self.old_meld_count as f32 * MAHJONG_OWN_MELD_WIDTH;
+            + self.old_meld_count as f32 * mahjong_own_meld_width();
         if drawn_index == Some(index) {
-            Some(left + regular_count as f32 * HAND_TILE_ADVANCE + Layout::DRAW_GAP)
+            Some(left + regular_count as f32 * hand_tile_advance() + Layout::draw_gap())
         } else {
             let regular_index = index - usize::from(drawn_index.is_some_and(|drawn| drawn < index));
-            Some(left + regular_index as f32 * HAND_TILE_ADVANCE)
+            Some(left + regular_index as f32 * hand_tile_advance())
         }
     }
 

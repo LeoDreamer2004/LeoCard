@@ -1,6 +1,7 @@
 use super::super::migration::legacy;
 use super::*;
 use std::env::temp_dir;
+use std::fs;
 
 fn complete_game_profiles() -> PlayerGameProfiles {
     PlayerGameProfiles {

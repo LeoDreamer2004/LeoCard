@@ -1,6 +1,6 @@
 //! 手牌悬停、拖选和预览输入。
 
-use super::{CardAnimationState, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE, HAND_CARD_REVEAL};
+use super::{CardAnimationState, DESIGN_WIDTH, HAND_CARD_REVEAL, game_side_control_scale};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -39,7 +39,7 @@ impl CardSize {
         };
         let scale = match self {
             Self::ShengjiHand | Self::QiGuiHand | Self::QiGuiSeat | Self::TrickSeat => {
-                GAME_SIDE_CONTROL_SCALE
+                game_side_control_scale()
             }
             _ => 1.0,
         };
@@ -60,7 +60,7 @@ impl Default for TrickCardLayout {
         Self {
             width,
             height,
-            reveal: 27.0 * GAME_SIDE_CONTROL_SCALE,
+            reveal: 27.0 * game_side_control_scale(),
         }
     }
 }
@@ -166,8 +166,8 @@ pub(crate) fn hand_card_pose(
         hand_len,
         card_width,
         match size {
-            CardSize::ShengjiHand => 30.0 * GAME_SIDE_CONTROL_SCALE,
-            CardSize::QiGuiHand => 32.0 * GAME_SIDE_CONTROL_SCALE,
+            CardSize::ShengjiHand => 30.0 * game_side_control_scale(),
+            CardSize::QiGuiHand => 32.0 * game_side_control_scale(),
             _ => HAND_CARD_REVEAL,
         },
     );
@@ -235,7 +235,7 @@ pub(crate) fn shengji_hand_card_reveal(hand_len: usize) -> f32 {
     hand_card_reveal_for_width(
         hand_len,
         CardSize::ShengjiHand.dimensions().0,
-        30.0 * GAME_SIDE_CONTROL_SCALE,
+        30.0 * game_side_control_scale(),
     )
 }
 
@@ -243,7 +243,7 @@ pub(crate) fn qigui_hand_card_reveal(hand_len: usize) -> f32 {
     hand_card_reveal_for_width(
         hand_len,
         CardSize::QiGuiHand.dimensions().0,
-        32.0 * GAME_SIDE_CONTROL_SCALE,
+        32.0 * game_side_control_scale(),
     )
 }
 

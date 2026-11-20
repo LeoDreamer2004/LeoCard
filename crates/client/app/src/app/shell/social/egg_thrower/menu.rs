@@ -8,9 +8,9 @@ use bevy::picking::pointer::PointerButton;
 use bevy::prelude::*;
 use bevy::ui::OverrideClip;
 use leocard_game_common::PlayerId;
+use leocard_platform::time::Duration;
 use leocard_protocol::PlayerInteractionKind;
 use leocard_ui::UiComposer;
-use std::time::Duration;
 
 const HOLD_DURATION: Duration = Duration::from_millis(550);
 

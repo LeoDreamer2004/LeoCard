@@ -9,6 +9,7 @@ use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
 use leocard_mahjong_link::MahjongLinkProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
+use leocard_platform::storage as fs;
 use leocard_protocol::{
     MatchId, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
 };
@@ -18,10 +19,6 @@ use leocard_texas_holdem::TexasProfileStats;
 use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-#[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 
 pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v9\0";
@@ -49,24 +46,7 @@ impl StoredPlayerProfile {
         let bytes = self
             .encode()
             .map_err(|error| format!("玩家档案编码失败：{error}"))?;
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|error| format!("无法创建档案目录：{error}"))?;
-        }
-        let temporary = path.with_extension(format!("dat.{:016x}.tmp", fastrand::u64(..)));
-        let mut options = OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        options.mode(0o600);
-        let mut file = options
-            .open(&temporary)
-            .map_err(|error| format!("无法创建临时玩家档案：{error}"))?;
-        let result = file.write_all(&bytes).and_then(|()| file.sync_all());
-        drop(file);
-        let result = result.and_then(|()| fs::rename(&temporary, path));
-        if result.is_err() {
-            let _ = fs::remove_file(&temporary);
-        }
-        result.map_err(|error| format!("无法保存玩家档案：{error}"))
+        fs::write_atomic(path, bytes).map_err(|error| format!("无法保存玩家档案：{error}"))
     }
 }
 
@@ -112,7 +92,7 @@ impl LocalPlayerProfile {
     }
 
     pub(super) fn load_or_create_at(path: &Path) -> Result<Self, String> {
-        if path.is_file() {
+        if fs::is_file(path) {
             let bytes = fs::read(path).map_err(|error| format!("无法读取玩家档案：{error}"))?;
             let stored = migration::decode_player_profile(&bytes)?;
             if !bytes.starts_with(PROFILE_HEADER) {

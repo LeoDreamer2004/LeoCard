@@ -12,7 +12,7 @@ pub(crate) enum CozyModalKind {
     UnoExpansionSettings,
     DrawGuessLibraries,
     Confirmation,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     SakuraStartup,
     UpdateDialog,
 }

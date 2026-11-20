@@ -1,6 +1,6 @@
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 mod detection;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 mod monitor;
 mod notifications;
 mod plugin;

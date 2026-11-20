@@ -50,6 +50,7 @@ bevy_clipboard = { version = "0.20", default-features = false }
 csv = "1.4"
 ed25519-dalek = "3.0"
 fastrand = "2.5"
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 getrandom = "0.4"
 half = { version = "2.7", default-features = false, features = ["std"] }
 # Route ICU diagnostics through Bevy's logger instead of debug-only stderr output.
@@ -61,6 +62,7 @@ image = { version = "0.25", default-features = false, features = [
     "jpeg",
 ] }
 jni = { version = "0.22.4", default-features = false }
+js-sys = "0.3"
 mac-usernotifications = "0.3"
 md-5 = "0.11"
 ndarray = "0.17"
@@ -89,6 +91,12 @@ tokio = { version = "1.53", features = [
     "sync",
     "time",
 ] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = "0.3"
+web-time = "1.1"
 winit = { version = "0.30", default-features = false }
 winresource = "0.1"
 winreg = "0.56"
@@ -113,3 +121,7 @@ debug = "line-tables-only"
 
 [profile.android-dev.package."*"]
 opt-level = 3
+
+[profile.web-dev]
+inherits = "dev"
+debug = 0

@@ -11,5 +11,4 @@ pub use skin::{TextInputSkin, TextInputStyle};
 pub use state::{TextInputAction, TextInputEvent, TextInputSet};
 pub use view::TextInput;
 
-#[cfg(target_os = "android")]
-pub use state::AndroidEditor;
+pub use state::PlatformEditor;

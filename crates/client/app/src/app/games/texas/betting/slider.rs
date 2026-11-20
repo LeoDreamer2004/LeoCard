@@ -16,7 +16,7 @@ pub(super) fn add_raise_slider(
     target: u32,
     assets: &UiAssets,
 ) {
-    let scale = TexasTableLayout::ACTION_SCALE;
+    let scale = TexasTableLayout::action_scale();
     let track = commands.child(
         parent,
         (

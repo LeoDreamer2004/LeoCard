@@ -10,26 +10,12 @@ use bevy::asset::RenderAssetUsages;
 use bevy::image::ImageSampler;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
-use leocard_client::pick_image;
-use std::fs;
-use std::path::PathBuf;
-use std::sync::Mutex;
-use std::sync::mpsc::{self, TryRecvError};
-use std::thread;
+use leocard_client::request_image;
+use leocard_platform::storage as fs;
+use std::sync::mpsc::TryRecvError;
 
 pub(crate) fn start_table_felt_picker() -> Result<TableFeltPickerReceiver, String> {
-    let (sender, receiver) = mpsc::channel();
-    thread::Builder::new()
-        .name("leocard-table-felt-picker".to_owned())
-        .spawn(move || {
-            let _ = sender.send(open_table_felt_dialog());
-        })
-        .map_err(|error| format!("无法启动桌布选择器：{error}"))?;
-    Ok(Mutex::new(receiver))
-}
-
-fn open_table_felt_dialog() -> Result<Option<PathBuf>, String> {
-    pick_image("选择自定义桌布背景")
+    request_image("选择自定义桌布背景")
 }
 
 pub(crate) fn decode_table_felt_image(bytes: &[u8]) -> Result<image::DynamicImage, String> {

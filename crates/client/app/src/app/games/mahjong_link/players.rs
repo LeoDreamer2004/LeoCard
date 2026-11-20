@@ -6,6 +6,7 @@ use crate::app::presentation::{
     attach_start_game_seat_transition,
 };
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_protocol::{GameKind, MahjongLinkSnapshot};
 use leocard_ui::UiComposer;
 
@@ -17,7 +18,7 @@ pub(super) fn render(
     context: &mut GameTableContext<'_>,
 ) {
     let dense = game.players.len() > 4;
-    let avatar_size = match (dense, cfg!(target_os = "android")) {
+    let avatar_size = match (dense, is_mobile()) {
         (true, true) => 52.0,
         (true, false) => 48.0,
         (false, true) => 74.0,
@@ -25,7 +26,7 @@ pub(super) fn render(
     };
     let score_size = if dense {
         18.0
-    } else if cfg!(target_os = "android") {
+    } else if is_mobile() {
         24.0
     } else {
         21.0

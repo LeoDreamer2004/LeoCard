@@ -1,5 +1,5 @@
 use super::{InteractionCooldownMask, SocialUiAction, add_shoe_button};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TEXT};
+use crate::app::presentation::{TEXT, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -16,21 +16,21 @@ pub(super) fn interaction_button<'a, A>(
 ) -> TextureButton<'a, A> {
     TextureButton {
         node: Node {
-            width: px(69.0 * GAME_SIDE_CONTROL_SCALE),
-            height: px(64.0 * GAME_SIDE_CONTROL_SCALE),
+            width: px(69.0 * game_side_control_scale()),
+            height: px(64.0 * game_side_control_scale()),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
-            row_gap: px(2.0 * GAME_SIDE_CONTROL_SCALE),
+            row_gap: px(2.0 * game_side_control_scale()),
             ..default()
         },
         normal: sliced_image(assets.home.button.clone(), 32.0, 0.5),
         hovered: sliced_image(assets.home.purple_button_compact.clone(), 32.0, 0.5),
         action: Some(action),
         label,
-        font_size: 12.0 * GAME_SIDE_CONTROL_SCALE,
+        font_size: 12.0 * game_side_control_scale(),
         color: TEXT,
-        icon: icon.map(|image| (image, 36.0 * GAME_SIDE_CONTROL_SCALE)),
+        icon: icon.map(|image| (image, 36.0 * game_side_control_scale())),
     }
 }
 
@@ -45,7 +45,7 @@ pub(crate) fn add_interaction_buttons(
         parent,
         Node {
             width: percent(100),
-            height: px(64.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(64.0 * game_side_control_scale()),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(0),

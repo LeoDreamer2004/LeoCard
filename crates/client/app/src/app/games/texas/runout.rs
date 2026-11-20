@@ -113,7 +113,7 @@ pub(super) fn add_second_board(
                 } else {
                     face
                 },
-                size: TexasTableLayout::BOARD_CARD_SIZE,
+                size: TexasTableLayout::board_card_size(),
                 opacity: if run == 2 { 0.0 } else { 1.0 },
             }
             .spawn(
@@ -156,7 +156,10 @@ pub(super) fn animate_texas_runout_cards(
                     .as_ref()
                     .map(|flip| flip.frame_at(card.sequence.elapsed(&animation)));
                 let frame = UiTransform {
-                    translation: Val2::px(0.0, drop * (TexasTableLayout::BOARD_CARD_SIZE.y + 14.0)),
+                    translation: Val2::px(
+                        0.0,
+                        drop * (TexasTableLayout::board_card_size().y + 14.0),
+                    ),
                     scale: face.as_ref().map_or(Vec2::ONE, |face| face.scale),
                     ..UiTransform::IDENTITY
                 };
@@ -166,7 +169,7 @@ pub(super) fn animate_texas_runout_cards(
                 let origin = TexasTableLayout::board_card_origin(*index);
                 let offset = TexasTableLayout::draw_pile_center()
                     - origin
-                    - TexasTableLayout::BOARD_CARD_SIZE * 0.5;
+                    - TexasTableLayout::board_card_size() * 0.5;
                 let delay = TexasShowdownSequence::DEAL_START
                     + *index as f32 * TexasShowdownSequence::DEAL_INTERVAL;
                 let (mut frame, alpha) = texas_board_deal_visual(offset, elapsed - delay);

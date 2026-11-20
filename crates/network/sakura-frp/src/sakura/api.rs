@@ -1,5 +1,6 @@
-use super::models::{CreateTunnel, CreatedTunnel, Dashboard, Node, Tunnel, UserInfo};
-use reqwest::blocking::{Client, RequestBuilder};
+use super::models::{CreateTunnel, CreatedTunnel, Dashboard, Node, UserInfo};
+use super::tunnel::Tunnel;
+use reqwest::blocking::{Client, RequestBuilder, Response};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::json;
@@ -13,6 +14,7 @@ const API: &str = "https://api.natfrp.com/v4";
 pub struct SakuraClient {
     pub(super) http: Client,
     token: String,
+    endpoint: String,
 }
 
 #[derive(Deserialize)]
@@ -37,7 +39,11 @@ impl SakuraClient {
             .timeout(Duration::from_secs(30))
             .build()
             .map_err(|error| error.to_string())?;
-        Ok(Self { http, token })
+        Ok(Self {
+            http,
+            token,
+            endpoint: API.to_owned(),
+        })
     }
 
     pub fn dashboard(&self) -> Result<Dashboard, String> {
@@ -53,6 +59,7 @@ impl SakuraClient {
         nodes.sort_by_key(|node| node.id);
         let mut tunnels: Vec<Tunnel> = self.get("/tunnels")?;
         tunnels.sort_by_key(|tunnel| tunnel.id);
+        self.load_wss_addresses(&mut tunnels)?;
         Ok(Dashboard {
             user,
             nodes,
@@ -99,6 +106,16 @@ impl SakuraClient {
         request: &CreateTunnel,
         node: &Node,
     ) -> Result<CreatedTunnel, String> {
+        self.create_tunnel_with_extra(request, node, "", "")
+    }
+
+    pub(super) fn create_tunnel_with_extra(
+        &self,
+        request: &CreateTunnel,
+        node: &Node,
+        note: &str,
+        extra: &str,
+    ) -> Result<CreatedTunnel, String> {
         request.validate(node)?;
         let mut body = json!({
             "name": request.name.trim(),
@@ -106,19 +123,21 @@ impl SakuraClient {
             "node": request.node,
             "local_ip": request.local_ip,
             "local_port": request.local_port,
+            "note": note,
+            "extra": extra,
         });
         if let Some(remote) = &request.remote {
             body["remote"] = json!(remote);
         }
         self.json(
-            self.authorized(self.http.post(format!("{API}/tunnels")))
+            self.authorized(self.http.post(self.url("/tunnels")))
                 .json(&body),
         )
     }
 
     pub fn delete_tunnel(&self, id: u64) -> Result<bool, String> {
         let reply: DeleteResponse = self.json(
-            self.authorized(self.http.post(format!("{API}/tunnel/delete")))
+            self.authorized(self.http.post(self.url("/tunnel/delete")))
                 .json(&json!({ "ids": id.to_string() })),
         )?;
         if !reply.deleted.contains(&id) && !reply.failed.contains(&id) {
@@ -129,7 +148,7 @@ impl SakuraClient {
 
     pub(super) fn config(&self, id: u64, frpc_version: &str) -> Result<String, String> {
         let request = self
-            .authorized(self.http.post(format!("{API}/tunnel/config")))
+            .authorized(self.http.post(self.url("/tunnel/config")))
             .form(&[("query", id.to_string()), ("frpc", frpc_version.to_owned())]);
         let response = request
             .send()
@@ -148,26 +167,44 @@ impl SakuraClient {
     }
 
     pub(super) fn public_json<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
-        self.json(self.http.get(format!("{API}{path}")))
+        self.json(self.http.get(self.url(path)))
     }
 
-    fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
-        self.json(self.authorized(self.http.get(format!("{API}{path}"))))
+    pub(super) fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+        self.json(self.authorized(self.http.get(self.url(path))))
     }
 
-    fn authorized(&self, request: RequestBuilder) -> RequestBuilder {
+    pub(super) fn authorized(&self, request: RequestBuilder) -> RequestBuilder {
         request.bearer_auth(&self.token)
     }
 
-    fn json<T: DeserializeOwned>(&self, request: RequestBuilder) -> Result<T, String> {
+    pub(super) fn url(&self, path: &str) -> String {
+        format!("{}{path}", self.endpoint)
+    }
+
+    #[cfg(test)]
+    pub(super) fn with_test_endpoint(mut self, endpoint: String) -> Self {
+        self.endpoint = endpoint;
+        self
+    }
+
+    pub(super) fn json<T: DeserializeOwned>(&self, request: RequestBuilder) -> Result<T, String> {
+        self.response(request)?
+            .json()
+            .map_err(|error| format!("SakuraFrp 响应无效：{error}"))
+    }
+
+    pub(super) fn empty(&self, request: RequestBuilder) -> Result<(), String> {
+        self.response(request).map(|_| ())
+    }
+
+    fn response(&self, request: RequestBuilder) -> Result<Response, String> {
         let response = request
             .send()
             .map_err(|error| format!("SakuraFrp 请求失败：{error}"))?;
         let status = response.status();
         if status.is_success() {
-            response
-                .json()
-                .map_err(|error| format!("SakuraFrp 响应无效：{error}"))
+            Ok(response)
         } else {
             let message = response
                 .json::<ApiError>()

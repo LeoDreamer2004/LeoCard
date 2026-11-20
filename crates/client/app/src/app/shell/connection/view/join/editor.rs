@@ -48,7 +48,11 @@ pub(super) fn render(
             add_text(
                 commands,
                 form,
-                "IP 或域名加端口，例如 192.168.1.20:52300",
+                if cfg!(feature = "web") {
+                    "填写房主提供的完整 WSS 地址，例如 wss://room.example.com:52300/"
+                } else {
+                    "IP 或域名加端口，例如 192.168.1.20:52300"
+                },
                 13.0,
                 MUTED,
                 assets,

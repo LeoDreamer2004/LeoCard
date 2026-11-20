@@ -73,7 +73,7 @@ jobs:
 
       - name: Lint workspace
         if: startsWith(github.ref, 'refs/tags/v')
-        run: cargo clippy --workspace --all-targets --all-features --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --features leocard-client/desktop,leocard-client/developer,leocard-client/embedded-assets --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked -- -D warnings
 
       - name: Test workspace
         run: cargo test --workspace --all-targets --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked
@@ -144,7 +144,7 @@ jobs:
 
       - name: Build debug client
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        run: cargo build -p leocard-client --all-features --locked
+        run: cargo build -p leocard-client --features desktop,developer,embedded-assets --locked
 
       - name: Build self-contained release client
         if: startsWith(github.ref, 'refs/tags/v')

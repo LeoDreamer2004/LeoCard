@@ -1,6 +1,6 @@
-use leocard_client::{NetworkState, TcpGameClient};
+use leocard_client::{GameClient, NetworkState};
 pub(crate) struct ConnectionEndFeedback<'a> {
-    pub client: &'a TcpGameClient,
+    pub client: &'a GameClient,
     pub was_host: bool,
     pub leaving_room: bool,
 }

@@ -18,7 +18,8 @@ use bevy::log::warn;
 use bevy::prelude::default;
 use bevy::prelude::*;
 use bevy::text::EditableText;
-use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, PlayerEconomy, TcpGameClient};
+use leocard_client::{GameClient, LocalPlayerConnection, LocalPlayerProfile, PlayerEconomy};
+use leocard_platform::CAN_HOST;
 use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 use leocard_ui::UiComposer;
 
@@ -366,6 +367,11 @@ fn validated_host_form(form: &ConnectionDraft) -> Result<(String, u16), String> 
 }
 
 fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_>) {
+    if !CAN_HOST {
+        context.page_motion.begin();
+        context.ui.rooms.set_open(true);
+        return;
+    }
     context.rooms.pending_join = None;
     context.ui.rooms.connecting = false;
     context.ui.rooms.open = false;
@@ -377,7 +383,7 @@ fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_
             context.connection.gender,
             context.economy.frame_for_name(&name),
         );
-        TcpGameClient::host_with_profile(port, context.host_rules.game_rules(game_kind), player)
+        GameClient::host_with_profile(port, context.host_rules.game_rules(game_kind), player)
             .map_err(|error| error.to_string())
     });
     finish_connection(result, context);
@@ -410,7 +416,7 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
             context.connection.gender,
             context.economy.frame_for_name(&name),
         );
-        TcpGameClient::join_with_profile(context.connection.join_address.trim(), player)
+        GameClient::join_with_profile(context.connection.join_address.trim(), player)
             .map_err(|error| error.to_string())
     };
     if result.is_ok() {
@@ -421,7 +427,7 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
 }
 
 fn finish_connection(
-    result: Result<TcpGameClient, String>,
+    result: Result<GameClient, String>,
     context: &mut ConnectionActionContext<'_, '_>,
 ) {
     match result {

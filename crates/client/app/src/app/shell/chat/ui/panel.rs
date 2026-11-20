@@ -2,7 +2,7 @@ use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::help::add_chat_help_button;
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::prelude::*;
@@ -87,7 +87,7 @@ fn spawn_side_controls(commands: &mut UiComposer, panel: Entity) -> Entity {
     commands
         .entity(anchor)
         .insert(UiTransform::from_scale(Vec2::splat(
-            GAME_SIDE_CONTROL_SCALE,
+            game_side_control_scale(),
         )));
     spawn_node(
         commands,

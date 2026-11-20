@@ -3,6 +3,7 @@ use crate::app::presentation::{ACCENT, MUTED, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_tabletop_balance_panel(
@@ -13,11 +14,7 @@ pub(crate) fn add_tabletop_balance_panel(
     counts: &[(u16, usize)],
     assets: &UiAssets,
 ) -> Entity {
-    let width = if cfg!(target_os = "android") {
-        250.0
-    } else {
-        300.0
-    };
+    let width = if is_mobile() { 250.0 } else { 300.0 };
     let panel = spawn_node(
         commands,
         parent,
@@ -83,7 +80,7 @@ pub(crate) fn add_tabletop_balance_panel(
         .map(|(_, count)| 34.0 + count.saturating_sub(1) as f32 * 11.0)
         .sum::<f32>()
         + counts.len().saturating_sub(1) as f32 * 10.0;
-    let scale = if cfg!(target_os = "android") {
+    let scale = if is_mobile() {
         ((width - 82.0) / chip_width.max(1.0)).min(1.0)
     } else {
         1.0

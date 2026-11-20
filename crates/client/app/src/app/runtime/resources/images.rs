@@ -3,14 +3,16 @@
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use image::{ImageFormat, ImageReader};
+use leocard_platform::storage as fs;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES};
 use std::f32::consts;
-use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 
 pub(crate) fn normalize_avatar(path: &Path) -> Result<Vec<u8>, String> {
     let source = fs::read(path).map_err(|error| format!("无法读取头像文件：{error}"))?;
+    #[cfg(feature = "web")]
+    leocard_platform::discard_import(path);
     normalize_avatar_bytes(&source)
 }
 

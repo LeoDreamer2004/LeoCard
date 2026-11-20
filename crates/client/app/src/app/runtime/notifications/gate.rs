@@ -1,6 +1,6 @@
 use leocard_game_common::PlayerId;
+use leocard_platform::time::{Duration, Instant};
 use leocard_protocol::{GameKind, MatchId, RoomId};
-use std::time::{Duration, Instant};
 
 pub(super) const REMINDER_COOLDOWN: Duration = Duration::from_secs(45);
 

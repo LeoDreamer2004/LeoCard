@@ -1,5 +1,5 @@
 mod plugin;
-#[cfg(target_os = "android")]
+#[cfg(any(feature = "android", feature = "web"))]
 mod touch;
 
 pub use plugin::{

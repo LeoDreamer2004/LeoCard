@@ -1,14 +1,14 @@
 use super::actions::WordLibraryUiAction;
 use super::state::LibrarySelection;
 use super::view::{LibraryControl, LibraryView, control};
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use crate::app::shell::CozyButtonVariant;
 use bevy::prelude::*;
 use leocard_draw_guess::WordLibrary;
 use leocard_ui::{Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
 pub(super) fn render(commands: &mut UiComposer, parent: Entity, view: &LibraryView<'_>) {
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let panel = spawn_node(
         commands,
         parent,

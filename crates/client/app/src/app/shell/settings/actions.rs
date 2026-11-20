@@ -26,7 +26,7 @@ pub(crate) enum SettingsUiAction {
     ToggleSpectatorInteractions,
     RequestKickPlayer(PlayerId),
     KickPlayer(PlayerId),
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     ToggleTurnNotifications,
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
@@ -110,7 +110,7 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                     client.0.send(ClientCommand::KickPlayer { player: *player });
                 }
             }
-            #[cfg(not(target_os = "android"))]
+            #[cfg(feature = "desktop")]
             SettingsUiAction::ToggleTurnNotifications => {
                 appearance.turn_notifications = !appearance.turn_notifications;
                 if let Err(error) = save_appearance_preferences(appearance) {

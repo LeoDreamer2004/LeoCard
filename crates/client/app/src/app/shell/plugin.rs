@@ -1,9 +1,11 @@
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::SakuraFrpPlugin;
+#[cfg(not(feature = "web"))]
+use super::UpdatePlugin;
 use super::{
     AchievementsPagePlugin, ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, InputPlugin,
     LobbyPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin, ShellUiPlugin,
-    ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
+    ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState,
     close_interaction_menu_on_outside_click, compose_ui, ui_scale_can_change, update_ui_scale,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -32,7 +34,6 @@ impl Plugin for ShellPlugin {
             ProfilePlugin,
             SettingsPlugin,
             SocialPlugin,
-            UpdatePlugin,
         ))
         .configure_sets(
             Update,
@@ -44,7 +45,9 @@ impl Plugin for ShellPlugin {
                 .chain()
                 .in_set(ClientUpdateSet::Compose),
         );
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         app.add_plugins(SakuraFrpPlugin);
+        #[cfg(not(feature = "web"))]
+        app.add_plugins(UpdatePlugin);
     }
 }

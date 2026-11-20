@@ -8,9 +8,9 @@ use super::{
     shengji_hand_sort_trump, sort_shengji_cards,
 };
 use crate::app::presentation::{
-    CardAnimationState, CardSize, GAME_SIDE_CONTROL_SCALE, HandCardHighlight, PendingDealSound,
-    PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
-    add_player_portrait, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    CardAnimationState, CardSize, HandCardHighlight, PendingDealSound, PlayerMenuProfile,
+    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, game_side_control_scale,
     hand_card_pose, shengji_hand_card_reveal,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
@@ -42,7 +42,7 @@ pub(super) fn add_shengji_hand(
             left: px(0),
             right: px(0),
             bottom: px(0),
-            height: px(120.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(120.0 * game_side_control_scale()),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::NoWrap,
             justify_content: JustifyContent::Center,

@@ -1,5 +1,6 @@
 use crate::app::presentation::{TableSeat, TableSeats};
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 
 pub(super) struct BlackjackSeatLayout {
     pub portrait: Node,
@@ -9,40 +10,37 @@ pub(super) struct BlackjackSeatLayout {
 }
 
 impl BlackjackSeatLayout {
-    pub(super) const OPPONENT_AREA_WIDTH: f32 = if cfg!(target_os = "android") {
-        210.0
-    } else {
-        236.0
-    };
-    pub(super) const HAND_SCALE: f32 = if cfg!(target_os = "android") {
-        1.5
-    } else {
-        1.0
-    };
-    pub(super) const ACTION_SCALE: f32 = if cfg!(target_os = "android") {
-        1.4
-    } else {
-        1.0
-    };
-    pub(super) const ACTION_BOTTOM: f32 = if cfg!(target_os = "android") {
-        218.0
-    } else {
-        172.0
-    };
-    pub(super) const DEALER_WIDTH: f32 = if cfg!(target_os = "android") {
-        544.0
-    } else {
-        470.0
-    };
-    pub(super) const DEALER_CARD_SIZE: Vec2 = if cfg!(target_os = "android") {
-        Vec2::new(78.0, 109.2)
-    } else {
-        Vec2::new(60.0, 84.0)
-    };
+    pub(super) fn opponent_area_width() -> f32 {
+        if is_mobile() { 210.0 } else { 236.0 }
+    }
+
+    pub(super) fn hand_scale() -> f32 {
+        if is_mobile() { 1.5 } else { 1.0 }
+    }
+
+    pub(super) fn action_scale() -> f32 {
+        if is_mobile() { 1.4 } else { 1.0 }
+    }
+
+    pub(super) fn action_bottom() -> f32 {
+        if is_mobile() { 218.0 } else { 172.0 }
+    }
+
+    pub(super) fn dealer_width() -> f32 {
+        if is_mobile() { 544.0 } else { 470.0 }
+    }
+
+    pub(super) fn dealer_card_size() -> Vec2 {
+        if is_mobile() {
+            Vec2::new(78.0, 109.2)
+        } else {
+            Vec2::new(60.0, 84.0)
+        }
+    }
 
     pub(super) fn new(relative: u8) -> Self {
         let seat = TableSeats::new(6).seat(relative);
-        if cfg!(target_os = "android") {
+        if is_mobile() {
             return Self::compact(seat);
         }
         let own = matches!(seat, TableSeat::Bottom);
@@ -60,7 +58,7 @@ impl BlackjackSeatLayout {
         let width = if own {
             590.0
         } else {
-            Self::OPPONENT_AREA_WIDTH
+            Self::opponent_area_width()
         };
         let bottom = if own {
             px(12)
@@ -122,7 +120,7 @@ impl BlackjackSeatLayout {
         let width = if own {
             486.0
         } else {
-            Self::OPPONENT_AREA_WIDTH
+            Self::opponent_area_width()
         };
         let top = if upper {
             px(94)

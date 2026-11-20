@@ -8,7 +8,6 @@ use crate::app::shell::{
     ConfirmationDialog, PageMotion, PressedUiAction, UiAction, UiState, game_command,
 };
 use bevy::ecs::system::SystemParam;
-#[cfg(target_os = "android")]
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::picking::events::{
     PointerCancel, PointerClick, PointerDrag, PointerDragEnd, PointerDragStart,
@@ -125,7 +124,6 @@ pub(super) struct BoardInput<'w, 's> {
     ends: MessageReader<'w, 's, PointerDragEnd>,
     clicks: MessageReader<'w, 's, PointerClick>,
     cancels: MessageReader<'w, 's, PointerCancel>,
-    #[cfg(target_os = "android")]
     touches: MessageReader<'w, 's, TouchInput>,
     hitboxes: Query<'w, 's, &'static LinkTileHitbox>,
     window: Query<'w, 's, &'static Window, With<PrimaryWindow>>,
@@ -139,13 +137,10 @@ pub(super) struct BoardInput<'w, 's> {
 impl BoardInput<'_, '_> {
     fn blocked(&mut self) -> bool {
         // Android adapts touch cancellation to a release, which must not submit a move.
-        #[cfg(target_os = "android")]
         let touch_canceled = self
             .touches
             .read()
             .any(|touch| touch.phase == TouchPhase::Canceled);
-        #[cfg(not(target_os = "android"))]
-        let touch_canceled = false;
         let canceled = self.cancels.read().count() > 0;
         canceled
             || touch_canceled

@@ -1,3 +1,4 @@
+use super::tunnel::Tunnel;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
@@ -51,36 +52,6 @@ impl Node {
 
     pub fn allows_public_game(&self) -> bool {
         self.flag & (1 << 11) != 0 || self.name.contains("多线")
-    }
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Tunnel {
-    pub id: u64,
-    pub name: String,
-    pub node: u64,
-    #[serde(rename = "type")]
-    pub kind: String,
-    pub online: bool,
-    pub status: i32,
-    pub status_reason: Option<String>,
-    #[serde(default)]
-    pub note: String,
-    pub remote: String,
-    pub local_ip: String,
-    pub local_port: u16,
-}
-
-impl Tunnel {
-    pub fn address(&self, nodes: &[Node]) -> String {
-        if matches!(self.kind.as_str(), "http" | "https") {
-            return self.remote.clone();
-        }
-        let host = nodes
-            .iter()
-            .find(|node| node.id == self.node)
-            .map_or("未知节点", |node| node.host.as_str());
-        format!("{host}:{}", self.remote)
     }
 }
 

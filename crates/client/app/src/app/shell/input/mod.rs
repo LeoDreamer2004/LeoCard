@@ -1,7 +1,9 @@
 //! 通用客户端输入系统。
 
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 mod android;
+#[cfg(feature = "web")]
+mod web;
 
 mod back;
 mod ui;

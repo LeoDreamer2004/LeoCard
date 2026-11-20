@@ -13,7 +13,7 @@ pub(super) fn add_texas_action_button(
     tone: CasinoButtonTone,
     assets: &UiAssets,
 ) -> Entity {
-    let scale = TexasTableLayout::ACTION_SCALE;
+    let scale = TexasTableLayout::action_scale();
     TableActionButton {
         size: Vec2::new(118.0, 50.0) * scale,
         font_size: 26.0 * scale,
@@ -43,7 +43,7 @@ pub(super) fn add_texas_raise_adjust_button(
             TableButtonSkin::Casino(CasinoButtonTone::Call),
         )
     }
-    .scaled(TexasTableLayout::ACTION_SCALE)
+    .scaled(TexasTableLayout::action_scale())
     .mount(commands, parent, assets)
     .0
 }

@@ -29,7 +29,7 @@ impl InputField {
             Self::RoomName => 40,
             Self::PlayerName => MAX_PLAYER_NAME_CHARS,
             Self::HostPort => 5,
-            Self::JoinAddress => 64,
+            Self::JoinAddress => 256,
         }
     }
 
@@ -39,7 +39,24 @@ impl InputField {
             Self::HostPort => |character| character.is_ascii_digit(),
             Self::JoinAddress => |character| {
                 character.is_ascii_alphanumeric()
-                    || matches!(character, '.' | ':' | '[' | ']' | '-' | ' ')
+                    || matches!(
+                        character,
+                        '.' | ':'
+                            | '['
+                            | ']'
+                            | '-'
+                            | ' '
+                            | '/'
+                            | '_'
+                            | '~'
+                            | '?'
+                            | '&'
+                            | '='
+                            | '%'
+                            | '+'
+                            | '#'
+                            | '@'
+                    )
             },
         }
     }

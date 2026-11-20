@@ -1,7 +1,7 @@
 use super::actions::WordLibraryUiAction;
 use super::state::{LibraryField, LibrarySelection, LibraryWordCount};
 use super::view::{LibraryControl, LibraryView, control, editable};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, game_side_control_scale};
 use crate::app::shell::ConfigurationScroll;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -9,7 +9,7 @@ use leocard_draw_guess::WordLibrary;
 use leocard_ui::{Scrollbar, ScrollbarSkin, TextInput, UiComposer, sliced_image, spawn_node};
 
 pub(super) fn render(commands: &mut UiComposer, parent: Entity, view: &LibraryView<'_>) {
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let manager = view.manager;
     let panel = commands.keyed_child(
         parent,

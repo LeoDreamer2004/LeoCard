@@ -11,6 +11,7 @@ use bevy::prelude::*;
 use bevy::ui::InteractionDisabled;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use leocard_ui::UiComposer;
 use std::f32::consts;
 
@@ -92,10 +93,10 @@ pub(super) fn add_mahjong_hand_tile(
             Button,
             MahjongHoverHandKind(kind),
             Node {
-                width: px(Layout::OWN_WIDTH),
-                height: px(Layout::OWN_HEIGHT),
-                min_width: px(Layout::OWN_WIDTH),
-                margin: UiRect::right(px(Layout::OWN_STEP - Layout::OWN_WIDTH)),
+                width: px(Layout::own_width()),
+                height: px(Layout::own_height()),
+                min_width: px(Layout::own_width()),
+                margin: UiRect::right(px(Layout::own_step() - Layout::own_width())),
                 overflow: Overflow::visible(),
                 ..default()
             },
@@ -188,7 +189,7 @@ pub(super) fn sync_mahjong_hand_tile_materials(
     for (mut tile, interaction, material_node, mut transform, mut z_index, disabled) in &mut tiles {
         let interaction = if disabled {
             PickingInteraction::None
-        } else if cfg!(target_os = "android") {
+        } else if is_mobile() {
             if ui.selected_discard == Some(tile.tile) {
                 PickingInteraction::Hovered
             } else {

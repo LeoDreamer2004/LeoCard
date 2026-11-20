@@ -11,11 +11,11 @@ use super::{
 };
 use crate::app::games::qigui523::QiGuiClientState;
 use crate::app::presentation::{
-    CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind,
-    PlayEffectState, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
-    TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay,
-    add_no_legal_response_hint, add_play_effect_overlay, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    CardTableSurface, GameSummaryAnimation, PlayEffectKind, PlayEffectState, PlayerMenuProfile,
+    PlayerPortraitSpec, StartGameSeatTransition, TEXT, TableBackgroundMaterial,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_no_legal_response_hint,
+    add_play_effect_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, game_side_control_scale,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 #[cfg(feature = "developer")]
@@ -25,6 +25,7 @@ use crate::app::shell::{
     ScoreCaptureEffectState, SocialUiState, UiAction, add_reconnecting_overlay,
 };
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_protocol::{
     GameKind, GameRules, QiGui523PhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT,
 };
@@ -102,11 +103,7 @@ pub(crate) fn render_table(
         Node {
             width: percent(100),
             flex_grow: 1.0,
-            min_height: px(if cfg!(target_os = "android") {
-                330
-            } else {
-                410
-            }),
+            min_height: px(if is_mobile() { 330 } else { 410 }),
             position_type: PositionType::Relative,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -158,11 +155,7 @@ pub(crate) fn render_table(
             content,
             Node {
                 width: percent(100),
-                height: px(if cfg!(target_os = "android") {
-                    310
-                } else {
-                    218
-                }),
+                height: px(if is_mobile() { 310 } else { 218 }),
                 flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
@@ -281,11 +274,7 @@ pub(crate) fn render_table(
         content,
         Node {
             width: percent(100),
-            height: px(if cfg!(target_os = "android") {
-                310
-            } else {
-                218
-            }),
+            height: px(if is_mobile() { 310 } else { 218 }),
             flex_shrink: 0.0,
             position_type: PositionType::Relative,
             padding: UiRect::all(px(16)),
@@ -303,10 +292,10 @@ pub(crate) fn render_table(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(if cfg!(target_os = "android") { 18 } else { 30 }),
-            right: percent(if cfg!(target_os = "android") { 18 } else { 30 }),
+            left: percent(if is_mobile() { 18 } else { 30 }),
+            right: percent(if is_mobile() { 18 } else { 30 }),
             top: px(-16),
-            height: px(58.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(58.0 * game_side_control_scale()),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             column_gap: px(8),
@@ -378,7 +367,7 @@ pub(crate) fn render_table(
             left: px(0),
             right: px(0),
             bottom: px(0),
-            height: px(134.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(134.0 * game_side_control_scale()),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::NoWrap,
             justify_content: JustifyContent::Center,

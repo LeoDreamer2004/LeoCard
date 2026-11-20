@@ -1,16 +1,17 @@
 use super::{
-    UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoUiAction, UnoUiState, uno_card_is_playable,
+    UnoUiAction, UnoUiState, uno_action_area_bottom, uno_action_area_height, uno_card_is_playable,
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ColorCardButtonTone, GAME_SIDE_CONTROL_SCALE, PanelSkin, TableActionButton,
-    TableButtonSkin, add_section_title, add_text,
+    ButtonKind, ColorCardButtonTone, PanelSkin, TableActionButton, TableButtonSkin,
+    add_section_title, add_text, game_side_control_scale,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_platform::is_mobile;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_ui::{ButtonTint, UiComposer, spawn_node};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
@@ -43,7 +44,7 @@ fn add_uno_button(
         font_size: 26.0,
         ..TableActionButton::new(label, action, TableButtonSkin::ColorCard(tone))
     }
-    .scaled(GAME_SIDE_CONTROL_SCALE)
+    .scaled(game_side_control_scale())
     .mount(commands, parent, assets)
     .0
 }
@@ -109,18 +110,10 @@ pub(super) fn add_uno_actions(
                 table,
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(if cfg!(target_os = "android") {
-                        240
-                    } else {
-                        390
-                    }),
-                    bottom: px(UNO_ACTION_AREA_BOTTOM),
-                    width: px(if cfg!(target_os = "android") {
-                        800
-                    } else {
-                        500
-                    }),
-                    height: px(UNO_ACTION_AREA_HEIGHT),
+                    left: px(if is_mobile() { 240 } else { 390 }),
+                    bottom: px(uno_action_area_bottom()),
+                    width: px(if is_mobile() { 800 } else { 500 }),
+                    height: px(uno_action_area_height()),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..default()
@@ -151,18 +144,10 @@ pub(super) fn add_uno_actions(
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(if cfg!(target_os = "android") {
-                240
-            } else {
-                390
-            }),
-            bottom: px(UNO_ACTION_AREA_BOTTOM),
-            width: px(if cfg!(target_os = "android") {
-                800
-            } else {
-                500
-            }),
-            height: px(UNO_ACTION_AREA_HEIGHT),
+            left: px(if is_mobile() { 240 } else { 390 }),
+            bottom: px(uno_action_area_bottom()),
+            width: px(if is_mobile() { 800 } else { 500 }),
+            height: px(uno_action_area_height()),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(10),
@@ -488,7 +473,7 @@ fn add_color_choice_overlay(
         commands,
         overlay,
         Node {
-            width: px(480.0 * GAME_SIDE_CONTROL_SCALE),
+            width: px(480.0 * game_side_control_scale()),
             padding: UiRect::all(px(22)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -529,8 +514,8 @@ fn add_color_choice_overlay(
                         pressed: uno_ui_color(color).mix(&Color::BLACK, 0.22),
                     },
                     Node {
-                        width: px(78.0 * GAME_SIDE_CONTROL_SCALE),
-                        height: px(78.0 * GAME_SIDE_CONTROL_SCALE),
+                        width: px(78.0 * game_side_control_scale()),
+                        height: px(78.0 * game_side_control_scale()),
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
                         border: UiRect::all(px(3)),

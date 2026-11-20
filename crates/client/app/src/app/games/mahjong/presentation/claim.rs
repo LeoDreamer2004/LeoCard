@@ -165,7 +165,7 @@ pub(crate) fn render_mahjong_claim_presentation(
                 + Layout::river_tile_rotation(tile, source_relative),
             target_angle: MahjongSeatGeometry::angle(target_relative),
             target_scale: if target_relative == 0 {
-                Layout::OWN_WIDTH / Layout::RIVER_WIDTH
+                Layout::own_width() / Layout::RIVER_WIDTH
             } else {
                 Layout::MINI_WIDTH / Layout::RIVER_WIDTH
             },
@@ -409,7 +409,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
                     flight.target_scale = overlay_tile_scale(
                         target,
                         viewport.size,
-                        Layout::OWN_WIDTH * camera_canvas(viewport.size).0,
+                        Layout::own_width() * camera_canvas(viewport.size).0,
                     );
                     world_layout(ground_from_layout(target, viewport.size))
                 } else {

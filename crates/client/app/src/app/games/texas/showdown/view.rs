@@ -111,7 +111,7 @@ fn add_round_reveal(
             (
                 TexasTableLayout::board_card_origin(board_index),
                 0.68 + board_index as f32 * 0.055,
-                TexasTableLayout::BOARD_CARD_SIZE / Vec2::new(70.0, 96.0),
+                TexasTableLayout::board_card_size() / Vec2::new(70.0, 96.0),
             )
         };
         let target = Vec2::new(444.0 + index as f32 * 78.0, 238.0);

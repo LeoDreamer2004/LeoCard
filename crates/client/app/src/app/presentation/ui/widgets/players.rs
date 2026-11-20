@@ -1,6 +1,6 @@
 //! 玩家框、头像、准备标记和房主标记。
 
-use super::super::{GAME_SIDE_CONTROL_SCALE, MUTED, READY, TEXT};
+use super::super::{MUTED, READY, TEXT, game_side_control_scale};
 use super::{add_avatar, add_ready_badge, add_text};
 use crate::app::presentation::SeatSide;
 use crate::app::runtime::UiAssets;
@@ -144,7 +144,7 @@ pub(crate) fn add_interaction_menu(
         position_type: PositionType::Absolute,
         left: percent(50),
         top: percent(100),
-        width: px(300.0 * GAME_SIDE_CONTROL_SCALE),
+        width: px(300.0 * game_side_control_scale()),
         min_height: px(145),
         padding: UiRect {
             left: px(12),

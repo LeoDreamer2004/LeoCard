@@ -1,5 +1,5 @@
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone, TableActionButton, TableButtonSkin,
+    PaperCardButtonTone, TableActionButton, TableButtonSkin, game_side_control_scale,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -24,6 +24,6 @@ pub(super) fn add_shengji_button(
         size: Vec2::new(width, height),
         ..TableActionButton::new(label, action, TableButtonSkin::PaperCard(tone))
     }
-    .scaled(GAME_SIDE_CONTROL_SCALE)
+    .scaled(game_side_control_scale())
     .mount(commands, parent, assets);
 }

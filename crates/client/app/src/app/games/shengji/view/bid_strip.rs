@@ -1,6 +1,6 @@
 use super::super::{ShengjiAssets, ShengjiUiAction};
 use super::bidding::shengji_declaration_candidate;
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -10,9 +10,17 @@ use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::ShengjiSuit;
 use leocard_ui::{UiComposer, sliced_image, spawn_node};
 
-const SEGMENT_WIDTH: f32 = 76.0 * GAME_SIDE_CONTROL_SCALE;
-const NG_SEGMENT_WIDTH: f32 = 56.0 * GAME_SIDE_CONTROL_SCALE;
-const SEGMENT_HEIGHT: f32 = 54.0 * GAME_SIDE_CONTROL_SCALE;
+fn segment_width() -> f32 {
+    76.0 * game_side_control_scale()
+}
+
+fn ng_segment_width() -> f32 {
+    56.0 * game_side_control_scale()
+}
+
+fn segment_height() -> f32 {
+    54.0 * game_side_control_scale()
+}
 
 pub(super) fn add_shengji_bid_strip(
     commands: &mut UiComposer,
@@ -26,8 +34,8 @@ pub(super) fn add_shengji_bid_strip(
         commands,
         parent,
         Node {
-            width: px(SEGMENT_WIDTH * 4.0 + NG_SEGMENT_WIDTH),
-            height: px(SEGMENT_HEIGHT),
+            width: px(segment_width() * 4.0 + ng_segment_width()),
+            height: px(segment_height()),
             flex_shrink: 0.0,
             align_items: AlignItems::Center,
             ..default()
@@ -37,7 +45,7 @@ pub(super) fn add_shengji_bid_strip(
     commands.entity(strip).insert(sliced_image(
         game_assets.bid_capsule.clone(),
         39.0,
-        GAME_SIDE_CONTROL_SCALE / 3.0,
+        game_side_control_scale() / 3.0,
     ));
     for suit in [
         Some(ShengjiSuit::Spade),
@@ -75,11 +83,11 @@ fn add_segment(
         (
             Node {
                 width: px(if suit.is_some() {
-                    SEGMENT_WIDTH
+                    segment_width()
                 } else {
-                    NG_SEGMENT_WIDTH
+                    ng_segment_width()
                 }),
-                height: px(SEGMENT_HEIGHT),
+                height: px(segment_height()),
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
@@ -123,8 +131,8 @@ fn add_segment(
         button,
         (
             Node {
-                width: px(32.0 * GAME_SIDE_CONTROL_SCALE),
-                height: px(32.0 * GAME_SIDE_CONTROL_SCALE),
+                width: px(32.0 * game_side_control_scale()),
+                height: px(32.0 * game_side_control_scale()),
                 flex_shrink: 0.0,
                 ..default()
             },
@@ -142,7 +150,7 @@ fn add_segment(
         commands,
         button,
         count.to_string(),
-        19.0 * GAME_SIDE_CONTROL_SCALE,
+        19.0 * game_side_control_scale(),
         if enabled {
             TEXT
         } else {

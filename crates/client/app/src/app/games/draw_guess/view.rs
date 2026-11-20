@@ -6,8 +6,8 @@ use super::widgets::{ButtonSpec, button};
 use super::{composer, history, players, reveal, summary, toolbar};
 use crate::app::games::GameTableContext;
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, MUTED, READY, StartGameSeatTransition, TEXT,
-    TurnBorderMaterial, add_text, add_title,
+    GameSummaryAnimation, MUTED, READY, StartGameSeatTransition, TEXT, TurnBorderMaterial,
+    add_text, add_title, game_side_control_scale,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SocialUiState, UiAction, add_reconnecting_overlay};
@@ -204,7 +204,7 @@ pub(super) fn render(
                     top: px(0),
                     width: percent(100),
                     height: percent(100),
-                    padding: UiRect::all(px(12.0 * GAME_SIDE_CONTROL_SCALE)),
+                    padding: UiRect::all(px(12.0 * game_side_control_scale())),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..default()
@@ -218,7 +218,7 @@ pub(super) fn render(
             commands,
             waiting,
             "等待玩家选词中",
-            24.0 * GAME_SIDE_CONTROL_SCALE,
+            24.0 * game_side_control_scale(),
             TEXT,
             context.assets,
         );

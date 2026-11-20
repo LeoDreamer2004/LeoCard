@@ -187,7 +187,7 @@ pub(crate) fn render_update_dialog(
             add_cozy_button(
                 commands,
                 actions,
-                if cfg!(target_os = "android") {
+                if cfg!(feature = "android") {
                     "稍后安装"
                 } else {
                     "稍后重启"
@@ -200,7 +200,7 @@ pub(crate) fn render_update_dialog(
             add_cozy_button(
                 commands,
                 actions,
-                if cfg!(target_os = "android") {
+                if cfg!(feature = "android") {
                     "安装更新"
                 } else {
                     "重启游戏并更新"
@@ -260,7 +260,7 @@ pub(crate) fn settings_update_label(state: &UpdateState) -> &'static str {
         UpdateState::Idle | UpdateState::UpToDate { .. } | UpdateState::Failed(_) => "检查更新",
         UpdateState::Checking | UpdateState::Downloading { .. } => "查看更新进度",
         UpdateState::Ready { .. } => {
-            if cfg!(target_os = "android") {
+            if cfg!(feature = "android") {
                 "安装更新"
             } else {
                 "重启并更新"
@@ -310,7 +310,7 @@ pub(super) fn update_display(state: &UpdateState) -> (String, String, f32) {
         ),
         UpdateState::Ready { version, .. } => (
             format!("LeoCard v{version} 已下载并通过校验"),
-            if cfg!(target_os = "android") {
+            if cfg!(feature = "android") {
                 "点击“安装更新”打开系统安装器，也可以稍后从游戏设置中安装。"
             } else {
                 "点击“重启游戏并更新”完成安装，也可以稍后从游戏设置中重启。"

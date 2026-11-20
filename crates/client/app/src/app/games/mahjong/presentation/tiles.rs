@@ -7,6 +7,7 @@ use crate::app::presentation::mahjong::MahjongTileGeometry;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongMeldKind, MahjongTileKind, MahjongWinRecord, MahjongWind};
+use leocard_platform::is_mobile;
 use leocard_protocol::MahjongPlayerView;
 use leocard_ui::UiComposer;
 
@@ -59,7 +60,7 @@ impl MahjongTileSize {
                 Layout::MINI_STEP - Layout::MINI_WIDTH,
             ),
             MahjongTileSize::Hint => {
-                if cfg!(target_os = "android") {
+                if is_mobile() {
                     (36.0, 50.0, -4.0)
                 } else {
                     (27.0, 37.0, -3.0)
@@ -70,9 +71,9 @@ impl MahjongTileSize {
             MahjongTileSize::OwnMeld
             | MahjongTileSize::OwnConcealedMeld
             | MahjongTileSize::OwnHand => (
-                Layout::OWN_WIDTH,
-                Layout::OWN_HEIGHT,
-                Layout::OWN_STEP - Layout::OWN_WIDTH,
+                Layout::own_width(),
+                Layout::own_height(),
+                Layout::own_step() - Layout::own_width(),
             ),
             MahjongTileSize::HiddenSide => (16.0, 10.4, 0.3),
             MahjongTileSize::HiddenOpposite => (16.0, 8.96, 0.1),

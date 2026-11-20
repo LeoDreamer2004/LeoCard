@@ -10,6 +10,7 @@ use bevy::prelude::*;
 use leocard_mahjong::{
     MahjongClaim, MahjongMatchLength, MahjongRuleSet, MahjongTile, MahjongTileKind,
 };
+use leocard_platform::is_mobile;
 use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView};
 
 #[derive(Clone)]
@@ -221,8 +222,7 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                     if game.your_drawn_tile != Some(*tile) {
                         return;
                     }
-                } else if cfg!(target_os = "android") && context.ui.selected_discard != Some(*tile)
-                {
+                } else if is_mobile() && context.ui.selected_discard != Some(*tile) {
                     context.ui.selected_discard = Some(*tile);
                     return;
                 }

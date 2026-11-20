@@ -6,8 +6,8 @@ use crate::app::runtime::ServerNotification;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalActivity, PersonalEvent};
 use leocard_client::{LocalPlayerProfile, PlayerAchievements};
+use leocard_platform::time::Duration;
 use leocard_protocol::{ACHIEVEMENT_REGISTRY, ServerEvent};
-use std::time::Duration;
 
 #[derive(Resource, Default)]
 pub(super) struct ActivityObserver {

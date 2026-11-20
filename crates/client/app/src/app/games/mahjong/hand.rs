@@ -3,14 +3,13 @@ use super::tiles::{
     MahjongHandTileInteraction, add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec,
 };
 use super::{
-    ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
-    MahjongDiscardHandShift, MahjongDisplayedHand, MahjongOwnDiscardAnimation,
-    MahjongReadyHandRegion, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
-    MahjongTileVisual, MahjongUiAction, MahjongWinningHand, add_mahjong_ready_hand_tile,
-    add_mahjong_response_indicator, add_mahjong_tile_material, add_mahjong_wait_popup,
-    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_discard_waits,
-    mahjong_own_row_left, mahjong_win_tile_cues, mahjong_winning_hand_progress,
-    mark_mahjong_win_tile,
+    ActiveMahjongClaimPresentation, MahjongAssets, MahjongClaimHandShift, MahjongDiscardHandShift,
+    MahjongDisplayedHand, MahjongOwnDiscardAnimation, MahjongReadyHandRegion, MahjongTileHighlight,
+    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
+    add_mahjong_ready_hand_tile, add_mahjong_response_indicator, add_mahjong_tile_material,
+    add_mahjong_wait_popup, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
+    mahjong_discard_waits, mahjong_own_meld_width, mahjong_own_row_left, mahjong_win_tile_cues,
+    mahjong_winning_hand_progress, mark_mahjong_win_tile,
 };
 use crate::app::presentation::mahjong::own_overlay;
 use crate::app::presentation::{GameSummaryAnimation, SilentButton};
@@ -21,6 +20,7 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
 
@@ -129,7 +129,7 @@ pub(super) fn render_own_hand(
         separated_tile.and_then(|separated| hand_tiles.iter().position(|tile| *tile == separated));
     let regular_tile_count = hand_tiles.len() - usize::from(separated_index.is_some());
     let left = mahjong_own_row_left(meld_count, regular_tile_count)
-        + meld_count as f32 * MAHJONG_OWN_MELD_WIDTH;
+        + meld_count as f32 * mahjong_own_meld_width();
     let overlay = own_overlay(commands, table);
     let hand = spawn_node(
         commands,
@@ -138,22 +138,22 @@ pub(super) fn render_own_hand(
             position_type: PositionType::Absolute,
             left: px(left),
             width: px(if face_down {
-                regular_tile_count as f32 * Layout::OWN_STEP
+                regular_tile_count as f32 * Layout::own_step()
                     + if separated_index.is_some() {
-                        Layout::DRAW_GAP + Layout::OWN_WIDTH
+                        Layout::draw_gap() + Layout::own_width()
                     } else {
                         0.0
                     }
             } else {
-                Layout::OWN_ROW_WIDTH
+                Layout::own_row_width()
             }),
-            bottom: px(Layout::OWN_BOTTOM
+            bottom: px(Layout::own_bottom()
                 + if winning_hand || face_down {
                     0.0
                 } else {
                     Layout::OWN_HAND_LIFT
                 }),
-            height: px(Layout::OWN_ROW_HEIGHT),
+            height: px(Layout::own_row_height()),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::FlexStart,
             flex_direction: FlexDirection::Row,
@@ -167,7 +167,7 @@ pub(super) fn render_own_hand(
             .insert((MahjongReadyHandRegion, Pickable::default()))
             .entry::<PickingInteraction>()
             .or_insert(PickingInteraction::None);
-        if cfg!(target_os = "android") {
+        if is_mobile() {
             commands.entity(hand).insert((
                 Button,
                 SilentButton,
@@ -179,10 +179,10 @@ pub(super) fn render_own_hand(
         commands.entity(hand).insert((
             MahjongClaimHandShift {
                 player: game.you,
-                distance: MAHJONG_OWN_MELD_WIDTH,
+                distance: mahjong_own_meld_width(),
             },
             UiTransform::from_translation(Val2::px(
-                mahjong_claim_hand_shift_x(claim.elapsed, MAHJONG_OWN_MELD_WIDTH),
+                mahjong_claim_hand_shift_x(claim.elapsed, mahjong_own_meld_width()),
                 0.0,
             )),
         ));
@@ -211,7 +211,7 @@ pub(super) fn render_own_hand(
         if separated_index == Some(index) {
             continue;
         }
-        let new_x = left + regular_slot as f32 * Layout::OWN_STEP;
+        let new_x = left + regular_slot as f32 * Layout::own_step();
         regular_slot += 1;
         let cues = result.map(|result| {
             mahjong_win_tile_cues(result, |winner| {
@@ -249,7 +249,7 @@ pub(super) fn render_own_hand(
                 tile_interaction(tile),
                 index,
                 (dealing && !observed_hand.contains(&tile))
-                    .then(|| mahjong_deal_spec(0, index, hand_tiles.len(), Layout::OWN_STEP)),
+                    .then(|| mahjong_deal_spec(0, index, hand_tiles.len(), Layout::own_step())),
                 assets,
                 materials,
             );
@@ -257,7 +257,7 @@ pub(super) fn render_own_hand(
                 add_mahjong_response_indicator(
                     commands,
                     entity,
-                    Vec2::new(Layout::OWN_WIDTH, Layout::OWN_HEIGHT),
+                    Vec2::new(Layout::own_width(), Layout::own_height()),
                     0.0,
                     false,
                     ui_assets,
@@ -292,8 +292,8 @@ pub(super) fn render_own_hand(
             commands,
             hand,
             Node {
-                width: px(Layout::DRAW_GAP),
-                min_width: px(Layout::DRAW_GAP),
+                width: px(Layout::draw_gap()),
+                min_width: px(Layout::draw_gap()),
                 height: px(1),
                 ..default()
             },
@@ -336,7 +336,7 @@ pub(super) fn render_own_hand(
                             0,
                             hand_tiles.len().saturating_sub(1),
                             hand_tiles.len(),
-                            Layout::OWN_STEP,
+                            Layout::own_step(),
                         )
                     })
                 },
@@ -360,7 +360,7 @@ pub(super) fn render_own_hand(
             add_mahjong_response_indicator(
                 commands,
                 entity,
-                Vec2::new(Layout::OWN_WIDTH, Layout::OWN_HEIGHT),
+                Vec2::new(Layout::own_width(), Layout::own_height()),
                 0.0,
                 false,
                 ui_assets,

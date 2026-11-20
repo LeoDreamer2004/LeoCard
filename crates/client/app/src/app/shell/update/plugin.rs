@@ -12,7 +12,7 @@ pub(crate) struct UpdatePlugin;
 
 impl Plugin for UpdatePlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         app.add_systems(Startup, super::completion::emit_update_completion);
         app.insert_resource(UpdateManager::default())
             .add_systems(Update, dispatch_update_actions.in_set(UiActionSet))

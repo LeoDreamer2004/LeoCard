@@ -32,7 +32,7 @@ pub(in super::super) fn add_texas_actions(
     {
         return;
     }
-    let scale = TexasTableLayout::ACTION_SCALE;
+    let scale = TexasTableLayout::action_scale();
     let actions = commands.keyed_child(
         table,
         "betting-controls",
@@ -41,7 +41,7 @@ pub(in super::super) fn add_texas_actions(
             Node {
                 position_type: PositionType::Absolute,
                 left: percent(50),
-                bottom: px(TexasTableLayout::ACTION_BOTTOM),
+                bottom: px(TexasTableLayout::action_bottom()),
                 min_width: px(496.0 * scale),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(6.0 * scale),
@@ -154,7 +154,7 @@ fn add_raise_editor(
     target: u32,
     assets: &UiAssets,
 ) {
-    let scale = TexasTableLayout::ACTION_SCALE;
+    let scale = TexasTableLayout::action_scale();
     let minimum = sizing.minimum();
     let maximum = sizing.maximum().expect("affordable raise");
     let step = game

@@ -1,10 +1,10 @@
 use super::store::SavedRoomStore;
 use image::{ImageFormat, Rgba, RgbaImage};
+use leocard_platform::time::{SystemTime, UNIX_EPOCH};
 use leocard_protocol::{AVATAR_DIMENSION, AvatarId, GameKind, RoomInfo};
 use std::env;
 use std::fs;
 use std::io::Cursor;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 fn info(color: [u8; 4]) -> RoomInfo {
     let mut png = Cursor::new(Vec::new());

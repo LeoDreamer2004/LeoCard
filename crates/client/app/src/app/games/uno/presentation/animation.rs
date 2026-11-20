@@ -1,7 +1,7 @@
 use super::super::{
-    UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION, UnoFlipCard,
-    UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing, UnoPaletteEffect, UnoPaletteMaterial,
-    UnoPaletteParticle, UnoPaletteSelectedSector,
+    UNO_PALETTE_EFFECT_DURATION, UnoFlipCard, UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing,
+    UnoPaletteEffect, UnoPaletteMaterial, UnoPaletteParticle, UnoPaletteSelectedSector,
+    uno_flying_card_height, uno_flying_card_width,
 };
 use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
@@ -45,8 +45,8 @@ pub(crate) fn animate_uno_flying_cards(
                 t,
             )
         };
-        node.left = px(position.x - UNO_FLYING_CARD_WIDTH * 0.5);
-        node.top = px(position.y - UNO_FLYING_CARD_HEIGHT * 0.5);
+        node.left = px(position.x - uno_flying_card_width() * 0.5);
+        node.top = px(position.y - uno_flying_card_height() * 0.5);
         transform.rotation =
             Rot2::degrees(flight.start_angle + (flight.end_angle - flight.start_angle) * motion);
         transform.scale = Vec2::splat(uno_flying_card_scale(flight.draw_animation, progress));

@@ -8,9 +8,9 @@ use crate::app::runtime::{ClientUpdateSet, PageErrorState};
 use crate::app::shell::{ModalAnimationSet, UiActionSet, UiState, scroll_modal_content};
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use leocard_platform::time::{Duration, Instant};
 use leocard_ui::TextInputSet;
 use std::mem;
-use std::time::{Duration, Instant};
 
 pub(crate) struct SakuraFrpPlugin;
 
@@ -114,6 +114,10 @@ fn poll_sakura_tasks(
                         state.name.clear();
                         state.local_port.clear();
                         state.remote.clear();
+                    }
+                    Ok(TaskOutcome::CreatedWss(dashboard)) => {
+                        error.error = None;
+                        state.apply_dashboard(dashboard);
                     }
                     Ok(TaskOutcome::Deleted(id, failed_to_disconnect, dashboard)) => {
                         state.running.remove(&id);

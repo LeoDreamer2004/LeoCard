@@ -158,7 +158,11 @@ impl PreferenceResources {
                     "52300".to_owned()
                 },
                 join_address: if saved.global.join_address.trim().is_empty() {
-                    "127.0.0.1:52300".to_owned()
+                    if cfg!(feature = "web") {
+                        String::new()
+                    } else {
+                        "127.0.0.1:52300".to_owned()
+                    }
                 } else {
                     saved.global.join_address
                 },

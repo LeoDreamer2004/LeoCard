@@ -7,6 +7,7 @@ use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use leocard_ui::UiComposer;
 
 /// A fixed hit region covers both the face-down and upright hand without hover oscillation.
@@ -32,10 +33,10 @@ pub(super) fn add_mahjong_ready_hand_tile(
         format!("ready-tile:{tile:?}"),
         (
             Node {
-                width: px(Layout::OWN_WIDTH),
-                min_width: px(Layout::OWN_WIDTH),
-                height: px(Layout::OWN_HEIGHT),
-                margin: UiRect::right(px(Layout::OWN_STEP - Layout::OWN_WIDTH)),
+                width: px(Layout::own_width()),
+                min_width: px(Layout::own_width()),
+                height: px(Layout::own_height()),
+                margin: UiRect::right(px(Layout::own_step() - Layout::own_width())),
                 overflow: Overflow::visible(),
                 ..default()
             },
@@ -94,7 +95,7 @@ pub(super) fn sync_mahjong_ready_hand_peek(
 ) {
     for (tile, mut visibility) in &mut tiles {
         let peek = regions.get(tile.region).is_ok_and(|interaction| {
-            if cfg!(target_os = "android") {
+            if is_mobile() {
                 ui.ready_hand_peek
             } else {
                 matches!(

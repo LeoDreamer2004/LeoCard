@@ -209,6 +209,7 @@ fn raise_editor_lifecycle_and_transition_to_runout_voting() {
         root: Entity,
         game: TexasSnapshot,
     }
+
     fn compose(
         mut commands: UiComposer,
         table: Res<Table>,
@@ -226,6 +227,7 @@ fn raise_editor_lifecycle_and_transition_to_runout_voting() {
         );
         commands.finish();
     }
+
     fn labels(world: &mut World) -> Vec<String> {
         world
             .query::<&Text>()

@@ -2,10 +2,10 @@ use crate::app::runtime::valid_normalized_avatar;
 use crate::network::normalize_server_address;
 use crate::player::config_file;
 use bevy::log::warn;
+use leocard_platform::storage as fs;
 use leocard_protocol::{AvatarId, GameKind, RoomInfo};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
@@ -141,7 +141,7 @@ impl SavedRoomStore {
         if let Some(image) = image
             && let Some(png) = png
             && let Some(path) = self.avatar_path(&image)
-            && !path.is_file()
+            && !fs::is_file(&path)
         {
             fs::create_dir_all(path.parent().expect("avatar directory"))
                 .map_err(|error| error.to_string())?;

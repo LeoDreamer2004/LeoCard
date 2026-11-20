@@ -12,6 +12,7 @@ use crate::app::shell::connection::rooms::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_platform::HAS_LAN;
 use leocard_protocol::GameKind;
 use leocard_ui::{Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
@@ -109,90 +110,92 @@ pub(super) fn render(
             skin,
         );
     }
-    let separator = spawn_node(
-        commands,
-        list,
-        Node {
-            width: percent(100),
-            min_height: px(62),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(6),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            flex_shrink: 0.0,
-            ..default()
-        },
-        None,
-    );
-    label(
-        commands,
-        separator,
-        "正在搜索局域网中的房间",
-        15.0,
-        MUTED,
-        assets,
-    );
-    let dots = spawn_node(
-        commands,
-        separator,
-        Node {
-            width: percent(100),
-            height: px(10),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(6),
-            ..default()
-        },
-        None,
-    );
-    for index in 0..3 {
-        commands.child(
-            dots,
-            (
-                Node {
-                    width: px(6),
-                    height: px(6),
-                    border_radius: BorderRadius::all(percent(50)),
-                    ..default()
-                },
-                BackgroundColor(MUTED.with_alpha(if index == 0 { 1.0 } else { 0.25 })),
-                LanSearchPulse(index),
-                Pickable::IGNORE,
-            ),
-        );
-    }
-    for room in discovery.rooms() {
-        let address = room.address.to_string();
-        if rooms.entries().iter().any(|saved| saved.address == address) {
-            continue;
-        }
-        let title = format!("{}的房间", room.info.host_name);
-        let subtitle = game_name(room.info.game);
-        entry(
+    if HAS_LAN {
+        let separator = spawn_node(
             commands,
             list,
-            RoomRow {
-                selection: RoomSelection::Lan(room.server_id),
-                title: &title,
-                subtitle,
-                address: &address,
-                status: if room.info.playing {
-                    "游戏中"
-                } else {
-                    "等待中"
-                },
-                color: READY,
-                avatar_name: &room.info.host_name,
-                avatar: discovery.avatar(room.server_id),
-                signal: room_signal(rooms.status(&address)),
+            Node {
+                width: percent(100),
+                min_height: px(62),
+                flex_direction: FlexDirection::Column,
+                row_gap: px(6),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                flex_shrink: 0.0,
+                ..default()
             },
-            state,
-            assets,
-            skin,
+            None,
         );
-    }
-    if let Some(error) = discovery.error() {
-        label(commands, list, error, 14.0, DANGER, assets);
+        label(
+            commands,
+            separator,
+            "正在搜索局域网中的房间",
+            15.0,
+            MUTED,
+            assets,
+        );
+        let dots = spawn_node(
+            commands,
+            separator,
+            Node {
+                width: percent(100),
+                height: px(10),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                column_gap: px(6),
+                ..default()
+            },
+            None,
+        );
+        for index in 0..3 {
+            commands.child(
+                dots,
+                (
+                    Node {
+                        width: px(6),
+                        height: px(6),
+                        border_radius: BorderRadius::all(percent(50)),
+                        ..default()
+                    },
+                    BackgroundColor(MUTED.with_alpha(if index == 0 { 1.0 } else { 0.25 })),
+                    LanSearchPulse(index),
+                    Pickable::IGNORE,
+                ),
+            );
+        }
+        for room in discovery.rooms() {
+            let address = room.address.to_string();
+            if rooms.entries().iter().any(|saved| saved.address == address) {
+                continue;
+            }
+            let title = format!("{}的房间", room.info.host_name);
+            let subtitle = game_name(room.info.game);
+            entry(
+                commands,
+                list,
+                RoomRow {
+                    selection: RoomSelection::Lan(room.server_id),
+                    title: &title,
+                    subtitle,
+                    address: &address,
+                    status: if room.info.playing {
+                        "游戏中"
+                    } else {
+                        "等待中"
+                    },
+                    color: READY,
+                    avatar_name: &room.info.host_name,
+                    avatar: discovery.avatar(room.server_id),
+                    signal: room_signal(rooms.status(&address)),
+                },
+                state,
+                assets,
+                skin,
+            );
+        }
+        if let Some(error) = discovery.error() {
+            label(commands, list, error, 14.0, DANGER, assets);
+        }
     }
     Scrollbar::spawn(commands, body, list, ScrollbarSkin::Colored(MUTED));
     let selected = state.selected.as_ref().filter(|selection| match selection {

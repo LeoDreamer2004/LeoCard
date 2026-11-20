@@ -1,4 +1,4 @@
-use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, TEXT};
+use crate::app::presentation::{ACCENT, TEXT, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -20,7 +20,7 @@ pub(crate) fn add_switch_drawer(
         viewport,
         spec,
         &SwitchDrawerStyle {
-            scale: GAME_SIDE_CONTROL_SCALE,
+            scale: game_side_control_scale(),
             font: &assets.title_font,
             background: assets.tabletop.drawer_image(),
             checkbox: assets.home.checkbox.clone(),

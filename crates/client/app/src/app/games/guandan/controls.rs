@@ -1,8 +1,8 @@
 use super::actions::GuandanUiAction;
 use super::state::{GuandanUiState, local_turn, tribute_choice};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, MUTED, PaperCardButtonTone, TableActionButton, TableButtonSkin,
-    add_no_legal_response_hint, add_text,
+    MUTED, PaperCardButtonTone, TableActionButton, TableButtonSkin, add_no_legal_response_hint,
+    add_text, game_side_control_scale,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -23,7 +23,7 @@ pub(super) fn render(
         commands,
         parent,
         Node {
-            min_height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
+            min_height: px(54.0 * game_side_control_scale()),
             column_gap: px(10),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -43,7 +43,7 @@ pub(super) fn render(
                 TableButtonSkin::PaperCard(tone),
             )
         }
-        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .scaled(game_side_control_scale())
         .mount(commands, row, assets);
     };
     if matches!(game.phase, GuandanPhase::Tribute) {
@@ -70,7 +70,7 @@ pub(super) fn render(
             } else {
                 "从高亮牌中选择进贡"
             },
-            14.0 * GAME_SIDE_CONTROL_SCALE,
+            14.0 * game_side_control_scale(),
             MUTED,
             assets,
         );
@@ -114,7 +114,7 @@ pub(super) fn render_hand_controls(
         commands,
         parent,
         Node {
-            height: px(34.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(34.0 * game_side_control_scale()),
             column_gap: px(8),
             align_items: AlignItems::Center,
             ..default()
@@ -151,7 +151,7 @@ pub(super) fn render_hand_controls(
                 TableButtonSkin::PaperCard(PaperCardButtonTone::Stone),
             )
         }
-        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .scaled(game_side_control_scale())
         .mount(commands, row, assets);
     }
 }

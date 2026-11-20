@@ -10,8 +10,8 @@ use crate::platform::open_directory;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_draw_guess::WordLibrary;
+use leocard_platform::storage as fs;
 use leocard_protocol::DrawGuessCommand;
-use std::fs;
 
 #[derive(Clone)]
 pub(crate) enum WordLibraryUiAction {

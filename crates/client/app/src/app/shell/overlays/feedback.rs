@@ -4,7 +4,7 @@ use super::super::UiState;
 use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast, WARNING_TOAST_TEXT,
 };
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use crate::app::runtime::{ClientResource, GameNotice, PageErrorState, TableAppearance, UiAssets};
 use bevy::prelude::*;
 
@@ -92,8 +92,8 @@ pub(crate) fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastV
         (elapsed * 58.0).sin() * 11.0 * strength
     });
     PlayErrorToastVisual {
-        x: x * GAME_SIDE_CONTROL_SCALE,
-        y: ((1.0 - entry) * 25.0 - life * 4.0) * GAME_SIDE_CONTROL_SCALE,
+        x: x * game_side_control_scale(),
+        y: ((1.0 - entry) * 25.0 - life * 4.0) * game_side_control_scale(),
         opacity: entry * fade,
     }
 }

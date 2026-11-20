@@ -6,6 +6,7 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::text::EditableText;
 use bevy::ui::RelativeCursorPosition;
+use leocard_platform::is_mobile;
 use leocard_texas_holdem::TexasRaiseSizing;
 use leocard_ui::{TextInputAction, TextInputEvent};
 
@@ -15,7 +16,7 @@ pub(in super::super) fn focus_texas_raise_input(
     mut game_ui: ResMut<TexasUiState>,
 ) {
     for editor in &inputs {
-        if !cfg!(target_os = "android") {
+        if !is_mobile() {
             focus.set(editor, FocusCause::Auto);
         }
         game_ui.raise_input_valid = true;

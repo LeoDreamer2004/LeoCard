@@ -9,6 +9,7 @@ use super::{
 use crate::app::presentation::{table_random_signed, table_random_unit};
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
+use leocard_platform::is_mobile;
 
 use std::cmp::Reverse;
 
@@ -188,14 +189,7 @@ impl TexasChipTableState {
     pub(super) fn stack_anchor(&self, player: PlayerId) -> Vec2 {
         let relative = self.relative_seat(player);
         if relative == 0 {
-            return Vec2::new(
-                if cfg!(target_os = "android") {
-                    330.0
-                } else {
-                    386.0
-                },
-                570.0,
-            );
+            return Vec2::new(if is_mobile() { 330.0 } else { 386.0 }, 570.0);
         }
         let portrait = TexasTableLayout::new(self.seats.len() as u8).portrait_position(relative);
         portrait + Vec2::new(TEXAS_PORTRAIT_WIDTH * 0.5, 30.0)
@@ -228,8 +222,8 @@ impl TexasChipTableState {
         let vertical = table_random_unit(id, self.event_serial.wrapping_add(43));
         let (top, bottom) = match zone {
             ChipZone::Pot(_) => (4.0, 4.0),
-            ChipZone::Bet(_) if cfg!(target_os = "android") => (40.0, 6.0),
-            _ if cfg!(target_os = "android") => (6.0, 6.0),
+            ChipZone::Bet(_) if is_mobile() => (40.0, 6.0),
+            _ if is_mobile() => (6.0, 6.0),
             _ => (30.0, 5.0),
         };
         Vec2::new(
@@ -237,13 +231,11 @@ impl TexasChipTableState {
             area.top
                 + top
                 + vertical
-                    * (area.height - CHIP_SIZE - top - bottom).max(
-                        if cfg!(target_os = "android") {
-                            0.0
-                        } else {
-                            1.0
-                        },
-                    ),
+                    * (area.height - CHIP_SIZE - top - bottom).max(if is_mobile() {
+                        0.0
+                    } else {
+                        1.0
+                    }),
         )
     }
 

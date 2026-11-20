@@ -1,42 +1,42 @@
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::gate::REMINDER_COOLDOWN;
 use super::gate::{ActionContext, ActionReminder};
 use crate::app::games::GameScreens;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use crate::app::runtime::APP_ICON_PNG;
 use crate::app::runtime::{AppearancePreferences, ClientResource};
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use crate::platform::notifications::{
     DesktopNotification, DesktopNotifications, NotificationTicket,
 };
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use crate::player::config_file;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use leocard_client::{ClientPhaseRef, NetworkState};
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use leocard_game_common::PlayerPersona;
-use std::time::Instant;
+use leocard_platform::time::Instant;
 
 #[derive(Resource, Default)]
 pub(super) struct TurnNotifications {
     reminder: ActionReminder,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     service: Option<DesktopNotifications>,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     ticket: Option<NotificationTicket>,
 }
 
 impl TurnNotifications {
     fn cancel_pending(&mut self) {
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         if let Some(ticket) = self.ticket.take() {
             ticket.cancel();
         }
     }
 
     fn report_errors(&self) {
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         if let Some(error) = self
             .service
             .as_ref()
@@ -46,7 +46,7 @@ impl TurnNotifications {
         }
     }
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     fn show(&mut self, name: &str) {
         let Some(service) = &self.service else { return };
         match service.show(
@@ -61,11 +61,11 @@ impl TurnNotifications {
         }
     }
 
-    #[cfg(target_os = "android")]
+    #[cfg(not(feature = "desktop"))]
     fn show(&mut self, _name: &str) {}
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub(super) fn reminder_body(name: &str) -> String {
     let name = match PlayerPersona::from(name) {
         PlayerPersona::DreamerLeo => "Dev",
@@ -78,7 +78,7 @@ pub(super) fn reminder_body(name: &str) -> String {
     format!("{name}，轮到你行动了！")
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub(super) fn setup_turn_notifications(mut state: ResMut<TurnNotifications>) {
     let Some(icon) = config_file("notifications/app-icon.png") else {
         warn!("找不到桌面通知图标的缓存目录");

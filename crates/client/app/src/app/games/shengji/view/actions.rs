@@ -1,10 +1,11 @@
 use super::super::skin::add_shengji_button;
 use super::super::{ShengjiUiAction, ShengjiUiState};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone};
+use crate::app::presentation::{PaperCardButtonTone, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
+use leocard_platform::is_mobile;
 use leocard_protocol::{ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::{ShengjiFiveTrumpCrossingStage, forced_follow_cards};
 use leocard_ui::{UiComposer, spawn_node};
@@ -21,10 +22,10 @@ pub(super) fn add_shengji_actions(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
-            right: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
+            left: percent(if is_mobile() { 18 } else { 25 }),
+            right: percent(if is_mobile() { 18 } else { 25 }),
             top: px(0),
-            height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(54.0 * game_side_control_scale()),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(10),

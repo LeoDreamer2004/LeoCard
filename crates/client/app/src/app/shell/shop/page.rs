@@ -10,6 +10,7 @@ use crate::app::shell::{NavigationUiAction, PageTransitionElement, UiAction, add
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_client::{PlayerEconomy, PropId, ShopAvatarFrame};
+use leocard_platform::is_mobile;
 use leocard_ui::{PageFrame, Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
 #[derive(Component)]
@@ -43,7 +44,7 @@ impl ShopPage<'_> {
             Node {
                 width: percent(100),
                 max_width: px(1320),
-                padding: UiRect::all(px(if cfg!(target_os = "android") { 12 } else { 20 })),
+                padding: UiRect::all(px(if is_mobile() { 12 } else { 20 })),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(12),
                 ..default()

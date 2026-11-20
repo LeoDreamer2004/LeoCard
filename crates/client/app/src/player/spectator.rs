@@ -1,7 +1,8 @@
 //! Local spectator switches are separate from the versioned game/rule preferences.
 
 use super::config_file;
-use std::{fs, io::ErrorKind};
+use leocard_platform::storage as fs;
+use std::io::ErrorKind;
 
 #[derive(Default)]
 pub struct TexasSpectatorPreferences {

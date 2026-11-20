@@ -21,6 +21,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use leocard_protocol::{
     MahjongHandResultView, MahjongPhaseView, MahjongPlayerView, MahjongSnapshot,
 };
@@ -66,8 +67,8 @@ pub(super) fn render_mahjong_player_panel(
             left: px(position.x),
             top: if own { Val::Auto } else { px(position.y) },
             bottom: if own {
-                px(if cfg!(target_os = "android") {
-                    Layout::OWN_ROW_HEIGHT + 30.0
+                px(if is_mobile() {
+                    Layout::own_row_height() + 30.0
                 } else {
                     8.0
                 })
@@ -197,9 +198,9 @@ pub(super) fn render_mahjong_player_tiles(
                     .saturating_sub(usize::from(separate_last_concealed)),
             ),
             None,
-            Some(Layout::OWN_BOTTOM),
-            Layout::OWN_ROW_WIDTH,
-            Layout::OWN_ROW_HEIGHT,
+            Some(Layout::own_bottom()),
+            Layout::own_row_width(),
+            Layout::own_row_height(),
             0.0,
         )
     } else {
@@ -413,7 +414,7 @@ pub(super) fn render_mahjong_player_tiles(
                                     relative,
                                     index,
                                     concealed_count,
-                                    if cfg!(target_os = "android") {
+                                    if is_mobile() {
                                         mahjong_remote_tile_advance(relative, winning_hand)
                                     } else {
                                         24.0
@@ -430,13 +431,13 @@ pub(super) fn render_mahjong_player_tiles(
                         commands,
                         entity,
                         if matches!(relative, 1 | 3) {
-                            if cfg!(target_os = "android") {
+                            if is_mobile() {
                                 Vec2::new(46.0, 62.0)
                             } else {
                                 Vec2::new(34.0, 46.0)
                             }
                         } else {
-                            if cfg!(target_os = "android") {
+                            if is_mobile() {
                                 Vec2::new(42.0, 57.0)
                             } else {
                                 Vec2::new(31.0, 42.0)
@@ -478,7 +479,7 @@ pub(super) fn render_mahjong_player_tiles(
                                     relative,
                                     index,
                                     concealed_count,
-                                    if cfg!(target_os = "android") {
+                                    if is_mobile() {
                                         mahjong_remote_tile_advance(relative, winning_hand)
                                     } else {
                                         24.0

@@ -2,7 +2,7 @@ use super::super::super::uno_ui_color;
 use super::geometry::DirectionLoopGeometry;
 use super::material::UnoDirectionMaterial;
 use super::view::UnoDirectionLoop;
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, ease_out_cubic};
+use crate::app::presentation::{ease_out_cubic, game_side_control_scale};
 use crate::app::runtime::ClientResource;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
@@ -86,7 +86,7 @@ pub(crate) fn animate_uno_direction_loop(
     {
         state.geometry = Some(DirectionLoopGeometry::new(
             size,
-            42.0 * GAME_SIDE_CONTROL_SCALE,
+            42.0 * game_side_control_scale(),
         ));
     }
     let delta = time.delta_secs().min(0.1);

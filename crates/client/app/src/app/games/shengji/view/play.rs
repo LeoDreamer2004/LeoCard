@@ -8,8 +8,8 @@ use super::{
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, GAME_SIDE_CONTROL_SCALE, HEADER_BG, MUTED, SeatSide, TEXT,
-    add_hanging_table_sign, add_text, spawn_trick_play_area,
+    ACCENT, DANGER, HEADER_BG, MUTED, SeatSide, TEXT, add_hanging_table_sign, add_text,
+    game_side_control_scale, spawn_trick_play_area,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -130,7 +130,7 @@ pub(super) fn add_shengji_own_play(
             left: percent(35),
             right: percent(35),
             bottom: px(8),
-            min_height: px(104.0 * GAME_SIDE_CONTROL_SCALE),
+            min_height: px(104.0 * game_side_control_scale()),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
@@ -158,9 +158,9 @@ pub(super) fn add_shengji_collecting_tray(
 ) {
     let compact = game.rules.player_count() > 4;
     let scale = if compact {
-        GAME_SIDE_CONTROL_SCALE.min(1.2)
+        game_side_control_scale().min(1.2)
     } else {
-        GAME_SIDE_CONTROL_SCALE
+        game_side_control_scale()
     };
     let sign = add_hanging_table_sign(commands, table, assets, scale, compact, 390.0);
     let tray = sign.panel;

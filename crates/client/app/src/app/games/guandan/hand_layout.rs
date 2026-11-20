@@ -1,9 +1,10 @@
 use super::arrangement::{HandColumn, HandLayoutMode};
 use crate::app::presentation::{
-    CardAnimationState, CardSize, GAME_SIDE_CONTROL_SCALE, HandCardPose, hand_card_pose_at,
+    CardAnimationState, CardSize, HandCardPose, game_side_control_scale, hand_card_pose_at,
 };
 use bevy::prelude::*;
 use leocard_guandan::GuandanCard;
+use leocard_platform::is_mobile;
 
 const HAND_WIDTH: f32 = 920.0;
 const STACK_STEP: f32 = 34.0;
@@ -25,7 +26,7 @@ impl HandCardPlacement {
         // Keep a stable target across the selected-card motion, including its
         // visible destination. The second click must still reach the same card.
         let (before, after) = if self.stacked {
-            (Vec2::ZERO, Vec2::new(12.0 * GAME_SIDE_CONTROL_SCALE, 0.0))
+            (Vec2::ZERO, Vec2::new(12.0 * game_side_control_scale(), 0.0))
         } else {
             (Vec2::new(0.0, 30.0), Vec2::ZERO)
         };
@@ -35,7 +36,7 @@ impl HandCardPlacement {
     pub fn pose(self, mut animation: CardAnimationState) -> HandCardPose {
         let selection_offset = if self.stacked {
             animation.face_hover_amount = 0.0;
-            Vec2::new(12.0 * GAME_SIDE_CONTROL_SCALE, 0.0)
+            Vec2::new(12.0 * game_side_control_scale(), 0.0)
         } else {
             Vec2::new(0.0, -24.0)
         };
@@ -66,7 +67,7 @@ impl GuandanHandLayout {
         let (width, height) = CardSize::ShengjiHand.dimensions();
         // Keep the original card size and exposed suits. Deep stacks continue in
         // neighboring columns, which still share one double-click selection group.
-        let maximum_rows = if cfg!(target_os = "android") { 3 } else { 5 };
+        let maximum_rows = if is_mobile() { 3 } else { 5 };
         let stacks = columns
             .iter()
             .enumerate()
@@ -82,11 +83,11 @@ impl GuandanHandLayout {
             .map(|(_, _, cards)| cards.len())
             .max()
             .unwrap_or(1);
-        let step = STACK_STEP * GAME_SIDE_CONTROL_SCALE;
+        let step = STACK_STEP * game_side_control_scale();
         let pitch = if stacks.len() <= 1 {
             0.0
         } else {
-            (width + 18.0 * GAME_SIDE_CONTROL_SCALE)
+            (width + 18.0 * game_side_control_scale())
                 .min((HAND_WIDTH - width) / (stacks.len() - 1) as f32)
         };
         let body_width = width + stacks.len().saturating_sub(1) as f32 * pitch;
@@ -118,7 +119,7 @@ impl GuandanHandLayout {
         Self {
             cards: result,
             size: Vec2::new(
-                body_width + 12.0 * GAME_SIDE_CONTROL_SCALE,
+                body_width + 12.0 * game_side_control_scale(),
                 TOP_MARGIN + body_height + 6.0,
             ),
         }
@@ -134,11 +135,11 @@ impl GuandanHandLayout {
             .windows(2)
             .filter(|pair| pair[0].arranged || pair[1].arranged)
             .count();
-        let gap = 18.0 * GAME_SIDE_CONTROL_SCALE;
+        let gap = 18.0 * game_side_control_scale();
         let reveal = if count <= 1 {
             0.0
         } else {
-            (30.0 * GAME_SIDE_CONTROL_SCALE)
+            (30.0 * game_side_control_scale())
                 .min((HAND_WIDTH - width - gaps as f32 * gap) / (count - 1) as f32)
         };
         let body_width = width + count.saturating_sub(1) as f32 * reveal + gaps as f32 * gap;

@@ -1,6 +1,6 @@
 //! 七鬼五二三牌桌的小面板与操作按钮纹理。
 
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TableActionButton, TableButtonSkin};
+use crate::app::presentation::{TableActionButton, TableButtonSkin, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -31,6 +31,6 @@ pub(super) fn add_qigui_action_button(
     assets: &UiAssets,
 ) -> (Entity, Entity) {
     TableActionButton::new(label, Some(action), TableButtonSkin::PaperCard(tone))
-        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .scaled(game_side_control_scale())
         .mount(commands, parent, assets)
 }

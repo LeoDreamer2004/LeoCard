@@ -130,18 +130,21 @@ impl<'a> TextInput<'a> {
                 ),
             );
         }
-        #[cfg(target_os = "android")]
-        commands.entity(editor).insert(super::state::AndroidEditor {
-            title: if self.placeholder.is_empty() {
-                "编辑文本"
-            } else {
-                self.placeholder
-            }
-            .to_owned(),
-            multiline: self.multiline,
-            numeric: !(self.filter)('a') && !(self.filter)('.'),
-            filter: self.filter,
-        });
+        commands
+            .entity(editor)
+            .insert(super::state::PlatformEditor {
+                title: if self.placeholder.is_empty() {
+                    "编辑文本"
+                } else {
+                    self.placeholder
+                }
+                .to_owned(),
+                multiline: self.multiline,
+                password: self.password,
+                max_characters: self.max_characters,
+                numeric: !(self.filter)('a') && !(self.filter)('.'),
+                filter: self.filter,
+            });
         commands
             .entity(slot)
             .insert(TextInputSlot { editor })

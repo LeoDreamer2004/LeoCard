@@ -23,7 +23,7 @@ impl<'a> TableAppearanceSettings<'a> {
     pub(super) fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         {
             add_title(commands, parent, "通知", 20.0, TEXT, assets);
             add_settings_toggle(

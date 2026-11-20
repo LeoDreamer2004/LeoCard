@@ -3,6 +3,7 @@ use super::super::layout::BlackjackSeatLayout;
 use super::{BlackjackWagerSpec, add_blackjack_wager};
 use crate::app::presentation::add_table_play_area;
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_protocol::BlackjackPlayerView;
 use leocard_ui::UiComposer;
 
@@ -15,12 +16,8 @@ impl BlackjackTable<'_> {
         stack: Entity,
         house: Entity,
     ) {
-        let area_width = BlackjackSeatLayout::OPPONENT_AREA_WIDTH;
-        let height = if cfg!(target_os = "android") {
-            56.0
-        } else {
-            80.0
-        };
+        let area_width = BlackjackSeatLayout::opponent_area_width();
+        let height = if is_mobile() { 56.0 } else { 80.0 };
         let area = commands.keyed_child(
             table,
             "blackjack-own-wagers",
@@ -28,11 +25,7 @@ impl BlackjackTable<'_> {
                 Node {
                     position_type: PositionType::Absolute,
                     left: percent(50),
-                    bottom: px(if cfg!(target_os = "android") {
-                        300
-                    } else {
-                        240
-                    }),
+                    bottom: px(if is_mobile() { 300 } else { 240 }),
                     width: px(area_width),
                     height: px(height),
                     padding: UiRect::all(px(6)),

@@ -12,6 +12,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use leocard_client::ClientPhaseRef;
+use leocard_platform::is_mobile;
 use leocard_protocol::{GameSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId};
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
@@ -22,11 +23,9 @@ const FIRST_LANDING: f32 = ROLL_DURATION / ROLL_HOPS;
 // Retain the roll briefly through dealing so a hidden roll cannot be spawned again.
 const LAST_ROLL_BATCH: u8 = 5;
 const REFERENCE_SCALE: f32 = DESIGN_WIDTH / REFERENCE_SIZE.x;
-const DIE_HALF_EDGE: f32 = if cfg!(target_os = "android") {
-    0.40
-} else {
-    0.34
-};
+fn die_half_edge() -> f32 {
+    if is_mobile() { 0.40 } else { 0.34 }
+}
 
 pub(super) struct MahjongDicePlugin;
 
@@ -93,11 +92,11 @@ impl MahjongRollingDie {
         let orientation = yaw * tumble * self.rest;
         let inverse = orientation.inverse();
         // Support the lowest corner on the felt throughout the roll, then add the bounce.
-        let up = (inverse * Vec3::Y).abs().element_sum() * DIE_HALF_EDGE;
+        let up = (inverse * Vec3::Y).abs().element_sum() * die_half_edge();
         let hop = (progress * PI * ROLL_HOPS).sin().abs() * (1.0 - progress) * 1.10;
         let center = ground + Vec3::Y * (up + hop);
         let shadow_center = project_reference(ground + Vec3::new(0.06, 0.0, 0.08));
-        let shadow_width = (project_reference(ground + Vec3::X * DIE_HALF_EDGE).x
+        let shadow_width = (project_reference(ground + Vec3::X * die_half_edge()).x
             - project_reference(ground).x)
             .abs();
         let shadow_radius = Vec2::new(1.55, 1.05) * shadow_width;
@@ -106,7 +105,7 @@ impl MahjongRollingDie {
         for x in [-1.0, 1.0] {
             for y in [-1.0, 1.0] {
                 for z in [-1.0, 1.0] {
-                    let vertex = center + orientation * (Vec3::new(x, y, z) * DIE_HALF_EDGE);
+                    let vertex = center + orientation * (Vec3::new(x, y, z) * die_half_edge());
                     let pixel = project_reference(vertex);
                     min = min.min(pixel);
                     max = max.max(pixel);
@@ -123,7 +122,7 @@ impl MahjongRollingDie {
         (
             Rect::from_corners(min * REFERENCE_SCALE, max * REFERENCE_SCALE),
             MahjongDieMaterial {
-                ray_origin: (inverse * (CAMERA_POSITION - center) / DIE_HALF_EDGE).extend(0.0),
+                ray_origin: (inverse * (CAMERA_POSITION - center) / die_half_edge()).extend(0.0),
                 ray_center: (inverse * ray).extend(0.0),
                 ray_right: (inverse * (reference_ray(mid + Vec2::X * size.x) - ray)).extend(0.0),
                 ray_down: (inverse * (reference_ray(mid + Vec2::Y * size.y) - ray)).extend(0.0),

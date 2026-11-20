@@ -4,7 +4,7 @@ use super::state::{
     DrawGuessUiState, DrawingClock, GuessHistory, GuessInput, can_guess, can_message,
 };
 use super::widgets::{ButtonKind, ButtonSpec, button};
-use crate::app::presentation::{ACCENT, DANGER, GAME_SIDE_CONTROL_SCALE, add_text};
+use crate::app::presentation::{ACCENT, DANGER, add_text, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -26,7 +26,7 @@ pub(super) fn render(
     if game.state.phase == DrawGuessPhase::Finished {
         return 0.0;
     }
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let allowed = can_message(game);
     let row = spawn_node(
         commands,

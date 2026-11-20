@@ -1,8 +1,7 @@
 use super::super::layout::MahjongLayout as Layout;
 use super::super::{
-    ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
-    MahjongAssets, MahjongClaimHeldTile, MahjongTileHighlight, MahjongTileMaterial,
-    mahjong_claim_landing_time,
+    ActiveMahjongClaimPresentation, MAHJONG_REMOTE_MELD_WIDTH, MahjongAssets, MahjongClaimHeldTile,
+    MahjongTileHighlight, MahjongTileMaterial, mahjong_claim_landing_time, mahjong_own_meld_width,
 };
 use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use super::{
@@ -54,11 +53,11 @@ pub(crate) fn render_mahjong_meld(
     };
     let (width, height, step, tile_width, tile_height) = if own {
         (
-            MAHJONG_OWN_MELD_WIDTH,
-            Layout::OWN_ROW_HEIGHT,
-            Layout::OWN_STEP,
-            Layout::OWN_WIDTH,
-            Layout::OWN_HEIGHT,
+            mahjong_own_meld_width(),
+            Layout::own_row_height(),
+            Layout::own_step(),
+            Layout::own_width(),
+            Layout::own_height(),
         )
     } else {
         (

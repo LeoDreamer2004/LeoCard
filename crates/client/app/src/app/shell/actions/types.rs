@@ -1,9 +1,10 @@
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::super::SakuraUiAction;
+#[cfg(not(feature = "web"))]
+use super::super::UpdateUiAction;
 use super::super::{
     AchievementUiAction, ChatUiAction, ConfirmationUiAction, ConnectionUiAction, LobbyUiAction,
     NavigationUiAction, ProfileUiAction, SettingsUiAction, ShopUiAction, SocialUiAction,
-    UpdateUiAction,
 };
 use crate::app::games::blackjack::BlackjackUiAction;
 use crate::app::games::doudizhu::DoudizhuUiAction;
@@ -43,9 +44,10 @@ pub(crate) enum UiAction {
     Confirmation(ConfirmationUiAction),
     Profile(ProfileUiAction),
     Settings(SettingsUiAction),
+    #[cfg(not(feature = "web"))]
     Update(UpdateUiAction),
     Lobby(LobbyUiAction),
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     Sakura(SakuraUiAction),
 }
 
@@ -86,10 +88,11 @@ impl UiAction {
             Self::Confirmation(_) => false,
             Self::Profile(action) => action.rebuilds_ui(),
             Self::Settings(action) => action.rebuilds_ui(),
+            #[cfg(not(feature = "web"))]
             Self::Update(action) => action.rebuilds_ui(),
             Self::Connection(action) => action.rebuilds_ui(),
             Self::Lobby(action) => action.rebuilds_ui(),
-            #[cfg(not(target_os = "android"))]
+            #[cfg(feature = "desktop")]
             Self::Sakura(action) => action.rebuilds_ui(),
         }
     }

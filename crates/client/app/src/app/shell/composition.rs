@@ -1,14 +1,17 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
+#[cfg(not(feature = "web"))]
+use super::{UpdateManager, render_update_dialog};
+
 use super::connection::{JoinRoomAssets, LanDiscovery, RoomDirectory};
 use super::{
     AchievementPageViewport, AchievementsPage, ChatPanelState, ConfirmationDialog,
     ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
-    ProfileModal, ProfileMotion, SettingsModal, SettingsMotion, ShopPage, UiState, UpdateManager,
+    ProfileModal, ProfileMotion, SettingsModal, SettingsMotion, ShopPage, UiState,
     add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
-    add_spectator_avatars, can_edit_identity, render_confirmation, render_update_dialog,
+    add_spectator_avatars, can_edit_identity, render_confirmation,
 };
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::{SakuraPage, SakuraState, render_startup_dialog};
 use crate::app::games::{GameLobbyContext, GameScreens, GameTableContext};
 use crate::app::presentation::{
@@ -38,13 +41,14 @@ struct VisualAssets<'w> {
     table_materials: ResMut<'w, Assets<TableBackgroundMaterial>>,
     mahjong_tile_materials: ResMut<'w, Assets<MahjongTileMaterial>>,
     turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
+    #[cfg(not(feature = "web"))]
     updater: Res<'w, UpdateManager>,
     confirmation: Res<'w, ConfirmationDialog>,
     settings_motion: Res<'w, SettingsMotion>,
     profile_motion: Res<'w, ProfileMotion>,
     page_motion: Res<'w, PageMotion>,
     lobby_game_motion: Res<'w, LobbyGameMotion>,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     sakura: Res<'w, SakuraState>,
 }
 
@@ -185,7 +189,7 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_primary_screen(&mut self, root: Entity) {
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         if self.visuals.sakura.open {
             SakuraPage {
                 state: &self.visuals.sakura,
@@ -309,11 +313,11 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn sakura_open(&self) -> bool {
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         {
             self.visuals.sakura.open
         }
-        #[cfg(target_os = "android")]
+        #[cfg(not(feature = "desktop"))]
         {
             false
         }
@@ -331,7 +335,7 @@ impl ScreenRenderer<'_, '_, '_> {
             connection.render_home_overlays(self.commands, root);
             connection.render_room_dialog(self.commands, root, &self.ui.rooms);
         }
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         render_startup_dialog(self.commands, root, &self.visuals.sakura, &self.visuals.ui);
         render_confirmation(
             self.commands,
@@ -346,6 +350,7 @@ impl ScreenRenderer<'_, '_, '_> {
         if self.ui.settings.open {
             SettingsModal::new(
                 self.appearance,
+                #[cfg(not(feature = "web"))]
                 &self.visuals.updater,
                 &self.visuals.ui,
                 self.client.map(|client| client.0.model()),
@@ -360,10 +365,12 @@ impl ScreenRenderer<'_, '_, '_> {
         if self.ui.profile.open {
             self.render_profile(root);
         }
+        #[cfg(not(feature = "web"))]
         if self.visuals.updater.dialog_open || self.visuals.updater.dialog_progress > 0.0 {
             render_update_dialog(
                 self.commands,
                 root,
+                #[cfg(not(feature = "web"))]
                 &self.visuals.updater,
                 self.visuals.updater.dialog_progress,
                 &self.visuals.ui,

@@ -1,6 +1,6 @@
 use super::{OpponentBadge, SocialUiAction};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, PlayerMenuProfile, add_avatar, attach_player_interactions,
+    PlayerMenuProfile, add_avatar, attach_player_interactions, game_side_control_scale,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{UiAction, UiState, add_cozy_button};
@@ -21,7 +21,7 @@ pub(crate) fn add_spectator_avatars(
     let Some(room) = model.room_moderation() else {
         return;
     };
-    let size = 32.0 * GAME_SIDE_CONTROL_SCALE;
+    let size = 32.0 * game_side_control_scale();
     let list = spawn_node(
         commands,
         parent,
@@ -31,7 +31,7 @@ pub(crate) fn add_spectator_avatars(
             top: px(12),
             width: px(size),
             flex_direction: FlexDirection::Column,
-            row_gap: px(6.0 * GAME_SIDE_CONTROL_SCALE),
+            row_gap: px(6.0 * game_side_control_scale()),
             ..default()
         },
         None,

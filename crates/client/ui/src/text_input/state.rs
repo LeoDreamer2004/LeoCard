@@ -28,10 +28,11 @@ pub enum TextInputSet {
     Publish,
 }
 
-#[cfg(target_os = "android")]
 #[derive(Component)]
-pub struct AndroidEditor {
+pub struct PlatformEditor {
     pub title: String,
+    pub password: bool,
+    pub max_characters: usize,
     pub numeric: bool,
     pub multiline: bool,
     pub filter: fn(char) -> bool,

@@ -12,13 +12,14 @@ mod navigation;
 pub(super) mod overlays;
 mod plugin;
 pub(super) mod profile;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 mod sakura_frp;
 mod settings;
 mod shop;
 pub(super) mod social;
 pub(super) mod state;
 mod ui;
+#[cfg(not(feature = "web"))]
 pub(super) mod update;
 
 pub(crate) use achievements::*;
@@ -33,11 +34,12 @@ pub(crate) use navigation::*;
 pub(crate) use overlays::*;
 pub(super) use plugin::*;
 pub(crate) use profile::*;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub(crate) use sakura_frp::*;
 pub(crate) use settings::*;
 pub(crate) use shop::*;
 pub(crate) use social::*;
 pub(crate) use state::*;
 pub(crate) use ui::*;
+#[cfg(not(feature = "web"))]
 pub(crate) use update::*;

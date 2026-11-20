@@ -1,10 +1,10 @@
 use super::hand::render_hand;
 use super::{DoudizhuUiAction, DoudizhuUiState, controls, counter, summary};
 use crate::app::presentation::{
-    ACCENT, CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind,
-    PlayEffectState, StartGameSeatTransition, TEXT, TableBackgroundMaterial, TableSeat, TableSeats,
+    ACCENT, CardTableSurface, GameSummaryAnimation, PlayEffectKind, PlayEffectState,
+    StartGameSeatTransition, TEXT, TableBackgroundMaterial, TableSeat, TableSeats,
     TurnBorderMaterial, add_auto_play_overlay, add_hanging_table_sign, add_play_effect_overlay,
-    add_text,
+    add_text, game_side_control_scale,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -13,6 +13,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_doudizhu::DoudizhuPhase;
+use leocard_platform::is_mobile;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
@@ -61,11 +62,7 @@ pub(crate) fn render_doudizhu_table(
         Node {
             flex_grow: 1.0,
             width: percent(100),
-            min_height: px(if cfg!(target_os = "android") {
-                330
-            } else {
-                410
-            }),
+            min_height: px(if is_mobile() { 330 } else { 410 }),
             position_type: PositionType::Relative,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -78,11 +75,7 @@ pub(crate) fn render_doudizhu_table(
         content,
         Node {
             width: percent(100),
-            height: px(if cfg!(target_os = "android") {
-                312
-            } else {
-                210
-            }),
+            height: px(if is_mobile() { 312 } else { 210 }),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -101,7 +94,7 @@ pub(crate) fn render_doudizhu_table(
         commands,
         table,
         assets,
-        GAME_SIDE_CONTROL_SCALE,
+        game_side_control_scale(),
         false,
         326.0,
     );
@@ -141,7 +134,7 @@ pub(crate) fn render_doudizhu_table(
         commands,
         hand_area,
         Node {
-            height: px(146.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(146.0 * game_side_control_scale()),
             justify_content: JustifyContent::Center,
             ..default()
         },

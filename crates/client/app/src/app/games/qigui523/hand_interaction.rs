@@ -1,16 +1,19 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiState};
 use crate::app::presentation::{
-    CardAnimationState, CardSize, GAME_SIDE_CONTROL_SCALE, HandCardHighlight,
-    HandCardSelectionOverlay, advance_towards, drag_preview_color, hand_card_pose,
-    qigui_hand_card_reveal, slot_hover_target, update_drag_selection,
+    CardAnimationState, CardSize, HandCardHighlight, HandCardSelectionOverlay, advance_towards,
+    drag_preview_color, game_side_control_scale, hand_card_pose, qigui_hand_card_reveal,
+    slot_hover_target, update_drag_selection,
 };
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
+use leocard_platform::is_mobile;
 use leocard_ui::CardDragSelection;
 
-const HAND_CARD_HOVER_WIDTH: f32 = 36.0 * GAME_SIDE_CONTROL_SCALE;
+fn hand_card_hover_width() -> f32 {
+    36.0 * game_side_control_scale()
+}
 
 type HandCardAnimations<'w, 's> = Query<
     'w,
@@ -50,7 +53,7 @@ pub(super) fn animate_hand_card_slots(
             .entry(slot.card)
             .or_default()
             .slot_hover_amount = slot.hover_amount;
-        let reveal = if cfg!(target_os = "android") {
+        let reveal = if is_mobile() {
             qigui_hand_card_reveal(ui.observed_hand.state.len())
         } else {
             32.0
@@ -58,7 +61,7 @@ pub(super) fn animate_hand_card_slots(
         node.width = px(if slot.is_last {
             CardSize::QiGuiHand.dimensions().0
         } else {
-            reveal + (HAND_CARD_HOVER_WIDTH - reveal).max(0.0) * slot.hover_amount
+            reveal + (hand_card_hover_width() - reveal).max(0.0) * slot.hover_amount
         });
     }
 }

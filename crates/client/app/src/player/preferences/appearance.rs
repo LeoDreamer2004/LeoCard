@@ -1,8 +1,8 @@
 //! Client-only game appearance, stored independently of identity and game rules.
 
 use super::super::config_file;
+use leocard_platform::storage as fs;
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::io::ErrorKind;
 
 #[derive(Serialize, Deserialize)]

@@ -1,7 +1,7 @@
 use super::gate::{ActionContext, ActionReminder};
 use leocard_game_common::PlayerId;
+use leocard_platform::time::{Duration, Instant};
 use leocard_protocol::{GameKind, MatchId, RoomId};
-use std::time::{Duration, Instant};
 
 fn context() -> ActionContext {
     ActionContext {

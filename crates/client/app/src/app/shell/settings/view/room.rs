@@ -1,6 +1,6 @@
 use super::section::add_settings_separator;
 use super::toggle::add_settings_toggle_scaled;
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text, add_title};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, SettingsUiAction, UiAction, add_cozy_button_variant_scaled,
@@ -29,7 +29,7 @@ pub(super) fn render_room_settings(
     let Some(room) = model.room_moderation() else {
         return;
     };
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let is_host = model.is_host();
     add_title(commands, parent, "房间管理", 20.0 * scale, TEXT, assets);
     if is_host {

@@ -6,18 +6,22 @@ use crate::app::shell::{LobbyGameMotion, PageMotion, UiState};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use leocard_client::ClientPhaseRef;
+use leocard_platform::is_mobile;
 
-const MIN_AUTO_SCALE: f32 = if cfg!(target_os = "android") {
-    0.1
-} else {
-    0.5
-};
+fn min_auto_scale() -> f32 {
+    if is_mobile() || cfg!(feature = "web") {
+        0.1
+    } else {
+        0.5
+    }
+}
+
 const MAX_AUTO_SCALE: f32 = 2.5;
 
 pub(crate) fn ui_scale_can_change(page: Res<PageMotion>, lobby_game: Res<LobbyGameMotion>) -> bool {
     // Android pages use different design heights. Keep outgoing content in its
     // original coordinate system until composition can replace it with the next page.
-    !cfg!(target_os = "android") || !page.hold_page() && !lobby_game.hold_lobby()
+    !is_mobile() || !page.hold_page() && !lobby_game.hold_lobby()
 }
 
 pub(crate) fn update_ui_scale(
@@ -29,7 +33,7 @@ pub(crate) fn update_ui_scale(
     let Ok(window) = windows.single() else {
         return;
     };
-    let design_height = if cfg!(target_os = "android")
+    let design_height = if is_mobile()
         && !ui.shop.open
         && !ui.achievements.open
         && !ui.rooms.open
@@ -43,7 +47,7 @@ pub(crate) fn update_ui_scale(
     };
     let effective = (window.width() / DESIGN_WIDTH)
         .min(window.height() / design_height)
-        .clamp(MIN_AUTO_SCALE, MAX_AUTO_SCALE);
+        .clamp(min_auto_scale(), MAX_AUTO_SCALE);
     if (scale.0 - effective).abs() > 0.005 {
         scale.0 = effective;
         ui.dirty = true;

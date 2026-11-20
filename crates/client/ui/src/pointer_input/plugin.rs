@@ -28,7 +28,7 @@ pub struct PointerInputPlugin;
 
 impl Plugin for PointerInputPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(target_os = "android")]
+        #[cfg(any(feature = "android", feature = "web"))]
         super::touch::install(app);
         // 只拾取明确声明的命中区域，不给布局节点预置不可点击状态。
         // 这样先创建 Node、随后添加 Button 的控件也能获得正常拾取规则。

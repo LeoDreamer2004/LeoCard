@@ -1,9 +1,9 @@
 use super::browser::{BrowserSnapshot, LanRoom};
+use leocard_platform::time::Duration;
 use leocard_protocol::{AvatarId, RoomInfo};
 use leocard_tcp::{LanDiscoverySocket, LanRoomAnnouncement, query_room_info};
 use std::collections::HashMap;
 use std::io;
-use std::time::Duration;
 use tokio::sync::{oneshot, watch};
 use tokio::task::JoinSet;
 use tokio::time::{Instant, MissedTickBehavior, interval};

@@ -1,12 +1,13 @@
 use super::input::normalized;
 use super::state::DrawGuessUiState;
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, Gradient, LinearGradient};
 use bevy::window::PrimaryWindow;
 use leocard_draw_guess::Ink;
+use leocard_platform::is_mobile;
 use leocard_ui::{TouchDragTarget, UiComposer, spawn_node};
 
 #[derive(Component, Clone, Copy)]
@@ -27,7 +28,7 @@ pub(super) fn render(commands: &mut UiComposer, panel: Entity, ui: &DrawGuessUiS
         panel,
         Node {
             width: percent(100),
-            height: px(12.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(12.0 * game_side_control_scale()),
             flex_shrink: 0.0,
             ..default()
         },
@@ -39,11 +40,7 @@ pub(super) fn render(commands: &mut UiComposer, panel: Entity, ui: &DrawGuessUiS
         panel,
         Node {
             width: percent(100),
-            height: px(if cfg!(target_os = "android") {
-                90.0
-            } else {
-                76.0
-            }),
+            height: px(if is_mobile() { 90.0 } else { 76.0 }),
             flex_shrink: 0.0,
             ..default()
         },
@@ -86,7 +83,7 @@ pub(super) fn render(commands: &mut UiComposer, panel: Entity, ui: &DrawGuessUiS
         panel,
         Node {
             width: percent(100),
-            height: px(20.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(20.0 * game_side_control_scale()),
             flex_shrink: 0.0,
             ..default()
         },

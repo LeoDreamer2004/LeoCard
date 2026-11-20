@@ -6,7 +6,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::LocalPlayerProfile;
 use leocard_protocol::ProfileId;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use leocard_update::launch_installer;
 
 #[derive(Clone)]
@@ -33,7 +33,7 @@ impl DomainUiAction for UpdateUiAction {
 #[derive(SystemParam)]
 pub(super) struct UpdateUiActionContext<'w> {
     updater: ResMut<'w, UpdateManager>,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     app_exit: MessageWriter<'w, AppExit>,
     profile: Res<'w, LocalPlayerProfile>,
 }
@@ -58,7 +58,7 @@ impl UiActionHandler<UpdateUiActionContext<'_>> for UpdateUiAction {
             UpdateUiAction::HideUpdateDialog => updater.dialog_open = false,
             UpdateUiAction::RestartToUpdate => restart_to_update(
                 updater,
-                #[cfg(not(target_os = "android"))]
+                #[cfg(feature = "desktop")]
                 &mut context.app_exit,
                 context.profile.identity.profile_id(),
             ),
@@ -68,15 +68,15 @@ impl UiActionHandler<UpdateUiActionContext<'_>> for UpdateUiAction {
 
 fn restart_to_update(
     updater: &mut UpdateManager,
-    #[cfg(not(target_os = "android"))] app_exit: &mut MessageWriter<AppExit>,
+    #[cfg(feature = "desktop")] app_exit: &mut MessageWriter<AppExit>,
     profile_id: ProfileId,
 ) {
     let UpdateState::Ready { staged, version } = &updater.state else {
         return;
     };
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     let result = launch_installer(staged, &version.to_string(), profile_id);
-    #[cfg(target_os = "android")]
+    #[cfg(feature = "android")]
     let result = {
         let _ = (version, profile_id);
         leocard_client::platform::install_apk(staged)
@@ -84,7 +84,7 @@ fn restart_to_update(
     match result {
         Ok(()) => {
             updater.dialog_open = false;
-            #[cfg(not(target_os = "android"))]
+            #[cfg(feature = "desktop")]
             app_exit.write(AppExit::Success);
         }
         Err(error) => {

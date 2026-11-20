@@ -1,10 +1,9 @@
+use super::handshake::{Handshake, validate_message};
 use super::state::{
     CONNECTION_HEARTBEAT_TIMEOUT, CommandReceiver, EventQueue, NETWORK_ROOM_ID, NetworkEvent,
     PING_INTERVAL, push_event,
 };
-use leocard_protocol::{
-    ClientCommand, ClientMessage, PROTOCOL_VERSION, RequestId, ServerEvent, ServerMessage,
-};
+use leocard_protocol::{ClientCommand, ClientMessage, RequestId, ServerEvent};
 use leocard_tcp::{TcpClient, TcpError};
 use tokio::time::{Instant, MissedTickBehavior, interval, sleep, timeout};
 
@@ -16,33 +15,11 @@ pub(super) async fn complete_handshake(
 ) -> Result<TcpClient, String> {
     client.send(join).await.map_err(|error| error.to_string())?;
     timeout(CONNECTION_HEARTBEAT_TIMEOUT, async {
-        let mut joined = None;
-        let mut rules = None;
+        let mut handshake = Handshake::default();
         loop {
             let message = client.receive().await.map_err(|error| error.to_string())?;
             validate_message(&message)?;
-            let ready = match &message.event {
-                ServerEvent::Heartbeat => continue,
-                ServerEvent::Joined { you } => {
-                    joined = Some(*you);
-                    false
-                }
-                ServerEvent::RulesSnapshot(snapshot) => {
-                    rules = Some(snapshot.kind());
-                    false
-                }
-                ServerEvent::Rejected { reason } => return Err(reason.to_string()),
-                ServerEvent::RoomClosed | ServerEvent::LeftRoom => {
-                    return Err("房间已关闭".to_owned());
-                }
-                ServerEvent::KickedFromRoom => return Err("你已被房主踢出".to_owned()),
-                ServerEvent::LobbySnapshot(snapshot) => joined.is_some() && snapshot.host.is_some(),
-                ServerEvent::GameSnapshot(snapshot) => {
-                    // A spectator's identity differs from the player whose view is streamed.
-                    joined.is_some() && rules == Some(snapshot.kind())
-                }
-                _ => false,
-            };
+            let ready = handshake.accept(&message)?;
             push_event(events, NetworkEvent::Message(Box::new(message)));
             if ready {
                 return Ok(client);
@@ -90,16 +67,6 @@ pub(super) async fn run_connected(
             }
         }
     }
-}
-
-fn validate_message(message: &ServerMessage) -> Result<(), String> {
-    if message.protocol_version != PROTOCOL_VERSION {
-        return Err("与房主的协议版本不一致，请使用相同版本的游戏".to_owned());
-    }
-    if message.room_id != NETWORK_ROOM_ID {
-        return Err("房主返回了错误的房间编号".to_owned());
-    }
-    Ok(())
 }
 
 fn send_error(error: TcpError) -> String {

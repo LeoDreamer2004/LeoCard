@@ -1,4 +1,5 @@
-use crate::{HEARTBEAT_INTERVAL, TcpError};
+use super::session::HEARTBEAT_INTERVAL;
+use crate::TcpError;
 use leocard_host::{ConnectionId, Delivery, HostSession};
 use leocard_protocol::{ClientMessage, ServerMessage};
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use tokio::task;
 use tokio::time::{MissedTickBehavior, interval};
 
 /// Commands remain serial, while CPU work cannot starve socket I/O and keepalives.
-pub(crate) async fn handle_command(
+pub(super) async fn handle_command(
     mut session: HostSession,
     connection: ConnectionId,
     message: ClientMessage,

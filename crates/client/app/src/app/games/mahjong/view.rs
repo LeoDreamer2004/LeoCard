@@ -32,6 +32,8 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongTile, MahjongWinRecord};
+#[cfg(feature = "developer")]
+use leocard_platform::is_mobile;
 use leocard_protocol::{
     GameSnapshot, MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId,
 };
@@ -43,7 +45,10 @@ pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
 pub(super) const MAHJONG_CLAIM_HAND_SHIFT_DURATION: f32 = 0.34;
 pub(super) const MAHJONG_CLAIM_PRESENTATION_DURATION: f32 = 1.42;
 pub(super) const MAHJONG_FLOWER_PRESENTATION_DURATION: f32 = 1.18;
-pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = Layout::OWN_STEP * 3.0 + Layout::OWN_MELD_GAP;
+pub(super) fn mahjong_own_meld_width() -> f32 {
+    Layout::own_step() * 3.0 + Layout::OWN_MELD_GAP
+}
+
 pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = Layout::MINI_STEP * 3.0 + Layout::REMOTE_MELD_GAP;
 pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = 5.0;
 
@@ -51,9 +56,9 @@ pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize)
     let tile_width = if regular_tile_count == 0 {
         0.0
     } else {
-        regular_tile_count as f32 * Layout::OWN_STEP + Layout::OWN_WIDTH - Layout::OWN_STEP
+        regular_tile_count as f32 * Layout::own_step() + Layout::own_width() - Layout::own_step()
     };
-    (Layout::OWN_CENTER * 2.0 - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
+    (Layout::own_center() * 2.0 - meld_count as f32 * mahjong_own_meld_width() - tile_width) / 2.0
 }
 
 pub(super) const fn mahjong_remote_tile_advance(relative: u8, revealed: bool) -> f32 {
@@ -795,15 +800,11 @@ pub(crate) fn render_mahjong_table(
             developer_hand,
             "编辑手牌，如 123M456P789S1234Z",
             Vec2::new(
-                if cfg!(target_os = "android") {
-                    144.0
-                } else {
-                    8.0
-                },
-                if cfg!(target_os = "android") {
+                if is_mobile() { 144.0 } else { 8.0 },
+                if is_mobile() {
                     240.0
                 } else {
-                    Layout::OWN_ROW_HEIGHT + 12.0
+                    Layout::own_row_height() + 12.0
                 },
             ),
             assets,

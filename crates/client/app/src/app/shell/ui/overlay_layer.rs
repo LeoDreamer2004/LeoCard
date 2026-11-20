@@ -5,8 +5,9 @@ use bevy::prelude::GlobalZIndex;
 #[repr(i32)]
 pub(crate) enum ShellOverlayLayer {
     Dialog = 2000,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     ConnectionProgress = 2200,
+    #[cfg(not(feature = "web"))]
     Update = 2300,
     Confirmation = 2400,
     /// Reserved for error feedback above every dialog and transition.

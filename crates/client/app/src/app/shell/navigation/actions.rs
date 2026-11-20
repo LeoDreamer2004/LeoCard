@@ -1,6 +1,6 @@
 //! 协调个人资料、设置和成就页面的导航。
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::super::SakuraState;
 use super::super::{
     AchievementCategory, DomainUiAction, PageMotion, PlayerProfilePage, PressedUiAction,
@@ -10,9 +10,13 @@ use crate::app::runtime::{ConnectionDraft, PageErrorState, save_connection_draft
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::PlayerEconomy;
+#[cfg(feature = "web")]
+use leocard_client::open_url;
 
 #[derive(Clone)]
 pub(crate) enum NavigationUiAction {
+    #[cfg(feature = "web")]
+    OpenProject,
     ToggleProfile,
     OpenPlayerProfile(Box<PlayerProfilePage>),
     ToggleSettings,
@@ -38,7 +42,7 @@ pub(crate) struct NavigationActionContext<'w> {
     connection: Res<'w, ConnectionDraft>,
     economy: ResMut<'w, PlayerEconomy>,
     page_error: ResMut<'w, PageErrorState>,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     sakura: ResMut<'w, SakuraState>,
 }
 
@@ -58,6 +62,11 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
         }
         ui.home.identity_open = false;
         match self {
+            #[cfg(feature = "web")]
+            NavigationUiAction::OpenProject => {
+                context.page_error.error =
+                    open_url("https://github.com/LeoDreamer2004/LeoCard").err();
+            }
             NavigationUiAction::ToggleProfile => {
                 context.profile_motion.toggle(ui);
                 if context.profile_motion.target_open {
@@ -82,7 +91,7 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
             }
             NavigationUiAction::ToggleAchievements => {
                 ui.rooms.open = false;
-                #[cfg(not(target_os = "android"))]
+                #[cfg(feature = "desktop")]
                 {
                     context.sakura.open = false;
                 }
@@ -99,7 +108,7 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
             }
             NavigationUiAction::ToggleShop => {
                 ui.rooms.open = false;
-                #[cfg(not(target_os = "android"))]
+                #[cfg(feature = "desktop")]
                 {
                     context.sakura.open = false;
                 }

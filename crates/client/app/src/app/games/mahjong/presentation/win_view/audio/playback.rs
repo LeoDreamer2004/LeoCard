@@ -6,9 +6,9 @@ use crate::app::runtime::ClientResource;
 use bevy::audio::{AudioSinkPlayback, GlobalVolume, Volume};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_platform::time::Duration;
 use leocard_protocol::{GameSnapshot, MahjongPhaseView, MatchId};
 use std::collections::HashSet;
-use std::time::Duration;
 
 #[derive(Resource, Default)]
 pub(crate) struct MahjongShowcasePlayback {

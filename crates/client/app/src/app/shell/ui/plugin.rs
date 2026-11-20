@@ -1,5 +1,5 @@
 use super::configuration::{ConfigurationScroll, clamp_configuration_scroll};
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::switch::{CozySwitchThumb, animate_cozy_switches};
 use super::{
     AmbientBackgroundPlugin, ClickFeedbackPlugin, ConfirmationPlugin, GameHeaderPlugin,
@@ -8,7 +8,7 @@ use super::{
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use leocard_ui::UiSceneProperties;
 use leocard_ui::update_help_tooltips;
 
@@ -50,7 +50,7 @@ impl Plugin for ShellUiPlugin {
                 .chain()
                 .in_set(ClientUpdateSet::Input),
         );
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         {
             app.world_mut()
                 .resource_mut::<UiSceneProperties>()

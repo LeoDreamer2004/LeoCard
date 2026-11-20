@@ -7,9 +7,9 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use bevy_clipboard::Clipboard;
 use leocard_client::open_url;
+use leocard_platform::time::{Duration, Instant};
 use leocard_sakura_frp::{CreateTunnel, FrpcProgress, TunnelType};
 use std::thread;
-use std::time::{Duration, Instant};
 
 #[derive(Clone)]
 pub(crate) enum SakuraUiAction {
@@ -27,6 +27,7 @@ pub(crate) enum SakuraUiAction {
     SelectNode(u64),
     TogglePublicGame,
     Create,
+    CreateWss(u64),
     Start(u64),
     CloseStartup,
     Stop(u64),
@@ -174,6 +175,25 @@ pub(super) fn dispatch_sakura_actions(
                     Ok(TaskOutcome::Created(dashboard))
                 });
             }
+            SakuraUiAction::CreateWss(id) => {
+                if state.busy {
+                    continue;
+                }
+                let Some(client) = state.client.clone() else {
+                    continue;
+                };
+                let id = *id;
+                error.error = None;
+                start_task(&mut state, move || {
+                    client.create_wss(id)?;
+                    client
+                        .dashboard()
+                        .map(TaskOutcome::CreatedWss)
+                        .map_err(|error| {
+                            format!("WSS 已创建，但刷新列表失败，请刷新后重试：{error}")
+                        })
+                });
+            }
             SakuraUiAction::Start(id) => {
                 if state.busy || state.startup.is_some() || state.running.contains_key(id) {
                     continue;
@@ -186,7 +206,7 @@ pub(super) fn dispatch_sakura_actions(
                 };
                 state.startup = Some(TunnelStartup {
                     id: *id,
-                    name: tunnel.name.clone(),
+                    name: tunnel.title().to_owned(),
                     stage: FrpcProgress::ResolvingDownload,
                     open: true,
                     animation: 0.0,
@@ -219,7 +239,11 @@ pub(super) fn dispatch_sakura_actions(
                 let Some(tunnel) = state.tunnels.iter().find(|tunnel| tunnel.id == *id) else {
                     continue;
                 };
-                match clipboard.set_text(tunnel.address(&state.nodes)) {
+                let Some(address) = tunnel.address(&state.nodes) else {
+                    error.error = Some("隧道地址尚不可用，请刷新后重试".to_owned());
+                    continue;
+                };
+                match clipboard.set_text(address) {
                     Ok(()) => {
                         state.copied_address = Some((*id, Instant::now() + Duration::from_secs(2)));
                     }
@@ -237,7 +261,7 @@ pub(super) fn dispatch_sakura_actions(
                 };
                 confirmation.show_with_button(
                     "删除隧道".to_owned(),
-                    format!("确定删除隧道「{}」吗？此操作无法撤销。", tunnel.name),
+                    format!("确定删除隧道「{}」吗？此操作无法撤销。", tunnel.title()),
                     UiAction::Sakura(SakuraUiAction::ConfirmDelete(*id)),
                     "删除",
                     CozyButtonVariant::Danger,

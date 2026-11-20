@@ -9,6 +9,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
+use leocard_platform::CAN_HOST;
 use leocard_ui::{CustomButtonMotion, Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
 #[derive(Component)]
@@ -158,31 +159,33 @@ impl<'a> GameGallery<'a> {
                 Pickable::IGNORE,
             ),
         );
-        let port = spawn_node(
-            commands,
-            heading,
-            Node {
-                margin: UiRect::left(Val::Auto),
-                align_items: AlignItems::Center,
-                column_gap: px(8),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            None,
-        );
-        add_text(commands, port, "游戏端口 ", 15.0, MUTED, self.assets);
-        let input = spawn_node(
-            commands,
-            port,
-            Node {
-                width: px(110),
-                ..default()
-            },
-            None,
-        );
-        ConnectionInput::new(self.host_port, InputField::HostPort, self.assets)
-            .compact()
-            .render(commands, input);
+        if CAN_HOST {
+            let port = spawn_node(
+                commands,
+                heading,
+                Node {
+                    margin: UiRect::left(Val::Auto),
+                    align_items: AlignItems::Center,
+                    column_gap: px(8),
+                    flex_shrink: 0.0,
+                    ..default()
+                },
+                None,
+            );
+            add_text(commands, port, "游戏端口 ", 15.0, MUTED, self.assets);
+            let input = spawn_node(
+                commands,
+                port,
+                Node {
+                    width: px(110),
+                    ..default()
+                },
+                None,
+            );
+            ConnectionInput::new(self.host_port, InputField::HostPort, self.assets)
+                .compact()
+                .render(commands, input);
+        }
         let viewport = spawn_node(
             commands,
             gallery,

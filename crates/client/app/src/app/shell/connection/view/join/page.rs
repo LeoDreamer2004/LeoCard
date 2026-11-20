@@ -4,6 +4,7 @@ use crate::app::shell::connection::lan::LanDiscovery;
 use crate::app::shell::connection::rooms::{JoinRoomAssets, JoinRoomUiState, RoomDirectory};
 use crate::app::shell::{ConnectionUiAction, PageTransitionElement, UiAction, add_page_back_title};
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_ui::{UiComposer, spawn_node};
 
 impl ConnectionScreen<'_> {
@@ -40,7 +41,7 @@ impl ConnectionScreen<'_> {
                 max_width: px(1320),
                 flex_grow: 1.0,
                 min_height: px(0),
-                padding: UiRect::all(px(if cfg!(target_os = "android") { 12 } else { 20 })),
+                padding: UiRect::all(px(if is_mobile() { 12 } else { 20 })),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(12),
                 ..default()

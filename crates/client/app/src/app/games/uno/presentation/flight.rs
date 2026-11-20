@@ -1,6 +1,6 @@
 use super::super::{
-    UNO_CARD_SCALE, UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UnoAssets,
-    UnoDiscardCard, UnoFlyingCard, UnoPresentationState, uno_card_handle,
+    UNO_DISCARD_OFFSETS, UnoAssets, UnoDiscardCard, UnoFlyingCard, UnoPresentationState,
+    uno_card_handle, uno_card_scale, uno_flying_card_height, uno_flying_card_width,
 };
 use super::UNO_PLAY_CARD_DURATION;
 use crate::app::runtime::ClientResource;
@@ -82,10 +82,10 @@ pub(super) fn spawn_uno_flying_card(
             },
             Node {
                 position_type: PositionType::Absolute,
-                left: px(source.x - UNO_FLYING_CARD_WIDTH * 0.5),
-                top: px(source.y - UNO_FLYING_CARD_HEIGHT * 0.5),
-                width: px(UNO_FLYING_CARD_WIDTH),
-                height: px(UNO_FLYING_CARD_HEIGHT),
+                left: px(source.x - uno_flying_card_width() * 0.5),
+                top: px(source.y - uno_flying_card_height() * 0.5),
+                width: px(uno_flying_card_width()),
+                height: px(uno_flying_card_height()),
                 ..default()
             },
             ImageNode::new(image).with_color(Color::WHITE.with_alpha(0.0)),
@@ -288,5 +288,5 @@ pub(crate) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
     };
     let key = color * 47 + face * 19 + usize::from(card.copy()) * 31;
     let (x, y, angle) = UNO_DISCARD_OFFSETS[(key ^ (key >> 3)) % UNO_DISCARD_OFFSETS.len()];
-    (x * UNO_CARD_SCALE, y * UNO_CARD_SCALE, angle)
+    (x * uno_card_scale(), y * uno_card_scale(), angle)
 }

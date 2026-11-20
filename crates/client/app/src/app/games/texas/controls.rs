@@ -119,7 +119,7 @@ pub(super) fn add_texas_own_area(
         } else {
             (180.0, 84.0, 114.0, 9.0)
         };
-        let scale = TexasTableLayout::HAND_SCALE;
+        let scale = TexasTableLayout::hand_scale();
         let (area_width, card_width, card_height, card_gap) = (
             area_width * scale,
             card_width * scale,

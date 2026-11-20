@@ -34,6 +34,7 @@ profile.dat
 # Editor and operating-system metadata
 /.codex/
 /output/
+__pycache__/
 .idea/
 .vscode/
 .DS_Store

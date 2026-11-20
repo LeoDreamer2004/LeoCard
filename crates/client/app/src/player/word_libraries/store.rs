@@ -1,7 +1,7 @@
 use crate::player::config_file;
 use leocard_draw_guess::WordLibrary;
-use std::fs::{self, OpenOptions};
-use std::io::{ErrorKind, Write};
+use leocard_platform::storage as fs;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 #[derive(Clone)]
@@ -38,7 +38,7 @@ impl LocalWordLibraries {
 
     pub fn reload(&mut self) -> Result<Vec<String>, String> {
         let directory = self.directory()?;
-        let files = match fs::read_dir(directory) {
+        let files = match fs::list_files(directory) {
             Ok(files) => files,
             Err(error) if error.kind() == ErrorKind::NotFound => {
                 self.entries.clear();
@@ -50,23 +50,18 @@ impl LocalWordLibraries {
         let mut warnings = Vec::new();
         for file in files {
             let result = (|| {
-                let file = file.map_err(|error| error.to_string())?;
-                if !file
-                    .file_type()
-                    .map_err(|error| error.to_string())?
-                    .is_file()
-                    || file
-                        .path()
-                        .extension()
-                        .is_none_or(|extension| extension != "json")
-                {
+                if file.extension().is_none_or(|extension| extension != "json") {
                     return Ok(());
                 }
-                let id = file.file_name().to_string_lossy().into_owned();
-                if file.metadata().map_err(|error| error.to_string())?.len() > 524_288 {
+                let id = file
+                    .file_name()
+                    .ok_or("词库文件名无效")?
+                    .to_string_lossy()
+                    .into_owned();
+                let bytes = fs::read(&file).map_err(|error| format!("{id}：{error}"))?;
+                if bytes.len() > 524_288 {
                     return Err(format!("{id} 文件过大"));
                 }
-                let bytes = fs::read(file.path()).map_err(|error| format!("{id}：{error}"))?;
                 let library: WordLibrary =
                     serde_json::from_slice(&bytes).map_err(|error| format!("{id}：{error}"))?;
                 let library = library
@@ -95,21 +90,9 @@ impl LocalWordLibraries {
             .map(str::to_owned)
             .unwrap_or_else(|| format!("{:016x}.json", fastrand::u64(..)));
         let destination = directory.join(&id);
-        let temporary = directory.join(format!(".save-{:016x}.tmp", fastrand::u64(..)));
-        let result = (|| {
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&temporary)?;
-            let bytes = serde_json::to_vec_pretty(&library)?;
-            file.write_all(&bytes)?;
-            file.sync_all()?;
-            fs::rename(&temporary, destination)
-        })();
-        if let Err(error) = result {
-            let _ = fs::remove_file(temporary);
-            return Err(format!("无法保存词库：{error}"));
-        }
+        let bytes = serde_json::to_vec_pretty(&library)
+            .map_err(|error| format!("无法编码词库：{error}"))?;
+        fs::write_atomic(destination, bytes).map_err(|error| format!("无法保存词库：{error}"))?;
         self.entries.retain(|entry| entry.id != id);
         self.entries.push(LocalWordLibrary {
             id: id.clone(),

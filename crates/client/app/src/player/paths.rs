@@ -1,18 +1,20 @@
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 use crate::platform::data_directory;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use std::env;
 use std::path::PathBuf;
 
 pub(crate) fn config_file(name: &str) -> Option<PathBuf> {
-    #[cfg(target_os = "android")]
+    #[cfg(feature = "web")]
+    return Some(PathBuf::from("config").join(name));
+    #[cfg(feature = "android")]
     return data_directory().map(|directory| directory.join(name));
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(feature = "desktop")]
     desktop_config_file(name)
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 fn desktop_config_file(name: &str) -> Option<PathBuf> {
     if let Some(directory) = env::var_os("LEOCARD_CONFIG_DIR") {
         return Some(PathBuf::from(directory).join(name));

@@ -5,6 +5,7 @@ use crate::app::presentation::mahjong::{
 };
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use std::f32::consts;
 
 pub(super) struct MahjongLayout;
@@ -24,55 +25,49 @@ impl MahjongLayout {
         Vec2::new(390.0 * Self::REFERENCE_SCALE, 254.5 * Self::REFERENCE_SCALE);
     pub const STATUS_TOP_RATIO: f32 = 352.0 / 390.0;
 
-    pub const BUTTON_WIDTH: f32 = if cfg!(target_os = "android") {
-        120.0
-    } else {
-        96.0
-    };
-    pub const BUTTON_HEIGHT: f32 = if cfg!(target_os = "android") {
-        64.0
-    } else {
-        54.0
-    };
-    pub const BUTTON_FONT: f32 = if cfg!(target_os = "android") {
-        42.0
-    } else {
-        34.0
-    };
+    pub fn button_width() -> f32 {
+        if is_mobile() { 120.0 } else { 96.0 }
+    }
 
-    pub const OWN_CENTER: f32 = if cfg!(target_os = "android") {
-        574.12
-    } else {
-        556.3
-    };
-    pub const OWN_BOTTOM: f32 = if cfg!(target_os = "android") {
-        8.4
-    } else {
-        7.5
-    };
-    pub const OWN_WIDTH: f32 = if cfg!(target_os = "android") {
-        76.56
-    } else {
-        60.9
-    };
-    pub const OWN_HEIGHT: f32 =
-        Self::OWN_WIDTH * (1.0 / MahjongTileGeometry::FACE_ASPECT_RATIO + Self::OWN_RIM_RATIO);
-    pub const OWN_STEP: f32 = if cfg!(target_os = "android") {
-        78.0
-    } else {
-        62.0
-    };
-    pub const OWN_ROW_HEIGHT: f32 = Self::OWN_HEIGHT + 18.0;
-    pub const OWN_ROW_WIDTH: f32 = if cfg!(target_os = "android") {
-        1150.0
-    } else {
-        1000.0
-    };
-    pub const DRAW_GAP: f32 = if cfg!(target_os = "android") {
-        24.0
-    } else {
-        18.7
-    };
+    pub fn button_height() -> f32 {
+        if is_mobile() { 64.0 } else { 54.0 }
+    }
+
+    pub fn button_font() -> f32 {
+        if is_mobile() { 42.0 } else { 34.0 }
+    }
+
+    pub fn own_center() -> f32 {
+        if is_mobile() { 574.12 } else { 556.3 }
+    }
+
+    pub fn own_bottom() -> f32 {
+        if is_mobile() { 8.4 } else { 7.5 }
+    }
+
+    pub fn own_width() -> f32 {
+        if is_mobile() { 76.56 } else { 60.9 }
+    }
+
+    pub fn own_height() -> f32 {
+        Self::own_width() * (1.0 / MahjongTileGeometry::FACE_ASPECT_RATIO + Self::OWN_RIM_RATIO)
+    }
+
+    pub fn own_step() -> f32 {
+        if is_mobile() { 78.0 } else { 62.0 }
+    }
+
+    pub fn own_row_height() -> f32 {
+        Self::own_height() + 18.0
+    }
+
+    pub fn own_row_width() -> f32 {
+        if is_mobile() { 1150.0 } else { 1000.0 }
+    }
+
+    pub fn draw_gap() -> f32 {
+        if is_mobile() { 24.0 } else { 18.7 }
+    }
 
     pub const MINI_WIDTH: f32 = 16.0;
     pub const MINI_HEIGHT: f32 = Self::MINI_WIDTH / MahjongTileGeometry::FACE_ASPECT_RATIO;

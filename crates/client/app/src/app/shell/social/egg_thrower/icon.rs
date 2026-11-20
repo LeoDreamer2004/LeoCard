@@ -1,6 +1,6 @@
 use super::super::buttons::interaction_button;
 use super::EggThrowerCount;
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, game_side_control_scale};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
@@ -23,14 +23,14 @@ pub(crate) fn add_egg_thrower_button(
     );
     spec.node.position_type = PositionType::Absolute;
     spec.node.top = percent(100);
-    spec.node.margin = UiRect::top(px(6.0 * GAME_SIDE_CONTROL_SCALE));
+    spec.node.margin = UiRect::top(px(6.0 * game_side_control_scale()));
     let button = spec.mount(commands, parent, &assets.font).0;
-    add_egg_thrower_icon(commands, button, 36.0 * GAME_SIDE_CONTROL_SCALE, assets);
+    add_egg_thrower_icon(commands, button, 36.0 * game_side_control_scale(), assets);
     let count = add_text(
         commands,
         button,
         "砸蛋×0",
-        12.0 * GAME_SIDE_CONTROL_SCALE,
+        12.0 * game_side_control_scale(),
         TEXT,
         assets,
     );

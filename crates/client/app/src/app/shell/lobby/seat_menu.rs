@@ -1,6 +1,6 @@
 use super::LobbyUiAction;
 use crate::app::games::GameLobbyRules;
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, LobbySeatHover, LobbySeatLayout, TEXT};
+use crate::app::presentation::{LobbySeatHover, LobbySeatLayout, TEXT, game_side_control_scale};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{UiAction, UiState};
 use bevy::picking::hover::PickingInteraction;
@@ -71,7 +71,7 @@ pub(crate) fn handle_lobby_seat_right_click(
         Some(player) if Some(player.player.id) == lobby.host => {}
         Some(player) if player.player.profile_id.0 != [0; 32] => {
             ui.social.interaction_menu_open = None;
-            let size = Vec2::new(80.0, 36.0) * GAME_SIDE_CONTROL_SCALE;
+            let size = Vec2::new(80.0, 36.0) * game_side_control_scale();
             let offset = LobbySeatLayout::new(lobby.rules.seat_count()).outward_popup(seat.0, size);
             let button = TextureButton {
                 node: Node {
@@ -87,16 +87,16 @@ pub(crate) fn handle_lobby_seat_right_click(
                 normal: sliced_image(
                     assets.home.danger_button.clone(),
                     32.0,
-                    0.55 * GAME_SIDE_CONTROL_SCALE,
+                    0.55 * game_side_control_scale(),
                 ),
                 hovered: sliced_image(
                     assets.home.danger_button_hover.clone(),
                     32.0,
-                    0.55 * GAME_SIDE_CONTROL_SCALE,
+                    0.55 * game_side_control_scale(),
                 ),
                 action: Some(UiAction::Lobby(LobbyUiAction::KickPlayer(player.player.id))),
                 label: Some("踢出"),
-                font_size: 14.0 * GAME_SIDE_CONTROL_SCALE,
+                font_size: 14.0 * game_side_control_scale(),
                 color: TEXT,
                 icon: None,
             }

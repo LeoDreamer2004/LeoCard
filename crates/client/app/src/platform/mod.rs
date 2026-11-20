@@ -1,11 +1,15 @@
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 mod android;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 mod desktop;
-#[cfg(not(target_os = "android"))]
+mod image;
+#[cfg(feature = "desktop")]
 pub mod notifications;
 
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 pub use android::*;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 pub use desktop::*;
+pub use image::request_image;
+#[cfg(feature = "web")]
+pub use leocard_platform::{open_directory, open_url};

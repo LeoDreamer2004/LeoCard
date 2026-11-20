@@ -3,10 +3,10 @@ use super::state::{
     CommandReceiver, EventQueue, NetworkEvent, NetworkLaunch, RECONNECT_ATTEMPTS,
     RECONNECT_CONNECT_TIMEOUT, push_event,
 };
+use leocard_platform::time::{Duration, Instant};
 use leocard_protocol::ClientMessage;
 use leocard_tcp::{TcpClient, TcpServerHandle};
 use std::net::{IpAddr, SocketAddr};
-use std::time::{Duration, Instant};
 
 pub(super) async fn run_network(
     launch: NetworkLaunch,
@@ -15,11 +15,13 @@ pub(super) async fn run_network(
     reconnect_join: ClientMessage,
 ) -> Result<(), String> {
     match launch {
-        NetworkLaunch::Host { port, session } => {
+        NetworkLaunch::Host { port, session, tls } => {
             let bind_address = SocketAddr::new(IpAddr::from([0, 0, 0, 0]), port);
-            let server = TcpServerHandle::bind(bind_address, *session)
-                .await
-                .map_err(|error| format!("无法开放端口 {port}：{error}"))?;
+            let server = match tls {
+                Some(tls) => TcpServerHandle::bind_with_tls(bind_address, *session, tls).await,
+                None => TcpServerHandle::bind(bind_address, *session).await,
+            }
+            .map_err(|error| format!("无法开放端口 {port}：{error}"))?;
             let local_address = SocketAddr::new(IpAddr::from([127, 0, 0, 1]), port);
             let client = TcpClient::connect(local_address)
                 .await

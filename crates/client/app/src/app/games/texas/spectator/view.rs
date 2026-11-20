@@ -6,6 +6,7 @@ use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
+use leocard_platform::is_mobile;
 use leocard_protocol::TexasSnapshot;
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer, spawn_node};
 
@@ -60,7 +61,7 @@ pub(in super::super) fn add_texas_win_rate(
         return;
     }
     // The mobile side seats sit close to the edge, so keep their equity labels toward the table.
-    let left_of_avatar = if cfg!(target_os = "android") {
+    let left_of_avatar = if is_mobile() {
         matches!(side, SeatSide::Right)
     } else {
         matches!(side, SeatSide::Left)

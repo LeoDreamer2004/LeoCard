@@ -3,7 +3,6 @@ name = "leocard-mahjong-link"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Turn based mahjong linking rules for LeoCard"
 
 [dependencies]

@@ -1,7 +1,7 @@
 use super::actions::{WordLibraryUiAction, action};
 use super::state::{LibrarySelection, WordLibraryManager, WordLibraryRoom};
 use super::{editor, list};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, add_title, page_frame_skin};
+use crate::app::presentation::{add_title, game_side_control_scale, page_frame_skin};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, CozyModalKind, CozyModalPanel, ShellOverlayLayer, add_centered_modal,
@@ -23,7 +23,7 @@ pub(in super::super) fn render(commands: &mut UiComposer, root: Entity, view: Li
     if !manager.open && manager.progress == 0.0 {
         return;
     }
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let overlay = add_centered_modal(
         commands,
         root,
@@ -117,7 +117,7 @@ pub(super) fn control(
     spec: LibraryControl<'_>,
     assets: &UiAssets,
 ) {
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let button = if let Some(command) = spec.action {
         add_cozy_button_variant_scaled(
             commands,

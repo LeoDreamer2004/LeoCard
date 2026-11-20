@@ -10,7 +10,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::{ClientModel, ClientPhaseRef, NetworkState, TcpGameClient};
+use leocard_client::{ClientModel, ClientPhaseRef, GameClient, NetworkState};
 use leocard_protocol::{LobbySnapshot, RoomModerationSnapshot};
 
 pub(crate) struct NetworkUiSnapshot {
@@ -44,7 +44,7 @@ pub(crate) struct NetworkUiContext<'w, 's> {
     commands: Commands<'w, 's>,
 }
 impl NetworkUiContext<'_, '_> {
-    pub(crate) fn before_poll(&self, client: &TcpGameClient) -> NetworkUiSnapshot {
+    pub(crate) fn before_poll(&self, client: &GameClient) -> NetworkUiSnapshot {
         NetworkUiSnapshot {
             previous_state: client.state().clone(),
             reconnect_notice: client.reconnecting_message().is_some(),
@@ -63,7 +63,7 @@ impl NetworkUiContext<'_, '_> {
 
     pub(crate) fn after_poll(
         &mut self,
-        client: &TcpGameClient,
+        client: &GameClient,
         before: NetworkUiSnapshot,
         page_error: &mut PageErrorState,
     ) {

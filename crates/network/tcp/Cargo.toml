@@ -3,8 +3,7 @@ name = "leocard-tcp"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
-description = "Tokio TCP transport for LeoCard"
+description = "Shared TCP and WebSocket room transport for LeoCard"
 
 [features]
 default = []
@@ -12,9 +11,16 @@ developer = ["leocard-host/developer"]
 
 [dependencies]
 fastrand.workspace = true
+futures-util.workspace = true
 leocard-game-common = { path = "../../games/common" }
 leocard-host = { path = "../../host" }
 leocard-protocol = { path = "../protocol" }
 serde.workspace = true
 socket2.workspace = true
 tokio.workspace = true
+tokio-rustls.workspace = true
+tokio-tungstenite.workspace = true
+
+[dev-dependencies]
+ed25519-dalek.workspace = true
+serde_json.workspace = true

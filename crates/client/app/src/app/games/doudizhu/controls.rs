@@ -1,7 +1,7 @@
 use super::{DoudizhuUiAction, DoudizhuUiState};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone, TableActionButton, TableButtonSkin,
-    add_no_legal_response_hint,
+    PaperCardButtonTone, TableActionButton, TableButtonSkin, add_no_legal_response_hint,
+    game_side_control_scale,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -21,7 +21,7 @@ pub(super) fn render(
         commands,
         parent,
         Node {
-            min_height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
+            min_height: px(54.0 * game_side_control_scale()),
             column_gap: px(10),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -48,7 +48,7 @@ pub(super) fn render(
                 TableButtonSkin::PaperCard(tone),
             )
         }
-        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .scaled(game_side_control_scale())
         .mount(commands, row, assets);
     };
     if game.phase == DoudizhuPhase::Bidding {

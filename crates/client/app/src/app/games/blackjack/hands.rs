@@ -122,7 +122,7 @@ impl BlackjackTable<'_> {
             self.assets,
         );
         let scale = if spec.own {
-            BlackjackSeatLayout::HAND_SCALE
+            BlackjackSeatLayout::hand_scale()
         } else {
             1.0
         };

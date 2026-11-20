@@ -1,6 +1,6 @@
 use super::sort_cards_high_to_low;
 use crate::app::presentation::{
-    CardSize, GAME_SIDE_CONTROL_SCALE, HEADER_BG, MUTED, TEXT, add_card_image, add_text,
+    CardSize, HEADER_BG, MUTED, TEXT, add_card_image, add_text, game_side_control_scale,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
@@ -22,8 +22,8 @@ pub(super) fn add_draw_pile(
         commands,
         parent,
         Node {
-            width: px((48.0 + layers as f32 * 2.0) * GAME_SIDE_CONTROL_SCALE),
-            height: px((64.0 + layers as f32 * 1.5) * GAME_SIDE_CONTROL_SCALE),
+            width: px((48.0 + layers as f32 * 2.0) * game_side_control_scale()),
+            height: px((64.0 + layers as f32 * 1.5) * game_side_control_scale()),
             position_type: PositionType::Relative,
             flex_shrink: 0.0,
             ..default()
@@ -38,8 +38,8 @@ pub(super) fn add_draw_pile(
                 position_type: PositionType::Absolute,
                 left: px(1),
                 top: px(1),
-                width: px(46.0 * GAME_SIDE_CONTROL_SCALE),
-                height: px(62.0 * GAME_SIDE_CONTROL_SCALE),
+                width: px(46.0 * game_side_control_scale()),
+                height: px(62.0 * game_side_control_scale()),
                 border: UiRect::all(px(2)),
                 border_radius: BorderRadius::all(px(5)),
                 ..default()
@@ -56,10 +56,10 @@ pub(super) fn add_draw_pile(
                 (
                     Node {
                         position_type: PositionType::Absolute,
-                        left: px(layer as f32 * 2.0 * GAME_SIDE_CONTROL_SCALE),
-                        top: px((layers - layer - 1) as f32 * 1.5 * GAME_SIDE_CONTROL_SCALE),
-                        width: px(46.0 * GAME_SIDE_CONTROL_SCALE),
-                        height: px(62.0 * GAME_SIDE_CONTROL_SCALE),
+                        left: px(layer as f32 * 2.0 * game_side_control_scale()),
+                        top: px((layers - layer - 1) as f32 * 1.5 * game_side_control_scale()),
+                        width: px(46.0 * game_side_control_scale()),
+                        height: px(62.0 * game_side_control_scale()),
                         border: UiRect::all(px(1)),
                         border_radius: BorderRadius::all(px(5)),
                         ..default()
@@ -80,11 +80,11 @@ pub(super) fn add_draw_pile(
             position_type: PositionType::Absolute,
             left: percent(50),
             top: percent(50),
-            width: px(36.0 * GAME_SIDE_CONTROL_SCALE),
-            height: px(28.0 * GAME_SIDE_CONTROL_SCALE),
+            width: px(36.0 * game_side_control_scale()),
+            height: px(28.0 * game_side_control_scale()),
             margin: UiRect {
-                left: px(-18.0 * GAME_SIDE_CONTROL_SCALE),
-                top: px(-14.0 * GAME_SIDE_CONTROL_SCALE),
+                left: px(-18.0 * game_side_control_scale()),
+                top: px(-14.0 * game_side_control_scale()),
                 ..default()
             },
             align_items: AlignItems::Center,
@@ -99,7 +99,7 @@ pub(super) fn add_draw_pile(
         commands,
         counter,
         count.to_string(),
-        18.0 * GAME_SIDE_CONTROL_SCALE,
+        18.0 * game_side_control_scale(),
         TEXT,
         assets,
     );

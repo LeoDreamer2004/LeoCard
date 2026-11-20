@@ -54,7 +54,7 @@ impl UpdateManager {
         if !cfg!(any(
             target_os = "linux",
             target_os = "windows",
-            target_os = "android"
+            feature = "android"
         )) {
             self.state = UpdateState::Failed("当前平台暂不支持自动更新".to_owned());
             return;
@@ -64,14 +64,14 @@ impl UpdateManager {
         self.receiver = Some(Mutex::new(receiver));
         self.state = UpdateState::Checking;
         thread::spawn(move || {
-            #[cfg(target_os = "android")]
+            #[cfg(feature = "android")]
             let result = leocard_client::platform::initialize_https().and_then(|()| {
                 let directory = leocard_client::platform::data_directory()
                     .ok_or("无法获取 Android 应用私有目录")?
                     .join("updates");
                 download_latest_release(&sender, Some(&directory))
             });
-            #[cfg(not(target_os = "android"))]
+            #[cfg(feature = "desktop")]
             let result = download_latest_release(&sender, None);
             if let Err(error) = result {
                 let _ = sender.send(UpdateEvent::Failed(error));

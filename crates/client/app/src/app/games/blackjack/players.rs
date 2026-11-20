@@ -139,7 +139,7 @@ impl BlackjackTable<'_> {
                         own,
                         width: ((layout.width - 12.0) / view.hands.len() as f32 - 6.0).min(
                             if own {
-                                270.0 * BlackjackSeatLayout::HAND_SCALE
+                                270.0 * BlackjackSeatLayout::hand_scale()
                             } else {
                                 220.0
                             },

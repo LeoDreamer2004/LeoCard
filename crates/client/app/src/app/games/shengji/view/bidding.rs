@@ -2,10 +2,11 @@ use super::super::skin::add_shengji_button;
 use super::super::{ShengjiAssets, ShengjiUiAction};
 use super::bid_strip::add_shengji_bid_strip;
 use super::shengji_current_level;
-use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone, add_text};
+use crate::app::presentation::{ACCENT, PaperCardButtonTone, add_text, game_side_control_scale};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_protocol::{GameSnapshot, ShengjiDeclarationView, ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit, bid_joker_for_suit};
 use leocard_ui::{UiComposer, spawn_node};
@@ -73,10 +74,10 @@ pub(super) fn add_shengji_bidding_panel(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
-            right: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
+            left: percent(if is_mobile() { 18 } else { 25 }),
+            right: percent(if is_mobile() { 18 } else { 25 }),
             top: px(2),
-            height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(54.0 * game_side_control_scale()),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,

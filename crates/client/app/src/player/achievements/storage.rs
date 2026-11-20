@@ -2,9 +2,11 @@
 
 use crate::player::config_file;
 use leocard_achievements::AchievementBook;
+use leocard_platform::storage as fs;
 use leocard_protocol::ProfileId;
 use serde::{Deserialize, Serialize};
-use std::{fs, io::ErrorKind, path::PathBuf};
+use std::io::ErrorKind;
+use std::path::PathBuf;
 
 const FILE_MAGIC: &[u8] = b"LEOCARD-ACHIEVEMENTS\n";
 // Increase only when the archive or AchievementBook layout changes, and add a migration.

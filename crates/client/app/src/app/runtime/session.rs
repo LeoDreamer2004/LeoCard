@@ -3,7 +3,7 @@
 use super::{GameStateMessage, HostRulePreferences, PageErrorState, save_host_rule_preferences};
 use crate::app::shell::NetworkUiContext;
 use bevy::prelude::*;
-use leocard_client::{ClientModel, LocalPlayerProfile, TcpGameClient};
+use leocard_client::{ClientModel, GameClient, LocalPlayerProfile};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameEventContext, ServerEvent};
 
@@ -16,7 +16,7 @@ pub(crate) struct ServerNotification {
 }
 
 #[derive(Resource)]
-pub(crate) struct ClientResource(pub TcpGameClient);
+pub(crate) struct ClientResource(pub GameClient);
 
 pub(super) fn poll_network(
     mut client: Option<ResMut<ClientResource>>,

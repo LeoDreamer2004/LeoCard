@@ -1,16 +1,17 @@
 use bevy::prelude::*;
+use leocard_platform::time::{Duration, Instant};
 use leocard_sakura_frp::{
     Dashboard, FrpcProgress, Node, RunningTunnel, SakuraClient, SavedLogin, Tunnel, TunnelType,
     UserInfo,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 pub(super) enum TaskOutcome {
     LoggedIn(SakuraClient, Dashboard, SavedLogin),
     Refreshed(Dashboard),
     Created(Option<Dashboard>),
+    CreatedWss(Dashboard),
     Deleted(u64, bool, Option<Dashboard>),
     Started(RunningTunnel),
 }

@@ -1,5 +1,5 @@
+use leocard_platform::time::Duration;
 use leocard_protocol::PlayerInteractionKind;
-use std::time::Duration;
 
 const EGG_COUNT: u16 = PlayerInteractionKind::EggBarrage.egg_count() as u16;
 const PHRASE_HITS: u16 = 12;

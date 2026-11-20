@@ -1,9 +1,9 @@
 use super::files::PreferenceFiles;
 use super::{GamePreferences, GlobalPreferences, SavedPreferences};
+use leocard_platform::storage as fs;
 use leocard_protocol::PlayerGender;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
-use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 

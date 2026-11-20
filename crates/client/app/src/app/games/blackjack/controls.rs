@@ -26,13 +26,13 @@ impl BlackjackTable<'_> {
             Node {
                 position_type: PositionType::Absolute,
                 left: percent(50),
-                bottom: px(BlackjackSeatLayout::ACTION_BOTTOM),
-                width: px(480.0 * BlackjackSeatLayout::ACTION_SCALE),
-                height: px(50.0 * BlackjackSeatLayout::ACTION_SCALE),
+                bottom: px(BlackjackSeatLayout::action_bottom()),
+                width: px(480.0 * BlackjackSeatLayout::action_scale()),
+                height: px(50.0 * BlackjackSeatLayout::action_scale()),
                 flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                row_gap: px(7.0 * BlackjackSeatLayout::ACTION_SCALE),
+                row_gap: px(7.0 * BlackjackSeatLayout::action_scale()),
                 ..default()
             },
             None,
@@ -40,7 +40,7 @@ impl BlackjackTable<'_> {
         commands
             .entity(controls)
             .insert(UiTransform::from_translation(Val2::px(
-                -240.0 * BlackjackSeatLayout::ACTION_SCALE,
+                -240.0 * BlackjackSeatLayout::action_scale(),
                 0.0,
             )));
         let row = spawn_node(
@@ -48,11 +48,11 @@ impl BlackjackTable<'_> {
             controls,
             Node {
                 width: percent(100),
-                height: px(50.0 * BlackjackSeatLayout::ACTION_SCALE),
+                height: px(50.0 * BlackjackSeatLayout::action_scale()),
                 flex_shrink: 0.0,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                column_gap: px(8.0 * BlackjackSeatLayout::ACTION_SCALE),
+                column_gap: px(8.0 * BlackjackSeatLayout::action_scale()),
                 ..default()
             },
             None,
@@ -71,7 +71,7 @@ impl BlackjackTable<'_> {
                     "本局 {:+}",
                     i64::from(own.stack) - i64::from(own.round_start_stack)
                 ),
-                21.0 * BlackjackSeatLayout::ACTION_SCALE,
+                21.0 * BlackjackSeatLayout::action_scale(),
                 ACCENT,
                 self.assets,
             );
@@ -163,7 +163,7 @@ impl BlackjackTable<'_> {
                     FramedButtonTone::Play,
                 )
             }
-            .scaled(BlackjackSeatLayout::ACTION_SCALE)
+            .scaled(BlackjackSeatLayout::action_scale())
             .mount(commands, row, self.assets);
             if !increase {
                 action_button(
@@ -186,11 +186,11 @@ impl BlackjackTable<'_> {
                 position_type: PositionType::Absolute,
                 left: px(0),
                 right: px(0),
-                top: px(57.0 * BlackjackSeatLayout::ACTION_SCALE),
-                height: px(34.0 * BlackjackSeatLayout::ACTION_SCALE),
+                top: px(57.0 * BlackjackSeatLayout::action_scale()),
+                height: px(34.0 * BlackjackSeatLayout::action_scale()),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                column_gap: px(6.0 * BlackjackSeatLayout::ACTION_SCALE),
+                column_gap: px(6.0 * BlackjackSeatLayout::action_scale()),
                 ..default()
             },
             None,
@@ -214,7 +214,9 @@ impl BlackjackTable<'_> {
             commands
                 .entity(button)
                 .entry::<Node>()
-                .and_modify(|mut node| node.height = px(34.0 * BlackjackSeatLayout::ACTION_SCALE));
+                .and_modify(|mut node| {
+                    node.height = px(34.0 * BlackjackSeatLayout::action_scale())
+                });
         }
     }
 
@@ -274,7 +276,7 @@ fn action_button(
         font_size: 17.0,
         ..FramedButton::action(label, action, tone)
     }
-    .scaled(BlackjackSeatLayout::ACTION_SCALE)
+    .scaled(BlackjackSeatLayout::action_scale())
     .mount(commands, parent, assets)
     .0
 }

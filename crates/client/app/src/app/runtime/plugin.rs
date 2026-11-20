@@ -4,7 +4,7 @@ use super::{
     set_app_window_icon, setup_camera,
 };
 use crate::app::presentation::{DESIGN_HEIGHT, DESIGN_WIDTH, TABLE_BG};
-use bevy::asset::AssetPlugin;
+use bevy::asset::{AssetMetaCheck, AssetPlugin};
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::log::{DEFAULT_FILTER, LogPlugin};
 use bevy::prelude::*;
@@ -27,12 +27,14 @@ pub(super) struct RuntimePlugin;
 
 impl Plugin for RuntimePlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(target_os = "android")]
+        #[cfg(feature = "web")]
+        app.add_plugins(super::web::WebRuntimePlugin);
+        #[cfg(feature = "android")]
         app.add_systems(
             Update,
             super::android::sync_audio_focus.in_set(ClientUpdateSet::Sync),
         );
-        #[cfg(target_os = "android")]
+        #[cfg(feature = "android")]
         app.add_systems(PreUpdate, super::native_text::edit_native_text);
         let preferences = PreferenceResources::load();
         let mut page_error = PageErrorState::default();
@@ -61,7 +63,7 @@ impl Plugin for RuntimePlugin {
         profile.game_profiles.avatar_frame = economy.equipped_frame();
 
         let plugins = DefaultPlugins;
-        #[cfg(target_os = "android")]
+        #[cfg(feature = "android")]
         let plugins = plugins.set(super::android::render_plugin());
 
         configure_runtime_asset_source(app);
@@ -88,6 +90,11 @@ impl Plugin for RuntimePlugin {
                     })
                     .set(AssetPlugin {
                         file_path: asset_file_path(),
+                        meta_check: if cfg!(feature = "web") {
+                            AssetMetaCheck::Never
+                        } else {
+                            default()
+                        },
                         ..default()
                     })
                     .set(WindowPlugin {
@@ -95,11 +102,13 @@ impl Plugin for RuntimePlugin {
                             title: "LeoCard".to_owned(),
                             resolution: (DESIGN_WIDTH as u32, DESIGN_HEIGHT as u32).into(),
                             resize_constraints: WindowResizeConstraints {
-                                min_width: 640.0,
-                                min_height: 400.0,
+                                min_width: if cfg!(feature = "web") { 1.0 } else { 640.0 },
+                                min_height: if cfg!(feature = "web") { 1.0 } else { 400.0 },
                                 ..default()
                             },
                             resizable: true,
+                            canvas: cfg!(feature = "web").then(|| "#leocard".to_owned()),
+                            fit_canvas_to_parent: cfg!(feature = "web"),
                             ..default()
                         }),
                         ..default()
@@ -121,7 +130,7 @@ impl Plugin for RuntimePlugin {
             .add_systems(Update, set_app_window_icon)
             .add_systems(Update, poll_network.in_set(ClientUpdateSet::Network));
 
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         app.add_plugins(super::cursor::CursorPlugin);
         app.add_plugins(super::notifications::TurnNotificationPlugin);
     }

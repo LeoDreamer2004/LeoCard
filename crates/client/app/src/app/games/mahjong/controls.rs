@@ -13,6 +13,7 @@ use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongTileKind};
+use leocard_platform::is_mobile;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{BackgroundButtonTint, ButtonTint, UiComposer, spawn_node};
 
@@ -55,14 +56,14 @@ pub(super) fn render_action_bar(
         format!("mahjong-actions:{prompt:?}"),
         Node {
             position_type: PositionType::Absolute,
-            left: px(if cfg!(target_os = "android") { 80 } else { 200 }),
-            right: px(if cfg!(target_os = "android") { 80 } else { 200 }),
-            bottom: px(Layout::OWN_BOTTOM
+            left: px(if is_mobile() { 80 } else { 200 }),
+            right: px(if is_mobile() { 80 } else { 200 }),
+            bottom: px(Layout::own_bottom()
                 + Layout::OWN_HAND_LIFT
-                + Layout::OWN_HEIGHT
+                + Layout::own_height()
                 + 12.0
                 + stack_clearance),
-            min_height: px(Layout::BUTTON_HEIGHT),
+            min_height: px(Layout::button_height()),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(8),
@@ -287,12 +288,8 @@ fn add_choice_button(
         Node {
             position_type: PositionType::Absolute,
             left: percent(50),
-            bottom: px(Layout::BUTTON_HEIGHT + 8.0),
-            width: px(if cfg!(target_os = "android") {
-                320
-            } else {
-                240
-            }),
+            bottom: px(Layout::button_height() + 8.0),
+            width: px(if is_mobile() { 320 } else { 240 }),
             padding: UiRect::all(px(12)),
             flex_direction: FlexDirection::Column,
             row_gap: px(5),
@@ -313,7 +310,7 @@ fn add_choice_button(
                 UiAction::Mahjong(choice.action),
                 Node {
                     width: percent(100),
-                    height: px(if cfg!(target_os = "android") { 76 } else { 57 }),
+                    height: px(if is_mobile() { 76 } else { 57 }),
                     padding: UiRect::axes(px(9), px(5)),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
@@ -332,7 +329,7 @@ fn add_choice_button(
             commands,
             row,
             Node {
-                height: px(if cfg!(target_os = "android") { 62 } else { 45 }),
+                height: px(if is_mobile() { 62 } else { 45 }),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -374,8 +371,8 @@ fn add_mahjong_button(
         commands,
         bar,
         Node {
-            min_width: px(Layout::BUTTON_WIDTH),
-            height: px(Layout::BUTTON_HEIGHT),
+            min_width: px(Layout::button_width()),
+            height: px(Layout::button_height()),
             flex_shrink: 0.0,
             overflow: Overflow::visible(),
             ..default()
@@ -386,8 +383,8 @@ fn add_mahjong_button(
         label,
         action: UiAction::Mahjong(action),
         tone,
-        size: Vec2::new(Layout::BUTTON_WIDTH, Layout::BUTTON_HEIGHT),
-        font_size: Layout::BUTTON_FONT,
+        size: Vec2::new(Layout::button_width(), Layout::button_height()),
+        font_size: Layout::button_font(),
     }
     .mount(commands, anchor, assets);
     anchor

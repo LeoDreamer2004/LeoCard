@@ -1,24 +1,36 @@
 //! Product information and update actions.
 
+#[cfg(not(feature = "web"))]
 use super::super::super::{
-    CozyButtonVariant, UiAction, UpdateManager, UpdateState, add_cozy_button_variant,
-    add_cozy_button_with_icon, settings_update_label,
+    CozyButtonVariant, UpdateManager, UpdateState, add_cozy_button_variant, settings_update_label,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
+#[cfg(feature = "web")]
+use crate::app::shell::NavigationUiAction;
+#[cfg(not(feature = "web"))]
 use crate::app::shell::UpdateUiAction;
+use crate::app::shell::{UiAction, add_cozy_button_with_icon};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct AboutSettings<'a> {
+    #[cfg(not(feature = "web"))]
     updater: &'a UpdateManager,
     assets: &'a UiAssets,
 }
 
 impl<'a> AboutSettings<'a> {
-    pub(super) fn new(updater: &'a UpdateManager, assets: &'a UiAssets) -> Self {
-        Self { updater, assets }
+    pub(super) fn new(
+        #[cfg(not(feature = "web"))] updater: &'a UpdateManager,
+        assets: &'a UiAssets,
+    ) -> Self {
+        Self {
+            #[cfg(not(feature = "web"))]
+            updater,
+            assets,
+        }
     }
 
     pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
@@ -80,18 +92,37 @@ impl<'a> AboutSettings<'a> {
             MUTED,
             self.assets,
         );
+        #[cfg(feature = "web")]
+        add_cozy_button_with_icon(
+            commands,
+            identity,
+            "GitHub",
+            UiAction::Navigation(NavigationUiAction::OpenProject),
+            self.assets,
+            px(124),
+            40.0,
+            Some(self.assets.controls.github_mark.clone()),
+        );
+        #[cfg(not(feature = "web"))]
         SoftwareUpdateSettings::new(self.updater, self.assets).render(commands, parent);
     }
 }
 
+#[cfg(not(feature = "web"))]
 struct SoftwareUpdateSettings<'a> {
+    #[cfg(not(feature = "web"))]
     updater: &'a UpdateManager,
     assets: &'a UiAssets,
 }
 
+#[cfg(not(feature = "web"))]
 impl<'a> SoftwareUpdateSettings<'a> {
     fn new(updater: &'a UpdateManager, assets: &'a UiAssets) -> Self {
-        Self { updater, assets }
+        Self {
+            #[cfg(not(feature = "web"))]
+            updater,
+            assets,
+        }
     }
 
     fn render(self, commands: &mut UiComposer, parent: Entity) {

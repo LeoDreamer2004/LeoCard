@@ -10,11 +10,8 @@ use crate::app::runtime::{
 use bevy::prelude::*;
 use bevy::window::FileDragAndDrop;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
-use leocard_client::pick_image;
-use std::path::PathBuf;
-use std::sync::Mutex;
-use std::sync::mpsc::{self, TryRecvError};
-use std::thread;
+use leocard_client::request_image;
+use std::sync::mpsc::TryRecvError;
 
 pub(crate) fn handle_avatar_drop(
     mut dropped_files: MessageReader<FileDragAndDrop>,
@@ -42,14 +39,7 @@ pub(crate) fn handle_avatar_drop(
 }
 
 pub(crate) fn start_avatar_picker() -> Result<AvatarPickerReceiver, String> {
-    let (sender, receiver) = mpsc::channel();
-    thread::Builder::new()
-        .name("leocard-avatar-picker".to_owned())
-        .spawn(move || {
-            let _ = sender.send(open_avatar_dialog());
-        })
-        .map_err(|error| format!("无法启动头像选择器：{error}"))?;
-    Ok(Mutex::new(receiver))
+    request_image("选择玩家头像")
 }
 
 pub(crate) fn poll_avatar_picker(
@@ -98,10 +88,6 @@ fn save_avatar(
         PersonalEvent::AvatarSaved,
     )));
     Ok(())
-}
-
-fn open_avatar_dialog() -> Result<Option<PathBuf>, String> {
-    pick_image("选择玩家头像")
 }
 
 pub(crate) fn sync_avatar_images(

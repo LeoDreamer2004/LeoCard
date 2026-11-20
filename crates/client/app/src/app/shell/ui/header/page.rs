@@ -2,7 +2,7 @@
 
 use crate::app::presentation::{BORDER, MUTED, add_text, add_title};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use crate::app::shell::SakuraUiAction;
 use crate::app::shell::{
     AchievementEntry, ConnectionUiAction, LiquidKind, LiquidSurface, LobbyGameHeader,
@@ -13,13 +13,12 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_client::ClientPhaseRef;
+use leocard_platform::is_mobile;
 use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node};
 
-const PAGE_HEADER_SCALE: f32 = if cfg!(target_os = "android") {
-    1.2
-} else {
-    1.0
-};
+fn page_header_scale() -> f32 {
+    if is_mobile() { 1.2 } else { 1.0 }
+}
 
 pub(in crate::app::shell) struct Header<'a> {
     pub(super) client: Option<&'a ClientResource>,
@@ -61,11 +60,11 @@ impl<'a> Header<'a> {
             root,
             Node {
                 width: percent(100),
-                height: px(72.0 * PAGE_HEADER_SCALE),
+                height: px(72.0 * page_header_scale()),
                 flex_shrink: 0.0,
                 border: UiRect::bottom(px(2)),
                 padding: UiRect {
-                    right: px(if cfg!(target_os = "android") { 48 } else { 24 }),
+                    right: px(if is_mobile() { 48 } else { 24 }),
                     ..UiRect::axes(px(24), px(5))
                 },
                 align_items: AlignItems::Center,
@@ -93,7 +92,7 @@ impl<'a> Header<'a> {
             Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: px(14.0 * PAGE_HEADER_SCALE),
+                column_gap: px(14.0 * page_header_scale()),
                 ..default()
             },
             None,
@@ -102,7 +101,7 @@ impl<'a> Header<'a> {
             commands,
             left,
             "LeoCard",
-            25.0 * PAGE_HEADER_SCALE,
+            25.0 * page_header_scale(),
             Color::srgb(0.84, 0.81, 1.0),
             self.assets,
         );
@@ -112,7 +111,7 @@ impl<'a> Header<'a> {
                 left,
                 Node {
                     width: px(1),
-                    height: px(24.0 * PAGE_HEADER_SCALE),
+                    height: px(24.0 * page_header_scale()),
                     ..default()
                 },
                 Some(BORDER),
@@ -122,7 +121,7 @@ impl<'a> Header<'a> {
                 commands,
                 left,
                 format!("端口 {host_port}"),
-                15.0 * PAGE_HEADER_SCALE,
+                15.0 * page_header_scale(),
                 MUTED,
                 self.assets,
             );
@@ -133,7 +132,7 @@ impl<'a> Header<'a> {
             Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: px(6.0 * PAGE_HEADER_SCALE),
+                column_gap: px(6.0 * page_header_scale()),
                 ..default()
             },
             None,
@@ -147,8 +146,8 @@ impl<'a> Header<'a> {
                     Button,
                     UiAction::Connection(ConnectionUiAction::ToggleJoin),
                     Node {
-                        width: px(146.0 * PAGE_HEADER_SCALE),
-                        height: px(48.0 * PAGE_HEADER_SCALE),
+                        width: px(146.0 * page_header_scale()),
+                        height: px(48.0 * page_header_scale()),
                         ..default()
                     },
                     CustomButtonMotion,
@@ -170,7 +169,7 @@ impl<'a> Header<'a> {
                 ClientPhaseRef::Idle | ClientPhaseRef::Closed
             )
         }) {
-            #[cfg(not(target_os = "android"))]
+            #[cfg(feature = "desktop")]
             add_page_icon_button(
                 commands,
                 right,
@@ -178,16 +177,16 @@ impl<'a> Header<'a> {
                 self.assets,
                 self.assets.home.network_icon.clone(),
                 "联机",
-                PAGE_HEADER_SCALE,
+                page_header_scale(),
             );
             ShopEntry {
                 assets: self.assets,
             }
-            .render(commands, right, PAGE_HEADER_SCALE);
+            .render(commands, right, page_header_scale());
             AchievementEntry {
                 assets: self.assets,
             }
-            .render(commands, right, PAGE_HEADER_SCALE);
+            .render(commands, right, page_header_scale());
         }
         add_page_icon_button(
             commands,
@@ -196,7 +195,7 @@ impl<'a> Header<'a> {
             self.assets,
             self.assets.home.settings_icon.clone(),
             "设置",
-            PAGE_HEADER_SCALE,
+            page_header_scale(),
         );
         ProfileEntry {
             form: self.form,
@@ -206,8 +205,8 @@ impl<'a> Header<'a> {
         .render(
             commands,
             right,
-            44.0 * PAGE_HEADER_SCALE,
-            17.5 * PAGE_HEADER_SCALE,
+            44.0 * page_header_scale(),
+            17.5 * page_header_scale(),
         );
         if editable_identity {
             let menu = commands.child(
@@ -229,7 +228,7 @@ impl<'a> Header<'a> {
                 commands,
                 menu,
                 &self.form.player_name,
-                16.0 * PAGE_HEADER_SCALE,
+                16.0 * page_header_scale(),
                 Color::srgb(0.88, 0.84, 1.0),
                 self.assets,
             );

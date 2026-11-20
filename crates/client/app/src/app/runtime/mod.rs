@@ -1,11 +1,11 @@
 //! 应用启动、平台集成、持久化、资源与网络会话。
 
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 mod android;
 mod application;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 mod cursor;
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 mod native_text;
 mod notifications;
 mod platform;
@@ -14,6 +14,8 @@ mod preferences;
 mod projection;
 mod resources;
 mod session;
+#[cfg(feature = "web")]
+mod web;
 
 pub(crate) use application::*;
 use platform::*;

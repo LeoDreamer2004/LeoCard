@@ -1,4 +1,4 @@
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::monitor::{McProcessMonitor, monitor_mc_process};
 use super::notifications::{McProcessNotices, show_process_notices};
 use crate::app::runtime::ClientUpdateSet;
@@ -9,7 +9,7 @@ pub(in super::super) struct McProcessPresencePlugin;
 
 impl Plugin for McProcessPresencePlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         app.init_resource::<McProcessMonitor>()
             .add_systems(Update, monitor_mc_process.in_set(ClientUpdateSet::Sync));
         app.init_resource::<McProcessNotices>().add_systems(

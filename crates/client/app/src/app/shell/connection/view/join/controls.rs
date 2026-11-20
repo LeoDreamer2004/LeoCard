@@ -1,4 +1,4 @@
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     ConnectionUiAction, CozyButtonVariant, UiAction, add_cozy_button_variant_scaled,
@@ -64,7 +64,7 @@ pub(super) fn colored_button(
     variant: CozyButtonVariant,
     assets: &UiAssets,
 ) {
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     // Flex owns the slot width. The shared sliced skin stretches inside it without
     // letting the source image's aspect ratio change the button or its text size.
     let slot = spawn_node(

@@ -1,7 +1,7 @@
 use super::{GamePreferences, GlobalPreferences, SavedPreferences};
+use leocard_platform::storage as fs;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
@@ -80,8 +80,8 @@ impl PreferenceFiles {
 
     fn write_missing<T: Serialize>(&self, name: &str, preferences: &T) -> Result<(), String> {
         let path = self.directory.join(name);
-        if path.try_exists().map_err(|error| error.to_string())? {
-            return if path.is_file() {
+        if fs::try_exists(&path).map_err(|error| error.to_string())? {
+            return if fs::is_file(&path) {
                 Ok(())
             } else {
                 Err(format!("偏好路径不是文件：{}", path.display()))

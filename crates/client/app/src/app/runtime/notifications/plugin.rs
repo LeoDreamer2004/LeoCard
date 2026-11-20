@@ -1,4 +1,4 @@
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::systems::setup_turn_notifications;
 use super::systems::{TurnNotifications, update_turn_notifications};
 use crate::app::runtime::ClientUpdateSet;
@@ -12,7 +12,7 @@ impl Plugin for TurnNotificationPlugin {
             Update,
             update_turn_notifications.in_set(ClientUpdateSet::Animate),
         );
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         app.add_systems(Startup, setup_turn_notifications);
     }
 }

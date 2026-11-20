@@ -7,9 +7,9 @@ use leocard_achievements::{
     AchievementBook, AchievementContext, AchievementDefinition, AchievementTrigger,
     AchievementTriggerResult, TrophyCounts,
 };
+use leocard_platform::time::{self, SystemTime};
 use leocard_protocol::{ACHIEVEMENT_REGISTRY, ProfileId};
 use std::ops::Deref;
-use std::time::{self, SystemTime};
 
 #[derive(Resource)]
 pub struct PlayerAchievements {

@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-use leocard_client::{NetworkState, PlayerEconomy, PropId, TcpGameClient};
+use leocard_client::{GameClient, NetworkState, PlayerEconomy, PropId};
 use leocard_game_common::PlayerId;
+use leocard_platform::time::Duration;
 use leocard_protocol::{ClientCommand, PlayerInteractionKind, ProfileId, RoomId};
-use std::time::Duration;
 
 const BUSY_DURATION: Duration = Duration::from_secs(16);
 
@@ -25,7 +25,7 @@ pub(super) struct EggBurst {
 impl AutoEggThrower {
     pub(crate) fn activate(
         &mut self,
-        client: &mut TcpGameClient,
+        client: &mut GameClient,
         target: PlayerId,
         now: Duration,
         economy: &mut PlayerEconomy,
@@ -69,7 +69,7 @@ impl EggBurst {
         now.saturating_sub(self.started_at) >= BUSY_DURATION
     }
 
-    pub(super) fn still_valid(&self, client: &TcpGameClient) -> bool {
+    pub(super) fn still_valid(&self, client: &GameClient) -> bool {
         let model = client.model();
         matches!(client.state(), NetworkState::Connected(_))
             && model.room_id() == self.room

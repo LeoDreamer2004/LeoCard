@@ -9,6 +9,7 @@ use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongScoreResult;
+use leocard_platform::is_mobile;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
 
@@ -26,8 +27,8 @@ pub(in super::super) fn add_mahjong_wait_popup(
         hand_tile,
         waits,
         Node {
-            left: px((Layout::OWN_STEP - width) * 0.5),
-            bottom: px(Layout::OWN_HEIGHT),
+            left: px((Layout::own_step() - width) * 0.5),
+            bottom: px(Layout::own_height()),
             ..default()
         },
         game_assets,
@@ -166,7 +167,7 @@ fn popup_dimensions(waits: &[MahjongWait]) -> (f32, f32) {
     let show_fans = waits.iter().any(|wait| wait.scores.is_some());
     let cell_width = if show_fans {
         96.0
-    } else if cfg!(target_os = "android") {
+    } else if is_mobile() {
         40.0
     } else {
         31.0

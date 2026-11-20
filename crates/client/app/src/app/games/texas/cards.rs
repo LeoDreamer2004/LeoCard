@@ -45,7 +45,7 @@ pub(super) fn add_texas_board_back(
     let animated = delay.is_some();
     let card = TableCard {
         texture: assets.playing_cards.card_back.clone(),
-        size: TexasTableLayout::BOARD_CARD_SIZE,
+        size: TexasTableLayout::board_card_size(),
         opacity: if animated { 0.0 } else { 1.0 },
     }
     .spawn(commands, parent, Node::default(), materials);
@@ -55,7 +55,7 @@ pub(super) fn add_texas_board_back(
         start_offset: if animated {
             TexasTableLayout::draw_pile_center()
                 - TexasTableLayout::board_card_origin(index)
-                - TexasTableLayout::BOARD_CARD_SIZE * 0.5
+                - TexasTableLayout::board_card_size() * 0.5
         } else {
             Vec2::ZERO
         },
@@ -79,7 +79,7 @@ pub(super) fn add_texas_board_face(
     let face = assets.playing_cards.face(card);
     let entity = TableCard {
         texture: face.clone(),
-        size: TexasTableLayout::BOARD_CARD_SIZE,
+        size: TexasTableLayout::board_card_size(),
         opacity: 1.0,
     }
     .spawn(commands, parent, Node::default(), materials);

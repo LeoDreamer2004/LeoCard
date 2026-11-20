@@ -1,7 +1,7 @@
 use super::assets::DrawGuessAssets;
 use super::client::DrawGuessClient;
 use super::state::{DrawGuessUiState, DrawTool, can_message};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, game_side_control_scale};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::ecs::system::SystemParam;
@@ -63,7 +63,7 @@ pub(super) fn button(
     art: &DrawGuessAssets,
 ) -> Entity {
     let enabled = spec.action.is_some();
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let button = spawn_node(
         commands,
         parent,

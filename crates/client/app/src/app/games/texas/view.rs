@@ -264,9 +264,9 @@ fn add_community_area(
         Node {
             position_type: PositionType::Absolute,
             left: percent(50),
-            top: px(TexasTableLayout::BOARD_TOP),
+            top: px(TexasTableLayout::board_top()),
             width: px(TexasTableLayout::board_width()),
-            height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
+            height: px(TexasTableLayout::board_row_height()),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             ..default()
@@ -283,7 +283,7 @@ fn add_community_area(
         center,
         Node {
             width: percent(100),
-            height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
+            height: px(TexasTableLayout::board_row_height()),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -299,7 +299,7 @@ fn add_community_area(
         cards,
         Node {
             width: px(54),
-            height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
+            height: px(TexasTableLayout::board_row_height()),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,

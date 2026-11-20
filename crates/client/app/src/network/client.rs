@@ -1,23 +1,23 @@
 use super::NETWORK_ROOM_ID;
+use super::backend::{WorkerHandle, forget_session, remembered_reconnect_token, spawn_worker};
 use super::state::{
-    COMMAND_QUEUE, CommandSender, EventQueue, LocalPlayerConnection, NetworkEvent, NetworkLaunch,
-    NetworkStartError, NetworkState, normalize_server_address, push_event,
+    CommandSender, EventQueue, LocalPlayerConnection, NetworkEvent, NetworkLaunch,
+    NetworkStartError, NetworkState, normalize_server_address,
 };
-use super::worker::run_network;
 use crate::ClientModel;
 use leocard_game_common::PlayerId;
+#[cfg(not(feature = "web"))]
 use leocard_host::{GameSetup, HostSession};
+use leocard_platform::time::{Duration, Instant};
 use leocard_protocol::{
     ChatMessage, ClientCommand, GameCommand, GameRules, PlayerInteraction, ReconnectToken,
     Revision, ServerEvent, ServerMessage,
 };
+#[cfg(not(feature = "web"))]
+use leocard_tcp::ServerTls;
 use std::collections::VecDeque;
 use std::io;
 use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration, Instant};
-use tokio::runtime;
-use tokio::sync::mpsc;
 
 const GAME_COMMAND_REPEAT_WINDOW: Duration = Duration::from_millis(500);
 
@@ -35,8 +35,8 @@ impl RecentGameCommand {
     }
 }
 
-/// Bevy 主线程使用的非阻塞 TCP 客户端。所有套接字 I/O 都在独立 Tokio 线程中运行。
-pub struct TcpGameClient {
+/// 共用的联机客户端，平台后端负责非阻塞传输和重连。
+pub struct GameClient {
     model: ClientModel,
     commands: CommandSender,
     events: EventQueue,
@@ -44,15 +44,46 @@ pub struct TcpGameClient {
     recent_game_command: Option<RecentGameCommand>,
     reconnect_started: Option<Instant>,
     reconnect_notice: bool,
-    _worker: thread::JoinHandle<()>,
+    _worker: WorkerHandle,
 }
 
-impl TcpGameClient {
+impl GameClient {
+    #[cfg(feature = "web")]
+    pub fn host_with_profile(
+        _port: u16,
+        _rules: GameRules,
+        _player: LocalPlayerConnection,
+    ) -> Result<Self, NetworkStartError> {
+        Err(NetworkStartError::Unsupported("网页端仅支持加入房间"))
+    }
+
     /// 在所有网卡上监听指定端口，并让房主通过回环 TCP 加入自己的房间。
+    #[cfg(not(feature = "web"))]
     pub fn host_with_profile(
         port: u16,
         rules: GameRules,
         player: LocalPlayerConnection,
+    ) -> Result<Self, NetworkStartError> {
+        Self::spawn_host(port, rules, player, None)
+    }
+
+    /// 在原有 TCP/WS 开房端口上同时接受使用指定证书的 WSS 连接。
+    #[cfg(not(feature = "web"))]
+    pub fn host_with_tls(
+        port: u16,
+        rules: GameRules,
+        player: LocalPlayerConnection,
+        tls: ServerTls,
+    ) -> Result<Self, NetworkStartError> {
+        Self::spawn_host(port, rules, player, Some(tls))
+    }
+
+    #[cfg(not(feature = "web"))]
+    fn spawn_host(
+        port: u16,
+        rules: GameRules,
+        player: LocalPlayerConnection,
+        tls: Option<ServerTls>,
     ) -> Result<Self, NetworkStartError> {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
@@ -64,6 +95,7 @@ impl TcpGameClient {
             NetworkLaunch::Host {
                 port,
                 session: Box::new(session),
+                tls,
             },
             format!("正在开放 0.0.0.0:{port}"),
         )
@@ -96,17 +128,25 @@ impl TcpGameClient {
         launch: NetworkLaunch,
         connecting: String,
     ) -> Result<Self, NetworkStartError> {
-        let (command_tx, command_rx) = mpsc::channel(COMMAND_QUEUE);
         let events = Arc::new(Mutex::new(VecDeque::new()));
         let mut model = ClientModel::new(NETWORK_ROOM_ID);
-        let reconnect_token = ReconnectToken(loop {
-            let token = getrandom::u64().map_err(|error| {
-                NetworkStartError::Worker(io::Error::other(format!("无法生成重连令牌：{error}")))
-            })?;
-            if token != 0 {
-                break token;
+        let fresh_token = || -> Result<u64, NetworkStartError> {
+            loop {
+                let token = getrandom::u64().map_err(|error| {
+                    NetworkStartError::Worker(io::Error::other(format!(
+                        "无法生成重连令牌：{error}"
+                    )))
+                })?;
+                if token != 0 {
+                    break Ok(token);
+                }
             }
-        });
+        };
+        let reconnect_token = ReconnectToken(
+            remembered_reconnect_token(&launch)
+                .map(Ok)
+                .unwrap_or_else(fresh_token)?,
+        );
         let mut command = player.identity.join_command(
             NETWORK_ROOM_ID,
             player.name.trim(),
@@ -120,30 +160,7 @@ impl TcpGameClient {
         }
         let join = model.command(command);
         let reconnect_join = join.clone();
-        let worker_events = Arc::clone(&events);
-        let worker = thread::Builder::new()
-            .name("leocard-network".to_owned())
-            .spawn(move || {
-                let runtime = match runtime::Builder::new_current_thread().enable_all().build() {
-                    Ok(runtime) => runtime,
-                    Err(error) => {
-                        push_event(
-                            &worker_events,
-                            NetworkEvent::Failed(format!("无法启动网络运行时：{error}")),
-                        );
-                        return;
-                    }
-                };
-                if let Err(error) = runtime.block_on(run_network(
-                    launch,
-                    command_rx,
-                    &worker_events,
-                    reconnect_join,
-                )) {
-                    push_event(&worker_events, NetworkEvent::Failed(error));
-                }
-            })
-            .map_err(NetworkStartError::Worker)?;
+        let (command_tx, worker) = spawn_worker(launch, Arc::clone(&events), reconnect_join)?;
 
         let client = Self {
             model,
@@ -179,6 +196,9 @@ impl TcpGameClient {
     }
 
     pub fn send(&mut self, command: ClientCommand) -> bool {
+        if matches!(command, ClientCommand::LeaveRoom) {
+            forget_session();
+        }
         if !matches!(self.state, NetworkState::Connected(_)) {
             return false;
         }
@@ -257,6 +277,13 @@ impl TcpGameClient {
         };
         for event in pending {
             match event {
+                #[cfg(feature = "web")]
+                NetworkEvent::Resync => {
+                    if matches!(self.state, NetworkState::Connected(_)) {
+                        let message = self.model.command(ClientCommand::RequestSnapshot);
+                        let _ = self.commands.try_send(message);
+                    }
+                }
                 NetworkEvent::Connected(address) => {
                     let state = NetworkState::Connected(address);
                     changed |= self.state != state;

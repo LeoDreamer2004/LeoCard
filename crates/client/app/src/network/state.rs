@@ -1,25 +1,36 @@
 use crate::{LocalPlayerProfile, PlayerIdentity};
+#[cfg(not(feature = "web"))]
 use leocard_host::HostSession;
+use leocard_platform::time::Duration;
+#[cfg(not(feature = "web"))]
+use leocard_protocol::ClientMessage;
 use leocard_protocol::{
-    AvatarFrameId, ClientMessage, PlayerGameProfiles, PlayerGender, RoomId, ServerMessage,
+    AvatarFrameId, PlayerGameProfiles, PlayerGender, RoomId, RoomInfo, ServerMessage,
 };
+#[cfg(not(feature = "web"))]
+use leocard_tcp::ServerTls;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use std::{fmt, io};
+#[cfg(not(feature = "web"))]
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub(super) const RECONNECT_ATTEMPTS: u8 = 6;
+#[cfg(not(feature = "web"))]
 pub(super) const COMMAND_QUEUE: usize = 64;
 pub(super) const RECONNECT_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 pub(super) const CONNECTION_HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(12);
 pub(super) const PING_INTERVAL: Duration = Duration::from_secs(3);
-const EVENT_QUEUE: usize = 512;
+pub(super) const EVENT_QUEUE: usize = 512;
 
 /// 当前协议中一个监听端口只承载一个房间，因此客户端无需在地址之外再输入房间号。
 pub const NETWORK_ROOM_ID: RoomId = RoomId(523);
 
+#[cfg(not(feature = "web"))]
 pub(super) type CommandSender = Sender<ClientMessage>;
+#[cfg(feature = "web")]
+pub(super) type CommandSender = super::browser::CommandSender;
+#[cfg(not(feature = "web"))]
 pub(super) type CommandReceiver = Receiver<ClientMessage>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -35,14 +46,24 @@ pub enum NetworkStartError {
     InvalidPort,
     InvalidAddress(String),
     Worker(io::Error),
+    Unsupported(&'static str),
 }
 
 impl fmt::Display for NetworkStartError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Unsupported(message) => f.write_str(message),
             Self::InvalidPort => f.write_str("端口必须在 1..=65535 范围内"),
             Self::InvalidAddress(address) => {
-                write!(f, "连接地址必须是 主机名或IP:端口，当前输入：{address}")
+                write!(
+                    f,
+                    "{}，当前输入：{address}",
+                    if cfg!(feature = "web") {
+                        "连接地址需要完整的 ws:// 或 wss:// 地址"
+                    } else {
+                        "连接地址必须是 主机名或IP:端口"
+                    }
+                )
             }
             Self::Worker(error) => write!(f, "无法启动网络线程：{error}"),
         }
@@ -52,9 +73,11 @@ impl fmt::Display for NetworkStartError {
 impl std::error::Error for NetworkStartError {}
 
 pub(super) enum NetworkLaunch {
+    #[cfg(not(feature = "web"))]
     Host {
         port: u16,
         session: Box<HostSession>,
+        tls: Option<ServerTls>,
     },
     Join {
         address: String,
@@ -62,6 +85,8 @@ pub(super) enum NetworkLaunch {
 }
 
 pub(super) enum NetworkEvent {
+    #[cfg(feature = "web")]
+    Resync,
     Connected(String),
     Reconnecting(String),
     Message(Box<ServerMessage>),
@@ -135,6 +160,14 @@ pub(super) fn push_event(events: &EventQueue, event: NetworkEvent) {
 }
 
 pub(crate) fn normalize_server_address(address: &str) -> Result<String, NetworkStartError> {
+    #[cfg(feature = "web")]
+    return super::browser::normalize_address(address);
+    #[cfg(not(feature = "web"))]
+    normalize_tcp_address(address)
+}
+
+#[cfg(not(feature = "web"))]
+fn normalize_tcp_address(address: &str) -> Result<String, NetworkStartError> {
     let address = address.trim();
     let invalid = || NetworkStartError::InvalidAddress(address.to_owned());
     let (host, port) = address.rsplit_once(':').ok_or_else(invalid)?;
@@ -150,4 +183,9 @@ pub(crate) fn normalize_server_address(address: &str) -> Result<String, NetworkS
         return Err(invalid());
     }
     Ok(address.to_owned())
+}
+
+pub(crate) struct RoomInfoResult {
+    pub address: String,
+    pub info: Option<(RoomInfo, u32)>,
 }

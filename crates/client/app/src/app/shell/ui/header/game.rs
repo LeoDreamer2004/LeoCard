@@ -1,9 +1,9 @@
 use super::page::Header;
 use super::state::{
-    AVATAR_SIZE, GameHeaderAvatar, GameHeaderItem, GameHeaderMotion, HEIGHT, ITEM_WIDTH,
-    RIGHT_INSET,
+    GameHeaderAvatar, GameHeaderItem, GameHeaderMotion, avatar_size, height, item_width,
+    right_inset,
 };
-use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
+use crate::app::presentation::game_side_control_scale;
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, NavigationUiAction, ProfileEntry, UiAction,
     add_cozy_labeled_icon_button,
@@ -23,7 +23,7 @@ impl Header<'_> {
                     right: px(0),
                     top: px(0),
                     width: percent(100),
-                    height: px(HEIGHT),
+                    height: px(height()),
                     ..default()
                 },
                 GlobalZIndex(1000),
@@ -64,9 +64,9 @@ impl Header<'_> {
                 Node {
                     position_type: PositionType::Absolute,
                     right: px(item.right()),
-                    top: px(4.0 * GAME_SIDE_CONTROL_SCALE),
-                    width: px(ITEM_WIDTH),
-                    height: px(HEIGHT - 8.0 * GAME_SIDE_CONTROL_SCALE),
+                    top: px(4.0 * game_side_control_scale()),
+                    width: px(item_width()),
+                    height: px(height() - 8.0 * game_side_control_scale()),
                     display: Display::None,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
@@ -85,7 +85,7 @@ impl Header<'_> {
                 icon,
                 variant,
                 label,
-                GAME_SIDE_CONTROL_SCALE,
+                game_side_control_scale(),
             );
         }
         let anchor = spawn_node(
@@ -93,10 +93,10 @@ impl Header<'_> {
             header,
             Node {
                 position_type: PositionType::Absolute,
-                right: px(RIGHT_INSET),
-                top: px((HEIGHT - AVATAR_SIZE) * 0.5),
-                width: px(AVATAR_SIZE),
-                height: px(AVATAR_SIZE),
+                right: px(right_inset()),
+                top: px((height() - avatar_size()) * 0.5),
+                width: px(avatar_size()),
+                height: px(avatar_size()),
                 ..default()
             },
             None,
@@ -112,11 +112,11 @@ impl Header<'_> {
         .render(
             commands,
             anchor,
-            AVATAR_SIZE,
-            15.0 * GAME_SIDE_CONTROL_SCALE,
+            avatar_size(),
+            15.0 * game_side_control_scale(),
         );
         commands.entity(avatar).insert(GameHeaderAvatar);
-        #[cfg(target_os = "android")]
+        #[cfg(feature = "android")]
         commands.entity(avatar).remove::<UiAction>();
     }
 }

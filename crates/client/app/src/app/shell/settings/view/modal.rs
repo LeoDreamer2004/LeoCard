@@ -1,5 +1,8 @@
 //! 全局设置窗口与页签组合。
 
+#[cfg(not(feature = "web"))]
+use crate::app::shell::UpdateManager;
+
 use super::super::{SelectedSettingsTab, SettingsMotion, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
@@ -11,7 +14,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{
     CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab, SettingsUiAction,
-    ShellOverlayLayer, UiAction, UpdateManager, add_centered_modal, add_configuration_scroll,
+    ShellOverlayLayer, UiAction, add_centered_modal, add_configuration_scroll,
     add_cozy_close_button, cozy_panel_transform,
 };
 use bevy::prelude::*;
@@ -21,6 +24,7 @@ use leocard_ui::{PageFrame, UiComposer, decorate_panel, sliced_image, spawn_node
 
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,
+    #[cfg(not(feature = "web"))]
     updater: &'a UpdateManager,
     assets: &'a UiAssets,
     client: Option<&'a ClientModel>,
@@ -29,12 +33,13 @@ pub(crate) struct SettingsModal<'a> {
 impl<'a> SettingsModal<'a> {
     pub(crate) fn new(
         form: &'a AppearancePreferences,
-        updater: &'a UpdateManager,
+        #[cfg(not(feature = "web"))] updater: &'a UpdateManager,
         assets: &'a UiAssets,
         client: Option<&'a ClientModel>,
     ) -> Self {
         Self {
             form,
+            #[cfg(not(feature = "web"))]
             updater,
             assets,
             client,
@@ -56,6 +61,7 @@ impl<'a> SettingsModal<'a> {
             selected_tab
         };
         let form = self.form;
+        #[cfg(not(feature = "web"))]
         let updater = self.updater;
         let assets = self.assets;
         let progress = motion.progress;
@@ -171,7 +177,12 @@ impl<'a> SettingsModal<'a> {
             }
             SettingsTab::Room => render_room_settings(commands, content, self.client, assets),
             SettingsTab::About => {
-                AboutSettings::new(updater, assets).render(commands, content);
+                AboutSettings::new(
+                    #[cfg(not(feature = "web"))]
+                    updater,
+                    assets,
+                )
+                .render(commands, content);
             }
         }
     }

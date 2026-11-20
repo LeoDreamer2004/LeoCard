@@ -4,6 +4,7 @@ use crate::app::shell::{UiState, can_edit_identity};
 use bevy::prelude::*;
 use image::{ImageFormat, ImageReader};
 use leocard_client::LanRoomBrowser;
+use leocard_platform::HAS_LAN;
 use leocard_protocol::AVATAR_DIMENSION;
 use std::io::Cursor;
 
@@ -13,7 +14,7 @@ pub(crate) fn sync_lan_discovery(
     client: Option<Res<ClientResource>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    if !ui.rooms.open || !can_edit_identity(client.as_deref()) {
+    if !HAS_LAN || !ui.rooms.open || !can_edit_identity(client.as_deref()) {
         if discovery.generation.is_some() {
             *discovery = LanDiscovery::default();
         }

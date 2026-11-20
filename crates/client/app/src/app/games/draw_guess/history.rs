@@ -1,6 +1,6 @@
 use super::feedback::DrawingHistoryMessage;
 use super::state::{GuessHistory, HistoryScroll};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, READY, TEXT, add_text};
+use crate::app::presentation::{READY, TEXT, add_text, game_side_control_scale};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -25,10 +25,10 @@ pub(super) fn render(
             position_type: PositionType::Absolute,
             right: px(10),
             bottom: px(10.0 + footer_height),
-            width: px(240.0 * GAME_SIDE_CONTROL_SCALE),
+            width: px(240.0 * game_side_control_scale()),
             max_width: percent(42),
             max_height: percent(60),
-            row_gap: px(6.0 * GAME_SIDE_CONTROL_SCALE),
+            row_gap: px(6.0 * game_side_control_scale()),
             flex_direction: FlexDirection::Column,
             ..default()
         },
@@ -40,7 +40,7 @@ pub(super) fn render(
         panel,
         Node {
             width: percent(100),
-            height: px(156.0 * GAME_SIDE_CONTROL_SCALE),
+            height: px(156.0 * game_side_control_scale()),
             max_height: percent(100),
             min_height: px(0),
             ..default()
@@ -57,7 +57,7 @@ pub(super) fn render(
                 min_width: px(0),
                 height: percent(100),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(6.0 * GAME_SIDE_CONTROL_SCALE),
+                row_gap: px(6.0 * game_side_control_scale()),
                 overflow: Overflow::scroll_y(),
                 ..default()
             },
@@ -77,7 +77,7 @@ fn render_message(
     message: &GuessMessage,
     assets: &UiAssets,
 ) {
-    let scale = GAME_SIDE_CONTROL_SCALE;
+    let scale = game_side_control_scale();
     let row = commands.keyed_child(
         list,
         format!("message:{}", message.serial),

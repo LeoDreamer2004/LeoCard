@@ -3,7 +3,6 @@ name = "leocard-client"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Bevy client and transport-neutral client state for LeoCard"
 
 [[bin]]
@@ -11,7 +10,16 @@ name = "leocard"
 path = "src/main.rs"
 
 [features]
-default = []
+default = ["desktop"]
+android = ["leocard-platform/android", "leocard-ui/android"]
+desktop = ["leocard-platform/desktop"]
+web = [
+    "bevy/webgl2",
+    "fastrand/js",
+    "getrandom/wasm_js",
+    "leocard-platform/web",
+    "leocard-ui/web",
+]
 developer = [
     "leocard-qigui523/developer",
     "leocard_mc_guess/developer",
@@ -37,32 +45,41 @@ leocard-doudizhu = { path = "../../games/doudizhu" }
 leocard-draw-guess = { path = "../../games/draw-guess" }
 leocard-game-common = { path = "../../games/common" }
 leocard-guandan = { path = "../../games/guandan" }
-leocard-host = { path = "../../host" }
 leocard-mahjong = { path = "../../games/mahjong" }
 leocard-mahjong-link = { path = "../../games/mahjong-link" }
+leocard-platform = { path = "../platform" }
 leocard_mc_guess = { path = "../../games/mc-guess" }
 leocard-protocol = { path = "../../network/protocol" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }
-leocard-tcp = { path = "../../network/tcp" }
 leocard-texas-holdem = { path = "../../games/texas-holdem" }
 leocard-ui = { path = "../ui" }
 leocard-uno = { path = "../../games/uno" }
-leocard-update = { path = "../update" }
 postcard.workspace = true
-semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
-tokio.workspace = true
 winit.workspace = true
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+leocard-host = { path = "../../host" }
+semver.workspace = true
+leocard-tcp = { path = "../../network/tcp" }
+leocard-update = { path = "../update" }
+tokio.workspace = true
+
+[target.'cfg(all(not(target_os = "android"), not(target_arch = "wasm32")))'.dependencies]
 bevy = { workspace = true, features = ["custom_cursor"] }
 bevy_clipboard = { workspace = true, features = ["system_clipboard"] }
 leocard-sakura-frp = { path = "../../network/sakura-frp" }
 rfd.workspace = true
 sysinfo = { workspace = true, features = ["system"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = ["BinaryType", "CloseEvent", "Document", "Element", "ErrorEvent", "Event", "EventTarget", "Location", "MessageEvent", "Url", "WebSocket", "Window"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 notify-rust.workspace = true

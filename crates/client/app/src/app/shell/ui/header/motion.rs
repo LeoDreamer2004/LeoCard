@@ -1,15 +1,15 @@
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 use super::input::handle_header_taps;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use super::state::GameHeaderAvatar;
 use super::state::{GameHeaderItem, GameHeaderMotion};
 use crate::app::runtime::ClientUpdateSet;
-#[cfg(target_os = "android")]
+#[cfg(feature = "android")]
 use crate::app::shell::UiActionSet;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 use bevy::window::PrimaryWindow;
 use leocard_ui::{TransitionVisuals, UiComposer, fade_panel, update_button_highlights};
 
@@ -24,14 +24,14 @@ impl Plugin for GameHeaderPlugin {
                 .after(update_button_highlights)
                 .in_set(ClientUpdateSet::Animate),
         );
-        #[cfg(not(target_os = "android"))]
+        #[cfg(feature = "desktop")]
         app.add_systems(
             Update,
             track_header_hover
                 .before(advance_header)
                 .in_set(ClientUpdateSet::Animate),
         );
-        #[cfg(target_os = "android")]
+        #[cfg(feature = "android")]
         app.add_systems(
             Update,
             handle_header_taps
@@ -41,7 +41,7 @@ impl Plugin for GameHeaderPlugin {
     }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "desktop")]
 fn track_header_hover(
     windows: Query<&Window, With<PrimaryWindow>>,
     avatars: Query<&PickingInteraction, With<GameHeaderAvatar>>,

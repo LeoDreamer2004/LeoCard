@@ -1,6 +1,7 @@
 name: Web Pages
 
 on:
+  workflow_dispatch:
   release:
     types: [published]
   workflow_call:
@@ -19,19 +20,26 @@ concurrency:
 
 jobs:
   release:
-    name: Resolve published release
+    name: Resolve deployment source
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.release.outputs.published }}
-      tag: ${{ steps.release.outputs.tag }}
+      ref: ${{ steps.release.outputs.ref }}
     steps:
-      - name: Verify release is published
+      - name: Select main revision or published release
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          DEPLOY_EVENT: ${{ github.event_name }}
+          DEPLOY_SHA: ${{ github.sha }}
           RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
         run: |
+          if [[ "$DEPLOY_EVENT" == "workflow_dispatch" ]]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "ref=$DEPLOY_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           metadata="$(gh release view "$RELEASE_TAG" --json tagName,isDraft,publishedAt)"
           if ! jq --exit-status '.isDraft == false and .publishedAt != null' <<< "$metadata" >/dev/null; then
             echo "Release is still a draft, skipping Pages deployment."
@@ -39,7 +47,7 @@ jobs:
             exit 0
           fi
           echo "published=true" >> "$GITHUB_OUTPUT"
-          echo "tag=$(jq --raw-output '.tagName' <<< "$metadata")" >> "$GITHUB_OUTPUT"
+          echo "ref=refs/tags/$(jq --raw-output '.tagName' <<< "$metadata")" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build release web client
@@ -51,10 +59,10 @@ jobs:
       CARGO_TERM_COLOR: always
       CARGO_BUILD_JOBS: "2"
     steps:
-      - name: Check out released source
+      - name: Check out deployment source
         uses: actions/checkout@v6
         with:
-          ref: refs/tags/${{ needs.release.outputs.tag }}
+          ref: ${{ needs.release.outputs.ref }}
           persist-credentials: false
 
       - name: Set up Python

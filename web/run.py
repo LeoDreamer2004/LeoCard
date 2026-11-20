@@ -11,6 +11,7 @@ import sys
 import tomllib
 import webbrowser
 from pathlib import Path
+from bundles import write_asset_packs, write_compressed
 
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = "wasm32-unknown-unknown"
@@ -62,33 +63,37 @@ def build(output, release):
     binary = Path(metadata["target_directory"]) / TARGET / profile / "leocard.wasm"
     output.mkdir(parents=True, exist_ok=True)
     # Remove only generated subdirectories, leaving unrelated files untouched.
-    for name in ("pkg", "assets"):
+    for name in ("pkg", "assets", "packs"):
         if (output / name).exists():
             shutil.rmtree(output / name)
     run("wasm-bindgen", str(binary), "--target", "web", "--out-dir", str(output / "pkg"), "--out-name", "leocard")
-    for name in ("index.html", "app.js", "style.css"):
+    for name in ("index.html", "app.js", "assets.js", "cache.js", "style.css"):
         shutil.copy2(ROOT / "web" / name, output / name)
     shutil.copy2(ROOT / "assets/icons/app-icon.png", output / "icon.png")
-    manifest = []
-    for source in runtime_assets():
-        relative = source.relative_to(ROOT / "assets")
-        destination = output / "assets" / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-        manifest.append({"path": "assets/" + relative.as_posix(), "size": source.stat().st_size})
-    (output / "assets-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-    print(f"Built {output} ({len(manifest)} assets, {sum(item['size'] for item in manifest) / 1048576:.1f} MiB)", flush=True)
+    files = runtime_assets()
+    packs = write_asset_packs(output, ROOT / "assets", files)
+    wasm = output / "pkg/leocard_bg.wasm"
+    packed_wasm = write_compressed(output, "pkg/leocard-wasm", wasm.read_bytes())
+    wasm.unlink()
+    manifest = {"packs": packs, "wasm": packed_wasm}
+    (output / "assets-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    raw_size = sum(source.stat().st_size for source in files)
+    packed_size = sum(pack["size"] for pack in packs)
+    print(f"Built {output} ({len(files)} assets, {len(packs)} packs, "
+          f"{raw_size / 1048576:.1f} -> {packed_size / 1048576:.1f} MiB; "
+          f"WASM {packed_wasm['unpacked_size'] / 1048576:.1f} -> {packed_wasm['size'] / 1048576:.1f} MiB)", flush=True)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
-    extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".wasm": "application/wasm", ".js": "text/javascript", ".wgsl": "text/plain"}
+    extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".wasm": "application/wasm", ".js": "text/javascript", ".pack": "application/octet-stream"}
 
     def log_request(self, code="-", size="-"):
         if str(code).startswith(("4", "5")):
             super().log_request(code, size)
 
     def end_headers(self):
-        self.send_header("Cache-Control", "public, max-age=600" if "/assets/" in self.path else "no-cache")
+        immutable = self.path.split("?", 1)[0].endswith(".pack")
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable" if immutable else "no-cache")
         super().end_headers()
 
 

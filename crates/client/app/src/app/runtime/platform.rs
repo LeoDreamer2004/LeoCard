@@ -1,7 +1,9 @@
-//! 内嵌资源源与操作系统窗口集成。
+//! 内嵌和网页分包的内存资源源与操作系统窗口集成。
 
 use bevy::asset::AssetApp;
-use bevy::asset::io::memory::{Dir, MemoryAssetReader};
+#[cfg(not(feature = "web"))]
+use bevy::asset::io::memory::Dir;
+use bevy::asset::io::memory::MemoryAssetReader;
 use bevy::asset::io::{AssetSourceBuilder, AssetSourceId};
 #[cfg(feature = "desktop")]
 use bevy::ecs::system::NonSendMarker;
@@ -10,7 +12,9 @@ use bevy::prelude::*;
 use bevy::window::WindowCreated;
 #[cfg(feature = "desktop")]
 use bevy::winit::WINIT_WINDOWS;
+#[cfg(not(feature = "web"))]
 use std::env;
+#[cfg(not(feature = "web"))]
 use std::path::Path;
 #[cfg(target_os = "windows")]
 use winit::platform::windows::WindowExtWindows;
@@ -21,6 +25,7 @@ use winit::window::Icon;
 pub(super) const APP_ICON_PNG: &[u8] =
     include_bytes!("../../../../../../assets/icons/app-icon.png");
 
+#[cfg(not(feature = "web"))]
 fn embedded_asset_dir() -> Dir {
     let directory = Dir::default();
     for &(path, bytes) in leocard_assets::embedded_assets() {
@@ -29,11 +34,15 @@ fn embedded_asset_dir() -> Dir {
     directory
 }
 
-/// 在构造 `AssetPlugin` 前将编译进程序的目录注册成 Bevy 默认资源源。
-/// 显式指定 `BEVY_ASSET_ROOT` 时仍使用文件系统，便于开发和紧急覆盖。
+/// 在构造 `AssetPlugin` 前注册内嵌或浏览器解包得到的内存资源。
+/// 原生平台显式指定 `BEVY_ASSET_ROOT` 时仍使用文件系统。
 pub fn configure_runtime_asset_source(app: &mut App) {
-    if leocard_assets::IS_EMBEDDED && env::var_os("BEVY_ASSET_ROOT").is_none() {
-        let directory = embedded_asset_dir();
+    #[cfg(feature = "web")]
+    let directory = Some(super::web::asset_directory());
+    #[cfg(not(feature = "web"))]
+    let directory = (leocard_assets::IS_EMBEDDED && env::var_os("BEVY_ASSET_ROOT").is_none())
+        .then(embedded_asset_dir);
+    if let Some(directory) = directory {
         app.register_asset_source(
             AssetSourceId::Default,
             AssetSourceBuilder::new(move || {

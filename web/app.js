@@ -1,3 +1,5 @@
+import { loadResources } from "./assets.js";
+
 const status = document.querySelector("#status");
 const progress = document.querySelector("#progress");
 const loading = document.querySelector("#loading");
@@ -17,35 +19,17 @@ window.addEventListener("error", event => {
     if (!loading.hidden) fail("游戏启动失败，请查看浏览器控制台并重新加载。");
 });
 
-async function preload() {
-    const response = await fetch(new URL("./assets-manifest.json", import.meta.url));
-    if (!response.ok) throw new Error("无法读取素材清单");
-    const assets = await response.json();
-    const total = assets.reduce((sum, asset) => sum + asset.size, 0);
-    let downloaded = 0;
-    let completed = 0;
-    let next = 0;
-    const worker = async () => {
-        while (next < assets.length) {
-            const asset = assets[next++];
-            const response = await fetch(new URL(asset.path, import.meta.url), { cache: "no-cache" });
-            if (!response.ok) throw new Error(`素材下载失败：${asset.path}`);
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength !== asset.size) throw new Error(`素材下载不完整：${asset.path}`);
-            downloaded += asset.size;
-            completed++;
-            progress.value = total ? downloaded / total : 1;
-            status.textContent = `正在下载素材 ${completed}/${assets.length}　${(downloaded / 1048576).toFixed(1)}/${(total / 1048576).toFixed(1)} MiB`;
-        }
-    };
-    await Promise.all(Array.from({ length: 8 }, worker));
-}
-
 async function boot() {
-    await preload();
+    const [{ default: initialize }, resources] = await Promise.all([
+        import("./pkg/leocard.js"),
+        loadResources(({ completed, count, loaded, total }) => {
+            progress.value = total ? loaded / total : 1;
+            status.textContent = `正在准备资源 ${completed}/${count}　${(loaded / 1048576).toFixed(1)}/${(total / 1048576).toFixed(1)} MiB`;
+        }),
+    ]);
     status.textContent = "正在启动牌桌…";
-    const { default: initialize } = await import("./pkg/leocard.js");
-    await initialize();
+    await initialize({ module_or_path: resources.module });
+    void resources.finish();
     // The Rust entry point waits for persistent storage before launching Bevy.
     const observer = new MutationObserver(() => {
         if (document.querySelector("#leocard")?.dataset.started) { loading.hidden = true; observer.disconnect(); }

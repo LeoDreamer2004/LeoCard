@@ -3,11 +3,10 @@ use super::cards::{HandCardSpec, add_card_button};
 use super::counter::render_counter;
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
-    QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction, QiGui523UiState,
-    QiGuiButtonTone, add_draw_pile, add_game_summary_modal, add_opponent_slot,
-    add_qigui_action_button, add_round_play, add_score_cards_popup, add_table_score_cards,
-    bomb_effect_source, game_has_legal_response, sort_cards_high_to_low,
-    spawn_round_play_container,
+    QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523UiAction, QiGui523UiState, QiGuiButtonTone,
+    add_draw_pile, add_game_summary_modal, add_opponent_slot, add_qigui_action_button,
+    add_round_play, add_score_cards_popup, add_table_score_cards, bomb_effect_source,
+    game_has_legal_response, sort_cards_high_to_low, spawn_round_play_container,
 };
 use crate::app::games::qigui523::QiGuiClientState;
 use crate::app::presentation::{
@@ -34,7 +33,6 @@ use leocard_ui::{UiComposer, spawn_node, ui_component};
 pub(crate) struct TableVisualContext<'a> {
     pub client_state: &'a QiGuiClientState,
     pub assets: &'a UiAssets,
-    pub game_assets: &'a QiGui523Assets,
     pub avatars: &'a AvatarImages,
     pub brightness: f32,
     pub custom_felt: Option<&'a Handle<Image>>,
@@ -66,7 +64,6 @@ pub(crate) fn render_table(
     let TableVisualContext {
         client_state,
         assets,
-        game_assets,
         avatars,
         brightness,
         custom_felt,
@@ -122,7 +119,6 @@ pub(crate) fn render_table(
     let seat_visuals = SeatVisuals {
         game,
         ui: assets,
-        assets: game_assets,
         avatars,
         interaction_menu_open: social.interaction_menu_open,
         play_effect: play_effect.active.as_ref(),
@@ -266,7 +262,6 @@ pub(crate) fn render_table(
         play_effect.active.as_ref(),
         client_state.last_play_effect(),
         assets,
-        game_assets,
     );
 
     let hand_area = spawn_node(

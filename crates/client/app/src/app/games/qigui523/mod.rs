@@ -8,7 +8,6 @@ mod client;
 pub(crate) use client::{QiGuiClientState, ScoreCaptureEffect};
 
 pub(crate) mod actions;
-mod assets;
 mod card_face;
 mod cards;
 mod center;
@@ -33,7 +32,6 @@ mod turn_timer;
 mod voices;
 
 pub(crate) use actions::*;
-pub(crate) use assets::*;
 pub(crate) use cards::*;
 use center::*;
 pub(crate) use clock::*;

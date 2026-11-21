@@ -1,7 +1,7 @@
 use super::clock::add_turn_clock;
-use super::{QiGui523Assets, sort_cards_high_to_low, turn_clock_visible};
+use super::{sort_cards_high_to_low, turn_clock_visible};
 use crate::app::presentation::{
-    ActivePlayEffect, CardSize, READY, SeatSide, SequenceEffectCard, TABLE_CARD_REVEAL,
+    ActivePlayEffect, CardSize, MUTED, READY, SeatSide, SequenceEffectCard, TABLE_CARD_REVEAL,
     add_card_image, add_sequence_play_decoration, add_text,
 };
 use crate::app::runtime::UiAssets;
@@ -27,7 +27,6 @@ pub(super) fn add_round_play_for_optional_player(
     play_effect: Option<&ActivePlayEffect>,
     last_play: Option<&(PlayerId, QiGui523PublicPlay)>,
     assets: &UiAssets,
-    game_assets: &QiGui523Assets,
 ) {
     let justify_content = match side {
         SeatSide::Left => JustifyContent::FlexStart,
@@ -44,7 +43,6 @@ pub(super) fn add_round_play_for_optional_player(
             play_effect,
             last_play,
             assets,
-            game_assets,
         );
     }
 }
@@ -74,10 +72,6 @@ pub(super) fn spawn_round_play_container(
     )
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the play renderer keeps seat geometry and assets explicit"
-)]
 pub(super) fn add_round_play(
     commands: &mut UiComposer,
     parent: Entity,
@@ -86,7 +80,6 @@ pub(super) fn add_round_play(
     play_effect: Option<&ActivePlayEffect>,
     last_play: Option<&(PlayerId, QiGui523PublicPlay)>,
     assets: &UiAssets,
-    game_assets: &QiGui523Assets,
 ) {
     if matches!(&game.phase, QiGui523PhaseView::Finished { .. })
         && game
@@ -136,19 +129,7 @@ pub(super) fn add_round_play(
         return;
     };
     if cards.is_empty() {
-        commands.child(
-            parent,
-            (
-                Node {
-                    width: px(112),
-                    height: px(48),
-                    flex_shrink: 0.0,
-                    ..default()
-                },
-                ImageNode::new(game_assets.pass_marker.clone()),
-                Pickable::IGNORE,
-            ),
-        );
+        add_text(commands, parent, "不出", 28.0, MUTED, assets);
         return;
     }
     let sequence_effect = play_effect.filter(|effect| {

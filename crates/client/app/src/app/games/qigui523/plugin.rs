@@ -2,15 +2,13 @@ use super::counter::sync_counter;
 use super::voices::sync_qigui_voices;
 use super::{
     QiGui523UiState, QiGuiClientState, actions, animate_hand_card_slots, animate_hand_cards,
-    assets, handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview,
+    handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview,
     sync_own_score_detail, sync_play_effect, sync_turn_timer_label,
 };
-
 use crate::app::presentation::{
     play_pending_deal_sounds, start_game_intro_finished, sync_card_voices,
 };
 use crate::app::runtime::{ClientUpdateSet, GameProjectionPlugin};
-
 use crate::app::shell::{
     ScoreCaptureEffectState, UiActionSet, animate_score_capture_effects, sync_score_capture_effect,
 };
@@ -24,7 +22,6 @@ impl Plugin for QiGui523Plugin {
         app.add_plugins(GameProjectionPlugin::<QiGuiClientState>::default())
             .insert_resource(ScoreCaptureEffectState::default())
             .init_resource::<QiGui523UiState>()
-            .add_systems(Startup, assets::load_qigui523_assets)
             .add_systems(
                 Update,
                 actions::dispatch_qigui523_actions.in_set(UiActionSet),

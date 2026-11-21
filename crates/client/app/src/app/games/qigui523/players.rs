@@ -57,7 +57,6 @@ pub(super) fn add_opponent_slot(
             visuals.play_effect,
             visuals.last_play,
             visuals.ui,
-            visuals.assets,
         );
     }
     let interaction_menu_open =
@@ -111,7 +110,6 @@ pub(super) fn add_opponent_slot(
                         visuals.play_effect,
                         visuals.last_play,
                         visuals.ui,
-                        visuals.assets,
                     );
                 }
                 return;
@@ -197,7 +195,6 @@ pub(super) fn add_opponent_slot(
             visuals.play_effect,
             visuals.last_play,
             visuals.ui,
-            visuals.assets,
         );
     }
 }

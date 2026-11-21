@@ -2,8 +2,7 @@
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
-    QiGui523Assets, QiGui523UiState, QiGuiClientState, TableVisualContext, render_qigui523_lobby,
-    render_table,
+    QiGui523UiState, QiGuiClientState, TableVisualContext, render_qigui523_lobby, render_table,
 };
 use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::presentation::PlayEffectState;
@@ -18,7 +17,6 @@ use leocard_ui::UiComposer;
 #[derive(SystemParam)]
 pub(crate) struct QiGui523Screen<'w> {
     client_state: Res<'w, QiGuiClientState>,
-    assets: Res<'w, QiGui523Assets>,
     ui: ResMut<'w, QiGui523UiState>,
     play_effect: Res<'w, PlayEffectState>,
     score_capture: Res<'w, ScoreCaptureEffectState>,
@@ -69,7 +67,6 @@ impl GameScreen for QiGui523Screen<'_> {
         let mut visuals = TableVisualContext {
             client_state: &self.client_state,
             assets,
-            game_assets: &self.assets,
             avatars,
             brightness: form.table_brightness,
             custom_felt: appearance.cards.custom_felt.as_ref(),

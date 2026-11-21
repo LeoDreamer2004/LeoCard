@@ -1,7 +1,7 @@
 //! 七鬼五二三手牌动画与牌型演出状态。
 
+use super::QiGuiClientState;
 use super::counter::QiGuiCounterUi;
-use super::{QiGui523Assets, QiGuiClientState};
 use crate::app::games::HandSelection;
 use crate::app::presentation::{
     ActivePlayEffect, CardAnimationState, Observed, SeatSide, SilentButton,
@@ -19,7 +19,6 @@ pub(super) struct SeatVisuals<'a> {
     pub client_state: &'a QiGuiClientState,
     pub(super) game: &'a QiGui523Snapshot,
     pub(super) ui: &'a UiAssets,
-    pub(super) assets: &'a QiGui523Assets,
     pub(super) avatars: &'a AvatarImages,
     pub(super) interaction_menu_open: Option<PlayerId>,
     pub(super) play_effect: Option<&'a ActivePlayEffect>,

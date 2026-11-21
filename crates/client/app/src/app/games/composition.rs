@@ -19,7 +19,6 @@ use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::ClientPhaseRef;
 use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot};
 use leocard_ui::UiComposer;
 
@@ -95,12 +94,12 @@ impl GameScreens<'_> {
         self.uno.reconcile(client, &mut shell.social);
         self.mahjong.reconcile(client, &mut shell.social);
         self.mahjong_link.reconcile(client, &mut shell.social);
-        if !client
-            .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
-            || shell.social.interaction_menu_open.is_some_and(|target| {
-                client.is_none_or(|client| !client.0.model().has_player(target))
+        if shell.social.interaction_menu_open.is_some_and(|target| {
+            client.is_none_or(|client| {
+                let model = client.0.model();
+                !model.can_send_interactions() || !model.has_player(target)
             })
-        {
+        }) {
             shell.social.interaction_menu_open = None;
         }
     }

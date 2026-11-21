@@ -18,6 +18,7 @@ impl SakuraPage<'_> {
             Node {
                 width: percent(100),
                 flex_grow: 1.0,
+                flex_basis: px(0),
                 min_height: px(0),
                 justify_content: JustifyContent::Center,
                 ..default()
@@ -29,6 +30,7 @@ impl SakuraPage<'_> {
             canvas,
             Node {
                 width: percent(100),
+                height: percent(100),
                 max_width: px(1220),
                 min_height: px(0),
                 padding: UiRect::all(px(22)),
@@ -43,6 +45,7 @@ impl SakuraPage<'_> {
             page,
             Node {
                 width: percent(100),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 column_gap: px(16),
@@ -70,7 +73,9 @@ impl SakuraPage<'_> {
             page,
             Node {
                 width: percent(100),
+                height: px(0),
                 flex_grow: 1.0,
+                flex_basis: px(0),
                 min_height: px(0),
                 column_gap: px(18),
                 ..default()

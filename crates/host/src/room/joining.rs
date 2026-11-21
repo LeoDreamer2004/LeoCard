@@ -68,7 +68,6 @@ impl RoomSession {
                 return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
             }
             self.players[index].reconnect_token = reconnect_token;
-            self.last_requests.remove(&self.players[index].connection);
             return Ok(self.reconnect(index, connection, request_id, game_started));
         }
         if let Some(index) = self
@@ -164,14 +163,9 @@ impl RoomSession {
         if self.host_connection == Some(previous_connection) {
             self.host_connection = Some(connection);
         }
-        let previous_last_request = self.last_requests.remove(&previous_connection);
-        if let Some(last_request) = self.last_requests.get_mut(&connection) {
-            if let Some(previous_last_request) = previous_last_request {
-                *last_request = (*last_request).max(previous_last_request);
-            }
-        } else if let Some(previous_last_request) = previous_last_request {
-            self.last_requests.insert(connection, previous_last_request);
-        }
+        // 请求编号只在同一连接内递增，网页刷新后的客户端会重新从 1 开始。
+        // 保留 begin_request 已记录的新连接编号，不继承旧连接的编号。
+        self.last_requests.remove(&previous_connection);
         self.bump_revision();
         self.join_deliveries(connection, request_id, player)
     }

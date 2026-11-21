@@ -103,10 +103,12 @@ pub(super) fn panel(
     assets: &UiAssets,
 ) -> PageFrameEntities {
     let mut frame = PageFrame::new(page_frame_skin(assets));
+    frame.node.height = percent(100);
     frame.node.flex_basis = px(0);
     frame.node.flex_grow = grow;
     frame.heading.height = px(42);
     frame.content.padding = UiRect::all(px(10));
+    frame.content.flex_basis = px(0);
     frame.content.row_gap = px(10);
     frame.mount(commands, parent)
 }
@@ -137,6 +139,7 @@ pub(super) fn scroll_list(
         parent,
         Node {
             width: percent(100),
+            height: percent(100),
             min_height: px(0),
             flex_grow: 1.0,
             flex_basis: px(0),
@@ -150,6 +153,7 @@ pub(super) fn scroll_list(
         key,
         (
             Node {
+                height: percent(100),
                 min_width: px(0),
                 min_height: px(0),
                 flex_basis: px(0),

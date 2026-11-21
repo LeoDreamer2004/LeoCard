@@ -1,13 +1,15 @@
 use super::{UpdateEvent, UpdateManager, UpdateState};
-use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
+use crate::app::presentation::{
+    MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, page_frame_skin,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalKind, CozyModalPanel, ShellOverlayLayer, UiAction, UiState, UpdateUiAction,
-    add_centered_modal, add_cozy_button, add_cozy_panel, cozy_panel_transform,
+    add_centered_modal, add_cozy_button, add_cozy_close_button, cozy_panel_transform,
 };
 use bevy::prelude::*;
 use leocard_client::open_url;
-use leocard_ui::{ProgressBar, UiComposer, spawn_node};
+use leocard_ui::{PageFrame, ProgressBar, UiComposer, spawn_node};
 use leocard_update::format_bytes;
 
 #[derive(Component)]
@@ -111,31 +113,25 @@ pub(crate) fn render_update_dialog(
     progress: f32,
     assets: &UiAssets,
 ) {
+    let close = UiAction::Update(UpdateUiAction::HideUpdateDialog);
     let overlay = add_centered_modal(
         commands,
         root,
         ShellOverlayLayer::Update,
         CozyModalKind::UpdateDialog,
         progress,
-        updater
-            .dialog_open
-            .then_some(UiAction::Update(UpdateUiAction::HideUpdateDialog)),
+        updater.dialog_open.then(|| close.clone()),
     );
-    let modal = add_cozy_panel(
-        commands,
-        overlay,
-        Node {
-            width: px(560),
-            max_width: percent(90),
-            padding: UiRect::all(px(24)),
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Stretch,
-            row_gap: px(14),
-            ..default()
-        },
-        assets,
-    );
-    commands.entity(modal).insert((
+    let mut frame = PageFrame::new(page_frame_skin(assets));
+    frame.node.width = px(560);
+    frame.node.max_width = percent(90);
+    frame.node.max_height = percent(92);
+    frame.heading.height = px(48);
+    frame.content.flex_grow = 0.0;
+    frame.content.padding = UiRect::all(px(16));
+    frame.content.row_gap = px(14);
+    let frame = frame.mount(commands, overlay);
+    commands.entity(frame.panel).insert((
         CozyModalPanel(CozyModalKind::UpdateDialog),
         cozy_panel_transform(progress),
     ));
@@ -144,17 +140,16 @@ pub(crate) fn render_update_dialog(
     } else {
         "LeoCard 自动更新"
     };
-    add_title(commands, modal, title, 26.0, TEXT, assets);
-    spawn_node(
+    add_title(
         commands,
-        modal,
-        Node {
-            width: px(96),
-            height: px(2),
-            ..default()
-        },
-        Some(Color::srgb(0.64, 0.59, 0.93)),
+        frame.heading,
+        title,
+        24.0,
+        PAGE_FRAME_TITLE,
+        assets,
     );
+    add_cozy_close_button(commands, frame.heading, close, assets);
+    let modal = frame.content;
 
     let (status, detail, fraction) = update_display(&updater.state);
     let status_entity = add_text(commands, modal, status, 18.0, TEXT, assets);

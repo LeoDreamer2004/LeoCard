@@ -1,4 +1,7 @@
 import { loadResources } from "./assets.js";
+import { installAudioUnlock } from "./audio.js";
+
+installAudioUnlock();
 
 const status = document.querySelector("#status");
 const progress = document.querySelector("#progress");

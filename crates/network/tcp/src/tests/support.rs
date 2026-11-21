@@ -136,11 +136,11 @@ impl Peer {
                         decode_frame(&frame).unwrap()
                     }
                 };
-                if let ServerEvent::Rejected { reason } = &message.event {
-                    panic!("unexpected rejection: {reason}");
-                }
                 if predicate(&message.event) {
                     return message;
+                }
+                if let ServerEvent::Rejected { reason } = &message.event {
+                    panic!("unexpected rejection: {reason}");
                 }
             }
         })

@@ -1,7 +1,9 @@
 import { loadResources } from "./assets.js";
 import { installAudioUnlock } from "./audio.js";
+import { fullscreenSupported, installDisplayControls } from "./display.js";
 
 installAudioUnlock();
+installDisplayControls();
 
 const status = document.querySelector("#status");
 const progress = document.querySelector("#progress");
@@ -39,17 +41,7 @@ async function boot() {
     });
     observer.observe(document.querySelector("#leocard"), { attributes: true });
     if (document.querySelector("#leocard")?.dataset.started) { loading.hidden = true; observer.disconnect(); }
-    fullscreen.hidden = !document.fullscreenEnabled;
+    fullscreen.hidden = !fullscreenSupported();
 }
-
-fullscreen.onclick = async () => {
-    try {
-        if (document.fullscreenElement) await document.exitFullscreen();
-        else {
-            await document.documentElement.requestFullscreen();
-            try { await screen.orientation.lock("landscape"); } catch { /* Orientation locking is optional. */ }
-        }
-    } catch (error) { console.info(error); }
-};
 
 boot().catch(error => { console.error(error); fail(error.message ?? "游戏启动失败"); });

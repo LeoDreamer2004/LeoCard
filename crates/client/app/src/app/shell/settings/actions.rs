@@ -2,7 +2,7 @@ use super::{SettingsTab, start_table_felt_picker};
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, ClientResource, GlobalPreferences, TableAppearance, TableFeltPicker,
-    TableSurfaceKind, save_appearance_preferences,
+    TableSurfaceKind, ToggleFullscreen, save_appearance_preferences,
 };
 use crate::app::shell::{
     ConfirmationDialog, CozyButtonVariant, DomainUiAction, PressedUiAction, UiAction,
@@ -23,6 +23,8 @@ struct AppearanceUiResources<'w> {
 #[derive(Clone)]
 pub(crate) enum SettingsUiAction {
     SelectTab(SettingsTab),
+    ToggleFullscreen,
+    TogglePowerSaving,
     ToggleSpectatorInteractions,
     RequestKickPlayer(PlayerId),
     KickPlayer(PlayerId),
@@ -57,6 +59,7 @@ pub(super) struct SettingsUiActionContext<'w> {
     achievements: MessageWriter<'w, LocalAchievementTrigger>,
     client: Option<ResMut<'w, ClientResource>>,
     confirmation: ResMut<'w, ConfirmationDialog>,
+    fullscreen: MessageWriter<'w, ToggleFullscreen>,
 }
 
 pub(super) fn dispatch_settings_actions(
@@ -73,6 +76,17 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
         let local = &mut context.local;
         match self {
             SettingsUiAction::SelectTab(tab) => ui.settings.tab = *tab,
+            SettingsUiAction::ToggleFullscreen => {
+                if appearance.fullscreen_supported {
+                    context.fullscreen.write(ToggleFullscreen);
+                }
+            }
+            SettingsUiAction::TogglePowerSaving => {
+                appearance.power_saving = !appearance.power_saving;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
             SettingsUiAction::ToggleSpectatorInteractions => {
                 if let Some(client) = context.client.as_deref_mut()
                     && client.0.model().is_host()

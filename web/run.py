@@ -67,7 +67,7 @@ def build(output, release):
         if (output / name).exists():
             shutil.rmtree(output / name)
     run("wasm-bindgen", str(binary), "--target", "web", "--out-dir", str(output / "pkg"), "--out-name", "leocard")
-    for name in ("index.html", "app.js", "assets.js", "audio.js", "cache.js", "style.css"):
+    for name in ("index.html", "app.js", "assets.js", "audio.js", "cache.js", "display.js", "style.css"):
         shutil.copy2(ROOT / "web" / name, output / name)
     shutil.copy2(ROOT / "assets/icons/app-icon.png", output / "icon.png")
     files = runtime_assets()

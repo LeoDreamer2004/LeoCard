@@ -14,7 +14,7 @@ cargo run -p leocard-client
 
 开发时客户端会从工作区根目录的 `assets` 加载素材。内嵌文件列表由 `crates/client/runtime-assets.txt` 管理。
 
-自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。自 0.10.2 版本起，本游戏支持 MacOS 客户端。自 0.13.1 版本起，本游戏支持 [网页游戏](https://https://leodreamer2004.github.io/LeoCard/)。
+自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。自 0.10.2 版本起，本游戏支持 MacOS 客户端。自 0.13.1 版本起，本游戏支持 [网页游戏](https://leodreamer2004.github.io/LeoCard/)。
 
 ## 许可证
 

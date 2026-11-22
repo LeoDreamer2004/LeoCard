@@ -14,7 +14,7 @@ leocard-game-common = { path = "../../games/common" }
 leocard-guandan = { path = "../../games/guandan" }
 leocard-mahjong = { path = "../../games/mahjong" }
 leocard-mahjong-link = { path = "../../games/mahjong-link" }
-leocard_mc_guess = { path = "../../games/mc-guess" }
+leocard-mc-guess = { path = "../../games/mc-guess" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }
 leocard-texas-holdem = { path = "../../games/texas-holdem" }

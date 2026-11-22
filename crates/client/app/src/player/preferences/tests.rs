@@ -277,6 +277,7 @@ fn card_and_mahjong_table_settings_persist_and_reset_independently() {
         table_brightness: 0.7,
         mahjong_table_felt_path: Some(PathBuf::from("mahjong.png")),
         mahjong_table_brightness: 0.55,
+        power_saving: true,
         ..GlobalPreferences::default()
     };
     directory.files.save_global(&global).unwrap();
@@ -288,6 +289,7 @@ fn card_and_mahjong_table_settings_persist_and_reset_independently() {
         global.mahjong_table_felt_path
     );
     assert_eq!(loaded.mahjong_table_brightness, 0.55);
+    assert!(loaded.power_saving);
 
     global.mahjong_table_felt_path = None;
     global.mahjong_table_brightness = GlobalPreferences::default().mahjong_table_brightness;
@@ -296,6 +298,7 @@ fn card_and_mahjong_table_settings_persist_and_reset_independently() {
     assert_eq!(loaded.table_felt_path, global.table_felt_path);
     assert_eq!(loaded.table_brightness, 0.7);
     assert!(loaded.mahjong_table_felt_path.is_none());
+    assert!(loaded.power_saving);
     assert_eq!(
         loaded.mahjong_table_brightness,
         GlobalPreferences::default().mahjong_table_brightness

@@ -23,6 +23,7 @@ fn preferences_round_trip_including_avatar() {
             mahjong_table_brightness: 0.6,
             audio_volume: 0.63,
             turn_notifications: false,
+            power_saving: true,
             gender: PlayerGender::Female,
             mahjong_action_voices: false,
             mahjong_fan_voices: true,
@@ -106,6 +107,7 @@ fn preferences_round_trip_including_avatar() {
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
     assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
     assert!(!decoded.global.turn_notifications);
+    assert!(decoded.global.power_saving);
     assert!(!decoded.global.guandan_action_voices);
     assert_eq!(decoded.global.gender, PlayerGender::Female);
     assert_eq!(

@@ -22,7 +22,7 @@ web = [
 ]
 developer = [
     "leocard-qigui523/developer",
-    "leocard_mc_guess/developer",
+    "leocard-mc-guess/developer",
     "leocard-host/developer",
 ]
 # Debug builds keep loading the workspace `assets` directory by default. This
@@ -48,7 +48,7 @@ leocard-guandan = { path = "../../games/guandan" }
 leocard-mahjong = { path = "../../games/mahjong" }
 leocard-mahjong-link = { path = "../../games/mahjong-link" }
 leocard-platform = { path = "../platform" }
-leocard_mc_guess = { path = "../../games/mc-guess" }
+leocard-mc-guess = { path = "../../games/mc-guess" }
 leocard-protocol = { path = "../../network/protocol" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }

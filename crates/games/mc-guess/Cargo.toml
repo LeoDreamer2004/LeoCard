@@ -1,5 +1,5 @@
 [package]
-name = "leocard_mc_guess"
+name = "leocard-mc-guess"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

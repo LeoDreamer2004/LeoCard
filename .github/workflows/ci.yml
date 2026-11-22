@@ -207,7 +207,7 @@ jobs:
       - name: Test resource packaging and browser cache
         run: |
           python3 -m unittest discover -s web/tests -p 'test_*.py'
-          node --test web/tests/assets.mjs
+          node --test web/tests/*.mjs
 
       - name: Install native build tools
         run: |

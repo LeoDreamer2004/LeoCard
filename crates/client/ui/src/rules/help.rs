@@ -23,7 +23,7 @@ pub fn add_help_tooltip(
     parent: Entity,
     help: &str,
     style: HelpTooltipStyle,
-) {
+) -> Entity {
     let question = commands.child(
         parent,
         (
@@ -57,6 +57,7 @@ pub fn add_help_tooltip(
         .insert((Visibility::Hidden, GlobalZIndex(1000), OverrideClip));
     add_label(commands, tooltip, help, 12.0, style.text, style.font);
     commands.entity(question).insert(HelpTooltip { tooltip });
+    tooltip
 }
 
 pub fn update_help_tooltips(

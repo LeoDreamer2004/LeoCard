@@ -5,6 +5,7 @@ mod android;
 mod application;
 #[cfg(feature = "desktop")]
 mod cursor;
+mod display;
 #[cfg(feature = "android")]
 mod native_text;
 mod notifications;
@@ -18,6 +19,7 @@ mod session;
 mod web;
 
 pub(crate) use application::*;
+pub(crate) use display::ToggleFullscreen;
 use platform::*;
 pub(super) use plugin::*;
 pub(crate) use preferences::*;

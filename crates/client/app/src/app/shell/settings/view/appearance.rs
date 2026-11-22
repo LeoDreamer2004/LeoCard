@@ -3,12 +3,14 @@
 use super::section::add_settings_separator;
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
-use crate::app::presentation::{MUTED, TEXT, TableAppearanceSetting, add_text, add_title};
+use crate::app::presentation::{
+    MUTED, TEXT, TableAppearanceSetting, add_text, add_title, rule_help_style,
+};
 use crate::app::runtime::{AppearancePreferences, TableSurfaceKind, UiAssets};
-use crate::app::shell::{SettingsUiAction, UiAction, add_cozy_button};
+use crate::app::shell::{SettingsUiAction, ShellOverlayLayer, UiAction, add_cozy_button};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
 
 pub(super) struct TableAppearanceSettings<'a> {
     form: &'a AppearancePreferences,
@@ -23,6 +25,62 @@ impl<'a> TableAppearanceSettings<'a> {
     pub(super) fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
+        add_title(commands, parent, "显示", 20.0, TEXT, assets);
+        let display = spawn_node(
+            commands,
+            parent,
+            Node {
+                width: percent(100),
+                align_items: AlignItems::Center,
+                column_gap: px(18),
+                flex_wrap: FlexWrap::Wrap,
+                row_gap: px(8),
+                ..default()
+            },
+            None,
+        );
+        add_settings_toggle(
+            commands,
+            display,
+            "全屏 (F11)",
+            form.fullscreen,
+            form.fullscreen_supported
+                .then_some(SettingsUiAction::ToggleFullscreen),
+            assets,
+        );
+        let power_saving = spawn_node(
+            commands,
+            display,
+            Node {
+                flex_grow: 1.0,
+                align_items: AlignItems::Center,
+                column_gap: px(6),
+                ..default()
+            },
+            None,
+        );
+        let toggle = add_settings_toggle(
+            commands,
+            power_saving,
+            "节能模式",
+            form.power_saving,
+            SettingsUiAction::TogglePowerSaving,
+            assets,
+        );
+        commands
+            .entity(toggle)
+            .entry::<Node>()
+            .and_modify(|mut node| node.flex_grow = 0.0);
+        let tooltip = add_help_tooltip(
+            commands,
+            power_saving,
+            "开启后将帧率限制为 30 FPS",
+            rule_help_style(assets),
+        );
+        commands
+            .entity(tooltip)
+            .insert(GlobalZIndex(ShellOverlayLayer::Dialog.z_index().0 + 1));
+        add_settings_separator(commands, parent);
         #[cfg(feature = "desktop")]
         {
             add_title(commands, parent, "通知", 20.0, TEXT, assets);

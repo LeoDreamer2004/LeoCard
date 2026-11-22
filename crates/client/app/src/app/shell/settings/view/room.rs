@@ -1,13 +1,16 @@
 use super::section::add_settings_separator;
 use super::toggle::add_settings_toggle_scaled;
-use crate::app::presentation::{MUTED, TEXT, add_text, add_title, game_side_control_scale};
+use crate::app::presentation::{
+    MUTED, TEXT, add_text, add_title, game_side_control_scale, rule_help_style,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyButtonVariant, SettingsUiAction, UiAction, add_cozy_button_variant_scaled,
+    CozyButtonVariant, SettingsUiAction, ShellOverlayLayer, UiAction,
+    add_cozy_button_variant_scaled,
 };
 use bevy::prelude::*;
 use leocard_client::ClientModel;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
 
 pub(super) fn render_room_settings(
     commands: &mut UiComposer,
@@ -32,20 +35,37 @@ pub(super) fn render_room_settings(
     let scale = game_side_control_scale();
     let is_host = model.is_host();
     add_title(commands, parent, "房间管理", 20.0 * scale, TEXT, assets);
+    let restriction = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            min_height: px(48.0 * scale),
+            flex_shrink: 0.0,
+            align_items: AlignItems::Center,
+            column_gap: px(6.0 * scale),
+            ..default()
+        },
+        None,
+    );
     if is_host {
-        add_settings_toggle_scaled(
+        let toggle = add_settings_toggle_scaled(
             commands,
-            parent,
+            restriction,
             "禁止旁观玩家互动",
             room.spectator_interactions_blocked,
             SettingsUiAction::ToggleSpectatorInteractions,
             assets,
             scale,
         );
+        commands
+            .entity(toggle)
+            .entry::<Node>()
+            .and_modify(|mut node| node.flex_grow = 0.0);
     } else {
         add_text(
             commands,
-            parent,
+            restriction,
             if room.spectator_interactions_blocked {
                 "房主已禁止旁观玩家互动"
             } else {
@@ -56,25 +76,16 @@ pub(super) fn render_room_settings(
             assets,
         );
     }
-    add_text(
+    let tooltip = add_help_tooltip(
         commands,
-        parent,
-        "限制旁观玩家送花、扔蛋等道具互动",
-        12.0 * scale,
-        MUTED,
-        assets,
+        restriction,
+        "限制旁观玩家送花、扔蛋等道具互动。踢出参赛玩家后由系统接管其剩余操作。",
+        rule_help_style(assets),
     );
+    commands
+        .entity(tooltip)
+        .insert(GlobalZIndex(ShellOverlayLayer::Dialog.z_index().0 + 1));
     add_settings_separator(commands, parent);
-    if is_host {
-        add_text(
-            commands,
-            parent,
-            "踢出参赛玩家后由系统接管其剩余操作",
-            12.0 * scale,
-            MUTED,
-            assets,
-        );
-    }
     for participant in &room.participants {
         let row = spawn_node(
             commands,

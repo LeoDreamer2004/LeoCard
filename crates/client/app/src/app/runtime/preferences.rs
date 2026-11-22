@@ -37,6 +37,9 @@ pub(crate) struct ConnectionDraft {
 
 #[derive(Resource)]
 pub(crate) struct AppearancePreferences {
+    pub fullscreen: bool,
+    pub fullscreen_supported: bool,
+    pub power_saving: bool,
     pub games: GameAppearancePreferences,
     pub avatar_png: Option<Vec<u8>>,
     pub table_felt_path: Option<PathBuf>,
@@ -168,6 +171,9 @@ impl PreferenceResources {
                 },
             },
             appearance: AppearancePreferences {
+                fullscreen: false,
+                fullscreen_supported: cfg!(feature = "desktop"),
+                power_saving: saved.global.power_saving,
                 games: GameAppearancePreferences::load().unwrap_or_else(|error| {
                     warn!("{error}");
                     GameAppearancePreferences::default()
@@ -400,6 +406,7 @@ pub(crate) fn save_appearance_preferences(
     saved.global.mahjong_table_brightness = appearance.mahjong_table_brightness;
     saved.global.audio_volume = appearance.audio_volume;
     saved.global.turn_notifications = appearance.turn_notifications;
+    saved.global.power_saving = appearance.power_saving;
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
     saved.global.mahjong_tile_voices = appearance.mahjong_tile_voices;

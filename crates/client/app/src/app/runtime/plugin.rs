@@ -1,3 +1,4 @@
+use super::display::DisplayPlugin;
 use super::{
     AvatarImages, AvatarPicker, PageErrorState, PreferenceResources, TableAppearance,
     TableFeltPicker, asset_file_path, configure_runtime_asset_source, load_ui_assets, poll_network,
@@ -126,6 +127,7 @@ impl Plugin for RuntimePlugin {
                 )
                     .chain(),
             )
+            .add_plugins(DisplayPlugin)
             .add_systems(Startup, (setup_camera, load_ui_assets))
             .add_systems(Update, set_app_window_icon)
             .add_systems(Update, poll_network.in_set(ClientUpdateSet::Network));

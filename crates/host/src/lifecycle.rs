@@ -69,6 +69,10 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let was_started = self.game_started();
+        if !was_started {
+            let rules = self.game_rules();
+            self.room_mut().retain_supported_bot_ai(rules);
+        }
         let mut deliveries = self.start_game(connection, request_id);
         if !was_started && self.game_started() {
             let host = self
@@ -485,6 +489,17 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
         ClientCommand::SelectSeat { seat } => session.select_seat(connection, request_id, seat),
         ClientCommand::ConfigureBotSeat { seat, occupied } => {
             session.configure_bot_seat(connection, request_id, seat, occupied)
+        }
+        ClientCommand::ConfigureBotAi { model, device } => {
+            let started = session.game_started();
+            let rules = session.game_rules();
+            match session
+                .room_mut()
+                .configure_bot_ai(connection, model, device, started, rules)
+            {
+                Ok(()) => session.broadcast_lobby(Some((connection, request_id))),
+                Err(reason) => session.room().reject(connection, request_id, reason),
+            }
         }
         ClientCommand::KickPlayer { player } => session.kick_player(connection, request_id, player),
         ClientCommand::SetSpectatorInteractionsBlocked { blocked } => {

@@ -8,7 +8,7 @@ use crate::{
     SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
 };
 use leocard_achievements::TrophyCounts;
-use leocard_game_common::PlayerId;
+use leocard_game_common::{DevicePreference, ModelId, PlayerId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -105,6 +105,10 @@ pub enum ClientCommand {
     ConfigureBotSeat {
         seat: SeatId,
         occupied: bool,
+    },
+    ConfigureBotAi {
+        model: Option<ModelId>,
+        device: DevicePreference,
     },
     SetReady {
         ready: bool,

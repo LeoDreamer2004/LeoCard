@@ -6,6 +6,7 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_guandan::{GuandanPhase, GuandanTributeAction, can_beat, classify};
 use leocard_protocol::GuandanSnapshot;
@@ -23,6 +24,10 @@ pub(super) fn render(
         commands,
         parent,
         Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            right: px(0),
+            bottom: px(148.0 * game_side_control_scale()),
             min_height: px(54.0 * game_side_control_scale()),
             column_gap: px(10),
             align_items: AlignItems::Center,
@@ -31,6 +36,9 @@ pub(super) fn render(
         },
         None,
     );
+    commands
+        .entity(row)
+        .insert((GlobalZIndex(900), Pickable::IGNORE));
     if !can_control || !local_turn(game) || ui.is_dealing() {
         return;
     }
@@ -99,59 +107,5 @@ pub(super) fn render(
         if game.table.is_some() && ui.hints.is_empty() {
             add_no_legal_response_hint(commands, row, "没有牌能压过桌面牌", assets);
         }
-    }
-}
-
-pub(super) fn render_hand_controls(
-    commands: &mut UiComposer,
-    parent: Entity,
-    game: &GuandanSnapshot,
-    ui: &GuandanUiState,
-    can_control: bool,
-    assets: &UiAssets,
-) {
-    let row = spawn_node(
-        commands,
-        parent,
-        Node {
-            height: px(34.0 * game_side_control_scale()),
-            column_gap: px(8),
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        None,
-    );
-    if !can_control || game.result.is_some() {
-        return;
-    }
-    let enabled = !ui.is_dealing()
-        && game
-            .players
-            .iter()
-            .any(|player| player.player.id == game.you && !player.auto_play);
-    for (label, action, available) in [
-        (
-            "理牌",
-            GuandanUiAction::GroupSelected,
-            ui.arrangement
-                .can_group(&ui.selected, &game.your_hand, game.level),
-        ),
-        (
-            "还原",
-            GuandanUiAction::ResetHandGroups,
-            ui.arrangement.has_groups(),
-        ),
-    ] {
-        TableActionButton {
-            size: Vec2::new(88.0, 30.0),
-            font_size: 16.0,
-            ..TableActionButton::new(
-                label,
-                (enabled && available).then_some(UiAction::Guandan(action)),
-                TableButtonSkin::PaperCard(PaperCardButtonTone::Stone),
-            )
-        }
-        .scaled(game_side_control_scale())
-        .mount(commands, row, assets);
     }
 }

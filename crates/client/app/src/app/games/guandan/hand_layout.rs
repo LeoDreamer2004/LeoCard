@@ -17,7 +17,6 @@ pub(super) struct HandCardPlacement {
     pub position: Vec2,
     pub size: Vec2,
     pub stacked: bool,
-    pub arranged: bool,
     center: Vec2,
 }
 
@@ -75,25 +74,20 @@ impl GuandanHandLayout {
                 group
                     .cards
                     .chunks(maximum_rows)
-                    .map(move |cards| (column, group.arranged, cards))
+                    .map(move |cards| (column, cards))
             })
             .collect::<Vec<_>>();
         let rows = stacks
             .iter()
-            .map(|(_, _, cards)| cards.len())
+            .map(|(_, cards)| cards.len())
             .max()
             .unwrap_or(1);
         let step = STACK_STEP * game_side_control_scale();
-        let pitch = if stacks.len() <= 1 {
-            0.0
-        } else {
-            (width + 18.0 * game_side_control_scale())
-                .min((HAND_WIDTH - width) / (stacks.len() - 1) as f32)
-        };
+        let pitch = width;
         let body_width = width + stacks.len().saturating_sub(1) as f32 * pitch;
         let body_height = height + rows.saturating_sub(1) as f32 * step;
         let mut result = Vec::new();
-        for (stack, &(column, arranged, cards)) in stacks.iter().enumerate() {
+        for (stack, &(column, cards)) in stacks.iter().enumerate() {
             for (row, &card) in cards.iter().enumerate() {
                 let position = Vec2::new(
                     stack as f32 * pitch,
@@ -107,7 +101,6 @@ impl GuandanHandLayout {
                         position,
                         size: Vec2::new(width, height),
                         stacked: true,
-                        arranged,
                         center: Vec2::new(
                             position.x + width * 0.5 - body_width * 0.5,
                             position.y - TOP_MARGIN,
@@ -131,31 +124,21 @@ impl GuandanHandLayout {
             .iter()
             .map(|column| column.cards.len())
             .sum::<usize>();
-        let gaps = columns
-            .windows(2)
-            .filter(|pair| pair[0].arranged || pair[1].arranged)
-            .count();
-        let gap = 18.0 * game_side_control_scale();
         let reveal = if count <= 1 {
             0.0
         } else {
-            (30.0 * game_side_control_scale())
-                .min((HAND_WIDTH - width - gaps as f32 * gap) / (count - 1) as f32)
+            (30.0 * game_side_control_scale()).min((HAND_WIDTH - width) / (count - 1) as f32)
         };
-        let body_width = width + count.saturating_sub(1) as f32 * reveal + gaps as f32 * gap;
+        let body_width = width + count.saturating_sub(1) as f32 * reveal;
         let mut result = Vec::new();
         let mut x = 0.0;
         for (column, group) in columns.iter().enumerate() {
-            if column > 0 && (group.arranged || columns[column - 1].arranged) {
-                x += gap;
-            }
             for &card in &group.cards {
                 result.push((
                     card,
                     HandCardPlacement {
                         index: result.len(),
                         column,
-                        arranged: group.arranged,
                         stacked: false,
                         position: Vec2::new(x, TOP_MARGIN),
                         size: Vec2::new(width, height),

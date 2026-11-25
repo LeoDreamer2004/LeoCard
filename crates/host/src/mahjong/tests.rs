@@ -1,3 +1,4 @@
+use super::automation::MahjongBotInput;
 use super::{MAHJONG_DEAL_INTERVAL, MAHJONG_DICE_INTERVAL, MahjongSession};
 use crate::ConnectionId;
 use crate::features::GameSnapshotView;
@@ -681,7 +682,9 @@ fn automatic_ready_declaration_discards_and_emits_the_ready_event() {
     assert!(
         session
             .bot_decision
-            .poll(observation, action, move |_, _| action)
+            .poll(MahjongBotInput::Rules(observation), action, move |_, _| {
+                action
+            })
             .is_none()
     );
     let deadline = Instant::now() + Duration::from_secs(5);

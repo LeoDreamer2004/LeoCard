@@ -38,10 +38,9 @@ pub(crate) fn render_guess_lobby(
                 .map(|mode| CozyDropdownOption {
                     label: mode.label(),
                     selected: mode == rules.mode,
-                    action: UiAction::McGuess(McGuessUiAction::UpdateRules(McGuessRuleSet {
-                        mode,
-                        ..rules
-                    })),
+                    action: Some(UiAction::McGuess(McGuessUiAction::UpdateRules(
+                        McGuessRuleSet { mode, ..rules },
+                    ))),
                 })
                 .collect(),
             },

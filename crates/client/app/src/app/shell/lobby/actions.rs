@@ -1,10 +1,15 @@
 //! 席位、准备、开局与离开房间动作。
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::app::runtime::AiModels;
+
 use super::super::{
     ConfirmationDialog, CozyButtonVariant, DomainUiAction, PageMotion, PressedUiAction, UiAction,
     UiActionHandler, UiState, dispatch_domain_actions,
 };
 use crate::app::games::uno::UnoUiState;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::app::runtime::AppearancePreferences;
 use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -34,6 +39,10 @@ impl DomainUiAction for LobbyUiAction {
 
 #[derive(SystemParam)]
 pub(crate) struct LobbyActionContext<'w, 's> {
+    #[cfg(not(target_arch = "wasm32"))]
+    ai: Res<'w, AiModels>,
+    #[cfg(not(target_arch = "wasm32"))]
+    appearance: Res<'w, AppearancePreferences>,
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, UiState>,
     uno_ui: ResMut<'w, UnoUiState>,
@@ -63,6 +72,17 @@ impl UiActionHandler<LobbyActionContext<'_, '_>> for LobbyUiAction {
             LobbyUiAction::ToggleReady => toggle_ready(client),
             LobbyUiAction::StartGame => {
                 context.uno_ui.expansion_settings_open = false;
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Some(client) = client.as_deref_mut()
+                    && client.0.model().is_host()
+                    && let Some(rules) = client.0.model().game_rules()
+                {
+                    let model = context.ai.configured_model(&context.appearance.ai, rules);
+                    client.0.send(ClientCommand::ConfigureBotAi {
+                        model,
+                        device: context.appearance.ai.device,
+                    });
+                }
                 send(client, ClientCommand::StartGame);
             }
             LobbyUiAction::ReturnToLobby => send(client, ClientCommand::ReturnToLobby),

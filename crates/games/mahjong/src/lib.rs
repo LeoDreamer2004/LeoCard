@@ -12,6 +12,8 @@ mod profile;
 mod rules;
 mod scoring;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub use bot::{KdensBot, MahjongModelHistory, MahjongModelObservation};
 pub use bot::{MahjongBot, MahjongBotAction, MahjongBotObservation};
 pub use game::{
     MahjongActionOutcome, MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongDrawOrigin,

@@ -1,5 +1,6 @@
 use super::dice::MahjongDicePlugin;
 use super::hover::sync_fan_calculator;
+use super::input::handle_right_click_draw_discard;
 use super::{
     MahjongClaimPresentationState, MahjongFanCalculator, MahjongFanGuideScroll,
     MahjongFanVoicePlayback, MahjongMajorFanAssets, MahjongPromptPlayback, MahjongShowcasePlayback,
@@ -58,6 +59,13 @@ impl Plugin for MahjongPlugin {
             .add_systems(
                 Update,
                 actions::dispatch_mahjong_actions.in_set(UiActionSet),
+            )
+            .add_systems(
+                Update,
+                handle_right_click_draw_discard
+                    .in_set(ClientUpdateSet::Input)
+                    .before(UiActionSet)
+                    .run_if(start_game_intro_finished),
             )
             .add_systems(
                 Update,

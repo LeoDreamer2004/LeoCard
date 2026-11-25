@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Instant;
 
 #[test]
-fn human_takeover_keeps_the_existing_policy_while_robots_use_workers() {
+fn human_takeover_and_weak_robots_keep_rules_while_four_player_bots_use_workers() {
     for mode in [DoudizhuMode::Three, DoudizhuMode::Four] {
         let mut session = started(mode, false);
         let player = session.game.as_ref().unwrap().current;
@@ -25,6 +25,10 @@ fn human_takeover_keeps_the_existing_policy_while_robots_use_workers() {
         participant.is_bot = true;
         participant.left = false;
         participant.connected = true;
+        if mode == DoudizhuMode::Three {
+            assert_eq!(session.choose_automatic_action(), expected);
+            continue;
+        }
         assert!(session.choose_automatic_action().is_none());
         let start = Instant::now();
         let action = loop {

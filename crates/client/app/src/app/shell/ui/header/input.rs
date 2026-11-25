@@ -1,6 +1,7 @@
 use super::state::{GameHeaderAvatar, GameHeaderMotion};
 use crate::app::shell::{NavigationUiAction, PressedUiAction, UiAction, UiState};
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_ui::UiPress;
 
 pub(super) fn handle_header_taps(
@@ -11,6 +12,10 @@ pub(super) fn handle_header_taps(
     mut actions: MessageWriter<PressedUiAction>,
     mut ui: ResMut<UiState>,
 ) {
+    if !is_mobile() {
+        presses.clear();
+        return;
+    }
     let mut avatar_pressed = false;
     for press in presses.read() {
         avatar_pressed |= avatars.contains(press.0);

@@ -1,13 +1,37 @@
 use super::cards::{play_area_width, render_card_row};
 use super::table::GuandanTable;
-use crate::app::presentation::{MUTED, SeatSide, add_text, spawn_trick_play_area};
+use crate::app::presentation::{
+    MUTED, SeatSide, add_text, game_side_control_scale, spawn_trick_play_area,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::GuandanPublicAction;
-use leocard_ui::UiComposer;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl GuandanTable<'_> {
+    pub(super) fn local_play_area(&self, commands: &mut UiComposer, viewport: Entity) {
+        let area = spawn_node(
+            commands,
+            viewport,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                bottom: px(216.0 * game_side_control_scale()),
+                min_height: px(112.0 * game_side_control_scale()),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            None,
+        );
+        commands
+            .entity(area)
+            .insert((GlobalZIndex(850), Pickable::IGNORE));
+        self.play_area(commands, area, self.game.you, SeatSide::Top);
+    }
+
     pub(super) fn play_area(
         &self,
         commands: &mut UiComposer,
@@ -18,6 +42,7 @@ impl GuandanTable<'_> {
         let area = spawn_trick_play_area(commands, parent, side);
         commands
             .entity(area)
+            .insert(Pickable::IGNORE)
             .entry::<Node>()
             .and_modify(move |mut node| {
                 node.width = px(play_area_width(side));

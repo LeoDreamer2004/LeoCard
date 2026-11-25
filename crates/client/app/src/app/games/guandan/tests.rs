@@ -1,4 +1,4 @@
-use super::arrangement::{HandArrangement, HandLayoutMode};
+use super::arrangement::{HandLayoutMode, hand_columns};
 use super::hand_layout::GuandanHandLayout;
 use super::hit_testing::{CardHitRegion, crossed_cards};
 use super::state::GuandanUiState;
@@ -21,64 +21,6 @@ fn spades(ranks: &[u8]) -> Vec<GuandanCard> {
 }
 
 #[test]
-fn manual_groups_preserve_physical_copies_and_sequence_order_across_the_level_rank() {
-    let straight = spades(&[5, 6, 7, 8, 9]);
-    let mut hand = straight.clone();
-    hand.extend(straight.iter().map(|card| GuandanCard { deck: 1, ..*card }));
-    let selected = straight.iter().copied().collect();
-    let mut arrangement = HandArrangement::default();
-    assert!(arrangement.group_selected(&selected, &hand, 6));
-    let columns = arrangement.columns(&hand, 6);
-    assert_eq!(
-        columns
-            .last()
-            .unwrap()
-            .cards
-            .iter()
-            .map(|card| card.rank)
-            .collect::<Vec<_>>(),
-        [9, 8, 7, 6, 5]
-    );
-    assert!(columns.last().unwrap().arranged);
-    assert!(
-        columns[..5]
-            .iter()
-            .all(|column| column.cards.len() == 1 && column.cards[0].deck == 1)
-    );
-    let all = columns
-        .iter()
-        .flat_map(|column| column.cards.iter().copied())
-        .collect::<HashSet<_>>();
-    assert_eq!(all, hand.iter().copied().collect());
-    assert!(!arrangement.group_selected(&selected, &hand, 6));
-    let invalid = [hand[0], hand[1]].into_iter().collect();
-    assert!(!arrangement.group_selected(&invalid, &hand, 6));
-    hand.retain(|card| *card != straight[4]);
-    arrangement.reconcile(&hand, 6);
-    assert!(!arrangement.has_groups());
-}
-
-#[test]
-fn grouping_a_bomb_retains_a_legal_remainder_and_reset_keeps_the_layout_choice() {
-    let mut hand = build_deck()
-        .into_iter()
-        .filter(|card| card.rank == 9)
-        .take(4)
-        .collect::<Vec<_>>();
-    let selected = hand.iter().copied().collect();
-    let mut arrangement = HandArrangement::default();
-    assert!(arrangement.group_selected(&selected, &hand, 2));
-    hand.pop();
-    arrangement.reconcile(&hand, 2);
-    assert_eq!(arrangement.columns(&hand, 2).last().unwrap().cards.len(), 3);
-    assert!(arrangement.has_groups());
-    arrangement.toggle_layout();
-    arrangement.reset_groups();
-    assert!(arrangement.mode == HandLayoutMode::Row);
-    assert!(!arrangement.has_groups());
-}
-
-#[test]
 fn original_size_layout_preserves_physical_cards_and_each_exposed_corner_remains_selectable() {
     let deck = build_deck();
     let mut bomb = deck
@@ -86,7 +28,6 @@ fn original_size_layout_preserves_physical_cards_and_each_exposed_corner_remains
         .copied()
         .filter(|card| card.rank == 9 || card.is_wild(2))
         .collect::<Vec<_>>();
-    let bomb_selection = bomb.iter().copied().collect();
     bomb.extend(
         deck.iter()
             .copied()
@@ -94,10 +35,8 @@ fn original_size_layout_preserves_physical_cards_and_each_exposed_corner_remains
             .take(17),
     );
     for hand in [deck[..27].to_vec(), bomb, spades(&[14]), Vec::new()] {
-        let mut arrangement = HandArrangement::default();
-        arrangement.group_selected(&bomb_selection, &hand, 2);
         for mode in [HandLayoutMode::Columns, HandLayoutMode::Row] {
-            let layout = GuandanHandLayout::new(&arrangement.columns(&hand, 2), mode);
+            let layout = GuandanHandLayout::new(&hand_columns(&hand, 2), mode);
             assert_eq!(layout.cards.len(), hand.len());
             assert_eq!(
                 layout
@@ -107,7 +46,9 @@ fn original_size_layout_preserves_physical_cards_and_each_exposed_corner_remains
                     .collect::<HashSet<_>>(),
                 hand.iter().copied().collect()
             );
-            assert!(layout.size.x <= 940.0);
+            if mode == HandLayoutMode::Row {
+                assert!(layout.size.x <= 940.0);
+            }
             let (width, height) = CardSize::ShengjiHand.dimensions();
             let regions = layout
                 .cards
@@ -132,24 +73,6 @@ fn original_size_layout_preserves_physical_cards_and_each_exposed_corner_remains
                 let moved = placement.position + Vec2::new(x, y);
                 let hit = placement.hit_rect();
                 assert!(hit.contains(moved) && hit.contains(moved + placement.size));
-            }
-            if mode == HandLayoutMode::Columns && arrangement.has_groups() {
-                let group = layout
-                    .cards
-                    .iter()
-                    .filter(|(_, placement)| placement.arranged)
-                    .collect::<Vec<_>>();
-                assert_eq!(group.len(), 10);
-                assert!(
-                    group
-                        .iter()
-                        .all(|(_, placement)| placement.column == group[0].1.column)
-                );
-                assert!(
-                    group
-                        .iter()
-                        .any(|(_, placement)| placement.position.x != group[0].1.position.x)
-                );
             }
         }
     }

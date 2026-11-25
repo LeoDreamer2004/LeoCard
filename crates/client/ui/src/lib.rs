@@ -19,6 +19,7 @@ mod scene;
 mod scrollbar;
 mod selection;
 mod skin;
+mod switch;
 mod text;
 mod text_input;
 
@@ -41,5 +42,6 @@ pub use scene::*;
 pub use scrollbar::*;
 pub use selection::*;
 pub use skin::*;
+pub use switch::*;
 pub use text::*;
 pub use text_input::*;

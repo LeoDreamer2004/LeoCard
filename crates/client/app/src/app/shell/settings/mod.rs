@@ -1,7 +1,8 @@
 //! 游戏设置窗口与桌面外观输入。
 
 mod actions;
-
+#[cfg(not(target_arch = "wasm32"))]
+mod ai;
 mod animation;
 mod files;
 mod input;

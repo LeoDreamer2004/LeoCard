@@ -48,7 +48,7 @@ pub struct ShopAvatarFrame {
 }
 
 impl ShopAvatarFrame {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 17] = [
         Self::new(AvatarFrameId::Default, "胡桃木", "walnut", Common, 0),
         Self::new(AvatarFrameId::QqAdmin, "大官", "qq-admin", Epic, 10_000),
         Self::new(AvatarFrameId::IronBasin, "铁盆", "iron-basin", Fine, 2_000),
@@ -67,6 +67,11 @@ impl ShopAvatarFrame {
             Epic,
             10_000,
         ),
+        Self::new(AvatarFrameId::Riichi, "立直", "riichi", Fine, 2_000),
+        Self::new(AvatarFrameId::Programmer, "码农", "programmer", Common, 700),
+        Self::new(AvatarFrameId::Strong, "强壮", "strong", Fine, 2_000),
+        Self::new(AvatarFrameId::Table, "桌子", "table", Common, 700),
+        Self::new(AvatarFrameId::Chemistry, "化学", "chemistry", Common, 700),
     ];
 
     const fn new(

@@ -12,6 +12,7 @@ mod discard;
 mod fan_guide;
 mod hand;
 mod hover;
+mod input;
 mod layout;
 mod lobby;
 mod modal;

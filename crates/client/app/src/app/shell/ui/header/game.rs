@@ -10,6 +10,7 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_ui::{UiComposer, spawn_node};
 
 impl Header<'_> {
@@ -116,7 +117,8 @@ impl Header<'_> {
             15.0 * game_side_control_scale(),
         );
         commands.entity(avatar).insert(GameHeaderAvatar);
-        #[cfg(feature = "android")]
-        commands.entity(avatar).remove::<UiAction>();
+        if is_mobile() {
+            commands.entity(avatar).remove::<UiAction>();
+        }
     }
 }

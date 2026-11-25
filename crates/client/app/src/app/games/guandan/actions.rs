@@ -17,8 +17,6 @@ pub(crate) enum GuandanUiAction {
     UpdateRules(GuandanRuleSet),
     ToggleCard,
     ToggleHandLayout,
-    GroupSelected,
-    ResetHandGroups,
     Play,
     Pass,
     Hint,
@@ -65,32 +63,7 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
             ),
             Self::ToggleCard => {}
             Self::ToggleHandLayout => {
-                context.ui.arrangement.toggle_layout();
-                context.drag.active = false;
-            }
-            Self::ResetHandGroups => {
-                context.ui.arrangement.reset_groups();
-                context.drag.active = false;
-            }
-            Self::GroupSelected => {
-                let Some(game) = context.client.as_deref().and_then(|client| {
-                    client
-                        .0
-                        .model()
-                        .game_snapshot()
-                        .and_then(GameSnapshot::guandan)
-                }) else {
-                    return;
-                };
-                let selected = context.ui.selected.clone();
-                if !context
-                    .ui
-                    .arrangement
-                    .group_selected(&selected, &game.your_hand, game.level)
-                {
-                    return;
-                }
-                context.ui.selected.clear();
+                context.ui.hand_layout.toggle();
                 context.drag.active = false;
             }
             Self::Hint => {

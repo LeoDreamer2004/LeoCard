@@ -9,3 +9,6 @@ description = "Pure 2014 MCR mahjong rules for LeoCard"
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
 serde.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+leocard-ai = { path = "../ai" }

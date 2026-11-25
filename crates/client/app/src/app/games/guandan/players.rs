@@ -43,23 +43,6 @@ impl GuandanTable<'_> {
                     },
                     intro,
                 ));
-                if !intro {
-                    let area = spawn_node(
-                        commands,
-                        table,
-                        Node {
-                            position_type: PositionType::Absolute,
-                            left: percent(35),
-                            right: percent(35),
-                            bottom: px(8),
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            ..default()
-                        },
-                        None,
-                    );
-                    self.play_area(commands, area, player.player.id, SeatSide::Top);
-                }
                 continue;
             }
             let layout = TrickSeatLayout::new(relative, 4, play_area_width(SeatSide::Left));

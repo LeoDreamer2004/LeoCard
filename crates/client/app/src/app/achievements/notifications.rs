@@ -2,7 +2,7 @@
 
 use super::{AchievementRecipient, AchievementUnlocked};
 use crate::app::presentation::{TEXT, ease_out_cubic, text_scene, title_scene};
-use crate::app::runtime::UiAssets;
+use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::audio::Volume;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -18,9 +18,25 @@ const TOP: f32 = 80.0;
 const GAP: f32 = 10.0;
 const MIN_HEIGHT: f32 = 80.0;
 
+#[derive(Clone, Copy)]
+enum AchievementAudience {
+    Local,
+    Other,
+}
+
+impl AchievementAudience {
+    fn enabled(self, preferences: &AppearancePreferences) -> bool {
+        match self {
+            Self::Local => preferences.own_achievement_notifications,
+            Self::Other => preferences.other_achievement_notifications,
+        }
+    }
+}
+
 struct AchievementNotice {
     definition: &'static AchievementDefinition,
     text: String,
+    audience: AchievementAudience,
 }
 
 #[derive(Resource, Default)]
@@ -38,6 +54,7 @@ pub(super) struct AchievementToast {
     serial: u64,
     elapsed: f32,
     visual: Entity,
+    audience: AchievementAudience,
 }
 
 pub(super) fn setup_notifications(mut commands: UiComposer) {
@@ -60,15 +77,22 @@ pub(super) fn setup_notifications(mut commands: UiComposer) {
 pub(super) fn queue_achievement_notifications(
     mut unlocked: MessageReader<AchievementUnlocked>,
     mut notifications: ResMut<AchievementNotifications>,
+    preferences: Res<AppearancePreferences>,
 ) {
     for event in unlocked.read() {
-        let subject = match &event.recipient {
-            AchievementRecipient::Local => "你",
-            AchievementRecipient::TablePlayer { name } => name.as_str(),
+        let (subject, audience) = match &event.recipient {
+            AchievementRecipient::Local => ("你", AchievementAudience::Local),
+            AchievementRecipient::TablePlayer { name } => {
+                (name.as_str(), AchievementAudience::Other)
+            }
         };
+        if !audience.enabled(&preferences) {
+            continue;
+        }
         notifications.pending.push_back(AchievementNotice {
             definition: event.definition,
             text: format!("{subject}获得了「{}」成就！", event.definition.title),
+            audience,
         });
     }
 }
@@ -80,6 +104,7 @@ pub(super) fn queue_achievement_notifications(
 pub(super) fn animate_achievement_notifications(
     time: Res<Time>,
     assets: Res<UiAssets>,
+    preferences: Res<AppearancePreferences>,
     mut notifications: ResMut<AchievementNotifications>,
     layers: Query<(Entity, &ComputedNode), With<AchievementToastLayer>>,
     mut toasts: Query<(Entity, &mut AchievementToast, &mut Node, &ComputedNode)>,
@@ -91,14 +116,23 @@ pub(super) fn animate_achievement_notifications(
     let Ok((layer, viewport)) = layers.single() else {
         return;
     };
+    if preferences.is_changed() {
+        notifications
+            .pending
+            .retain(|notice| notice.audience.enabled(&preferences));
+    }
     let mut order = toasts
         .iter()
-        .map(|(entity, toast, _, node)| {
-            (
+        .filter_map(|(entity, toast, _, node)| {
+            if !toast.audience.enabled(&preferences) {
+                commands.entity(entity).despawn();
+                return None;
+            }
+            Some((
                 toast.serial,
                 entity,
                 (node.size().y * node.inverse_scale_factor()).max(MIN_HEIGHT),
-            )
+            ))
         })
         .collect::<Vec<_>>();
     order.sort_by_key(|(serial, _, _)| *serial);
@@ -260,6 +294,7 @@ fn spawn_notification(
             serial,
             elapsed: 0.0,
             visual: popup,
+            audience: notice.audience,
         },
         Pickable::IGNORE,
     ));

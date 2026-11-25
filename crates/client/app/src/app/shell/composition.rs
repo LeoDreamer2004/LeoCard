@@ -1,5 +1,8 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::app::runtime::AiModels;
+
 #[cfg(not(feature = "web"))]
 use super::{UpdateManager, render_update_dialog};
 
@@ -54,6 +57,8 @@ struct VisualAssets<'w> {
 
 #[derive(SystemParam)]
 struct ScreenResources<'w> {
+    #[cfg(not(target_arch = "wasm32"))]
+    ai: Res<'w, AiModels>,
     client: Option<Res<'w, ClientResource>>,
     connection: Res<'w, ConnectionDraft>,
     appearance: Res<'w, AppearancePreferences>,
@@ -119,6 +124,8 @@ impl ScreenComposition<'_, '_> {
         });
         self.commands.begin(root);
         ScreenRenderer {
+            #[cfg(not(target_arch = "wasm32"))]
+            ai: &self.resources.ai,
             commands: &mut self.commands,
             client: self.resources.client.as_deref(),
             connection: &self.resources.connection,
@@ -144,6 +151,8 @@ impl ScreenComposition<'_, '_> {
 }
 
 struct ScreenRenderer<'a, 'w, 's> {
+    #[cfg(not(target_arch = "wasm32"))]
+    ai: &'a AiModels,
     commands: &'a mut UiComposer<'w, 's>,
     client: Option<&'a ClientResource>,
     connection: &'a ConnectionDraft,
@@ -349,6 +358,8 @@ impl ScreenRenderer<'_, '_, '_> {
         }
         if self.ui.settings.open {
             SettingsModal::new(
+                #[cfg(not(target_arch = "wasm32"))]
+                self.ai,
                 self.appearance,
                 #[cfg(not(feature = "web"))]
                 &self.visuals.updater,
@@ -359,7 +370,7 @@ impl ScreenRenderer<'_, '_, '_> {
                 self.commands,
                 root,
                 &self.visuals.settings_motion,
-                self.ui.settings.tab,
+                &self.ui.settings,
             );
         }
         if self.ui.profile.open {

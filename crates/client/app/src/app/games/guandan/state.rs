@@ -1,4 +1,4 @@
-use super::arrangement::HandArrangement;
+use super::arrangement::HandLayoutMode;
 use crate::app::games::HandSelection;
 use crate::app::presentation::{CardAnimationState, CardCounterWindowState};
 use bevy::prelude::*;
@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Resource)]
 pub(super) struct GuandanUiState {
     pub selected: HashSet<GuandanCard>,
-    pub arrangement: HandArrangement,
+    pub hand_layout: HandLayoutMode,
     pub drawer_open: bool,
     pub card_animations: HashMap<GuandanCard, CardAnimationState>,
     pub counter: CardCounterWindowState,
@@ -36,7 +36,7 @@ impl Default for GuandanUiState {
         }
         Self {
             selected: HashSet::new(),
-            arrangement: HandArrangement::default(),
+            hand_layout: HandLayoutMode::default(),
             drawer_open: false,
             card_animations: HashMap::new(),
             counter,
@@ -74,7 +74,6 @@ impl GuandanUiState {
             self.hints.clear();
         }
         self.selected.retain(|card| game.your_hand.contains(card));
-        self.arrangement.reconcile(&game.your_hand, game.level);
         self.card_animations
             .retain(|card, _| game.your_hand.contains(card));
         changed_hand
@@ -88,7 +87,6 @@ impl GuandanUiState {
 
     fn reset_hand(&mut self) {
         self.selected.clear();
-        self.arrangement.reset_groups();
         self.card_animations.clear();
         self.previous_reveal = 0.0;
         self.pending_deal = false;

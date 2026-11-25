@@ -1,4 +1,5 @@
 use super::actions::GuandanUiAction;
+use super::arrangement::hand_columns;
 use super::controls;
 use super::counter;
 use super::drawer;
@@ -46,8 +47,8 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
     let assets = context.assets;
     let can_control = context.client.0.model().you() == Some(game.you);
     let hand_layout = GuandanHandLayout::new(
-        &context.ui.arrangement.columns(&game.your_hand, game.level),
-        context.ui.arrangement.mode,
+        &hand_columns(&game.your_hand, game.level),
+        context.ui.hand_layout,
     );
     let content = commands.mount(root, format!("guandan:{:?}", game.match_id), bsn! { @ui_component(Node {
         width: percent(100), flex_grow: 1.0, min_height: px(0), position_type: PositionType::Relative,
@@ -78,11 +79,10 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         content,
         Node {
             width: percent(100),
-            height: px(hand_layout.size.y + 88.0 * game_side_control_scale() + 12.0),
+            height: px(hand_layout.size.y + 12.0),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
-            row_gap: px(6),
             ..default()
         },
         None,
@@ -149,8 +149,8 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
     } else if context.ui.previous_reveal > 0.0 {
         add_text(commands, status, "上一圈回看", 14.0, ACCENT, assets);
     }
-    controls::render(commands, hand_area, game, context.ui, can_control, assets);
-    controls::render_hand_controls(commands, hand_area, game, context.ui, can_control, assets);
+    context.local_play_area(commands, content);
+    controls::render(commands, content, game, context.ui, can_control, assets);
     let hand_row = spawn_node(
         commands,
         hand_area,

@@ -1,3 +1,6 @@
+#[cfg(not(target_arch = "wasm32"))]
+use super::AiPreferences;
+use super::ControlPreferences;
 use leocard_protocol::PlayerGender;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -5,6 +8,9 @@ use std::path::PathBuf;
 #[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct GlobalPreferences {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub ai: AiPreferences,
+    pub controls: ControlPreferences,
     pub player_name: String,
     pub avatar_png: Option<Vec<u8>>,
     pub host_port: String,
@@ -16,6 +22,8 @@ pub struct GlobalPreferences {
     pub mahjong_table_brightness: f32,
     pub audio_volume: f32,
     pub turn_notifications: bool,
+    pub own_achievement_notifications: bool,
+    pub other_achievement_notifications: bool,
     pub power_saving: bool,
     pub gender: PlayerGender,
     pub mahjong_action_voices: bool,
@@ -30,6 +38,9 @@ pub struct GlobalPreferences {
 impl Default for GlobalPreferences {
     fn default() -> Self {
         Self {
+            #[cfg(not(target_arch = "wasm32"))]
+            ai: AiPreferences::default(),
+            controls: ControlPreferences::default(),
             player_name: String::new(),
             avatar_png: None,
             host_port: String::new(),
@@ -41,6 +52,8 @@ impl Default for GlobalPreferences {
             mahjong_table_brightness: 0.4,
             audio_volume: 0.38,
             turn_notifications: true,
+            own_achievement_notifications: true,
+            other_achievement_notifications: true,
             power_saving: false,
             gender: PlayerGender::Male,
             mahjong_action_voices: true,

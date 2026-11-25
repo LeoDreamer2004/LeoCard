@@ -12,7 +12,7 @@ pub(super) fn mode_dropdown(rules_value: ShengjiRuleSet) -> CozyDropdown {
             .map(|mode| CozyDropdownOption {
                 label: mode.label(),
                 selected: mode == rules_value.mode,
-                action: UiAction::Shengji(ShengjiUiAction::SelectMode(mode)),
+                action: Some(UiAction::Shengji(ShengjiUiAction::SelectMode(mode))),
             })
             .collect(),
     }

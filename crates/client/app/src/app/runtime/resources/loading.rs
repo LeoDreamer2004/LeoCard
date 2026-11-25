@@ -132,6 +132,8 @@ pub(crate) fn load_ui_assets(
             robot_icon: asset_server.load("icons/robot-2-fill.png"),
             host_crown: asset_server.load("ui/home/cozy-host-crown.png"),
             github_mark: asset_server.load("icons/github-mark.png"),
+            #[cfg(not(target_arch = "wasm32"))]
+            hugging_face_mark: asset_server.load("icons/hugging-face.png"),
         },
         home: HomeAssets {
             join_room: asset_server.load("ui/home/join-room.png"),

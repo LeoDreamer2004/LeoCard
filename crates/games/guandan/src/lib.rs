@@ -2,6 +2,8 @@ mod bot;
 mod card;
 mod game;
 mod match_state;
+#[cfg(not(target_arch = "wasm32"))]
+mod neural;
 mod play;
 mod profile;
 mod rules;
@@ -13,6 +15,8 @@ pub use game::{
     GuandanPhase, GuandanPlayerState, GuandanTributeAction, can_offer_tribute, can_return_tribute,
 };
 pub use match_state::GuandanMatchState;
+#[cfg(not(target_arch = "wasm32"))]
+pub use neural::{GuandanActorBot, GuandanModelHistory, GuandanModelObservation};
 pub use play::{GuandanPlay, GuandanPlayError, GuandanPlayKind, can_beat, classify, rank_strength};
 pub use profile::GuandanProfileStats;
 pub use rules::GuandanRuleSet;

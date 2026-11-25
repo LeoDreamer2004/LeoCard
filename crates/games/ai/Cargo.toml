@@ -1,0 +1,19 @@
+[package]
+name = "leocard-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared external model formats and CPU/GPU inference for LeoCard games"
+
+[dependencies]
+half.workspace = true
+leocard-game-common = { path = "../common" }
+ndarray.workspace = true
+nom = "7.1"
+pollster = "1.0"
+repugnant-pickle = "0.0.1"
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+wgpu = { version = "30.0", default-features = false, features = ["dx12", "metal", "std", "vulkan", "wgsl"] }
+zip = { version = "9.6", default-features = false, features = ["deflate"] }

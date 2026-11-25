@@ -16,7 +16,7 @@ pub(super) fn render(
     let mut switches = vec![DrawerSwitch {
         short: "竖",
         label: "竖叠手牌",
-        enabled: ui.arrangement.mode == HandLayoutMode::Columns,
+        enabled: ui.hand_layout == HandLayoutMode::Columns,
         action: UiAction::Guandan(GuandanUiAction::ToggleHandLayout),
     }];
     if ui.counter.active {

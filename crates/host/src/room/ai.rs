@@ -57,7 +57,7 @@ impl RoomSession {
         format!(
             "{}{ordinal}",
             if self.bot_ai.is_some() {
-                "觉悟人机"
+                "绝悟人机"
             } else {
                 "机器人"
             }
@@ -66,14 +66,14 @@ impl RoomSession {
 
     fn rename_bots(&mut self) {
         let prefix = if self.bot_ai.is_some() {
-            "觉悟人机"
+            "绝悟人机"
         } else {
             "机器人"
         };
         for player in self.players.iter_mut().filter(|p| p.is_bot) {
             let ordinal = player
                 .name
-                .strip_prefix("觉悟人机")
+                .strip_prefix("绝悟人机")
                 .or_else(|| player.name.strip_prefix("机器人"))
                 .unwrap_or("1");
             player.name = format!("{prefix}{ordinal}");

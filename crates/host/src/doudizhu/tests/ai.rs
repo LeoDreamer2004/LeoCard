@@ -58,7 +58,7 @@ fn only_host_selects_ai_and_active_match_retains_its_model() {
         .filter(|p| p.is_bot)
         .map(|p| p.name.as_str())
         .collect();
-    assert_eq!(names, ["觉悟人机1", "觉悟人机2"]);
+    assert_eq!(names, ["绝悟人机1", "绝悟人机2"]);
     assert_accepted(&send(
         &mut session,
         1,

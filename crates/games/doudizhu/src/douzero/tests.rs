@@ -12,26 +12,15 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 #[test]
-#[ignore = "requires downloaded DouZero checkpoints in LEOCARD_AI_TEST_MODELS"]
+#[ignore = "requires external checkpoints and PyTorch references in LEOCARD_AI_TEST_MODELS"]
 fn native_inference_matches_pytorch_for_all_three_roles() {
     let tensors = downloaded_tensors();
-    for (role, bytes, width) in [
-        (
-            0,
-            include_bytes!("../../models/douzero/landlord.fixture").as_slice(),
-            373,
-        ),
-        (
-            1,
-            include_bytes!("../../models/douzero/landlord_down.fixture").as_slice(),
-            484,
-        ),
-        (
-            2,
-            include_bytes!("../../models/douzero/landlord_up.fixture").as_slice(),
-            484,
-        ),
-    ] {
+    let spec = model_spec(ModelId::Douzero);
+    let directory = PathBuf::from(env::var_os("LEOCARD_AI_TEST_MODELS").expect("model directory"))
+        .join(spec.key);
+    for (role, file) in spec.files.iter().enumerate() {
+        let width = if role == 0 { 373 } else { 484 };
+        let bytes = fs::read(directory.join(file.name).with_extension("fixture")).unwrap();
         let values: Vec<_> = bytes
             .as_chunks::<4>()
             .0

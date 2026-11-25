@@ -35,8 +35,6 @@ def download(item):
 
 def reference(model, file, path):
     torch.manual_seed(2014)
-    if model["id"] == "Douzero":
-        return  # Existing fixtures were generated from rounded PyTorch weights.
     if file["format"] == "Numpy":
         archive = np.load(path, allow_pickle=False)
         weights = {key: torch.from_numpy(archive[key].astype(np.float32)) for key in archive.files}
@@ -52,10 +50,26 @@ def reference(model, file, path):
     else:
         weights = torch.load(path, map_location="cpu", weights_only=True)
         weights = {key: value.half().float() for key, value in weights.items()}
-        inputs = (torch.rand(1, 3049) > 0.8).float()
-        x = F.relu(F.linear(inputs, weights["net.0.weight"], weights["net.0.bias"]))
-        x = F.relu(F.linear(x, weights["net.2.weight"], weights["net.2.bias"]))
-        logits = F.linear(x, weights["net.4.weight"], weights["net.4.bias"])
+        if model["id"] == "Douzero":
+            history = torch.randint(0, 2, (1, 5, 162)).float()
+            lstm = torch.nn.LSTM(162, 128, batch_first=True)
+            lstm.load_state_dict({key.removeprefix("lstm."): value for key, value in weights.items()
+                                  if key.startswith("lstm.")})
+            hidden = lstm(history)[0][:, -1, :]
+            width = weights["dense1.weight"].shape[1] - 128
+            rows = torch.randint(0, 2, (32, width)).float()
+            x = torch.cat((hidden.expand(32, -1), rows), dim=1)
+            for layer in range(1, 7):
+                x = F.linear(x, weights[f"dense{layer}.weight"], weights[f"dense{layer}.bias"])
+                if layer < 6:
+                    x = F.relu(x)
+            inputs = torch.cat((history.flatten(), rows.flatten()))
+            logits = x
+        else:
+            inputs = (torch.rand(1, 3049) > 0.8).float()
+            x = F.relu(F.linear(inputs, weights["net.0.weight"], weights["net.0.bias"]))
+            x = F.relu(F.linear(x, weights["net.2.weight"], weights["net.2.bias"]))
+            logits = F.linear(x, weights["net.4.weight"], weights["net.4.bias"])
     values = inputs.flatten().tolist() + logits.flatten().tolist()
     path.with_suffix(".fixture").write_bytes(struct.pack("<%df" % len(values), *values))
     print("reference", model["key"], file["name"], flush=True)

@@ -13,7 +13,6 @@ use leocard_protocol::{
 };
 use std::time::Duration;
 mod achievements;
-mod ai;
 mod automation;
 mod modes;
 

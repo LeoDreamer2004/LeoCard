@@ -68,8 +68,12 @@ js-sys = "0.3"
 mac-usernotifications = "0.3"
 md-5 = "0.11"
 ndarray = "0.17"
+# repugnant-pickle 0.0.1 requires nom 7's parser error types.
+nom = "7.1"
 notify-rust = { version = "4.19", default-features = false, features = ["z"] }
+pollster = "1.0"
 postcard = { version = "1.1", features = ["alloc"] }
+repugnant-pickle = "0.0.1"
 reqwest = { version = "0.13", default-features = false, features = [
     "blocking",
     "form",
@@ -105,9 +109,17 @@ wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3"
 web-time = "1.1"
+wgpu = { version = "30.0", default-features = false, features = [
+    "dx12",
+    "metal",
+    "std",
+    "vulkan",
+    "wgsl",
+] }
 winit = { version = "0.30", default-features = false }
 winresource = "0.1"
 winreg = "0.56"
+zip = { version = "9.6", default-features = false, features = ["deflate"] }
 
 [profile.release]
 opt-level = 3

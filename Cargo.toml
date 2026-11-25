@@ -5,10 +5,10 @@ members = [
     "crates/host",
     "crates/network/*",
 ]
-# Keep the Android cdylib out of default desktop builds.
 default-members = [
     "crates/client/app",
     "crates/client/assets",
+    "crates/client/platform",
     "crates/client/ui",
     "crates/client/update",
     "crates/games/*",

@@ -18,6 +18,7 @@ use leocard_ai::{DevicePreference, ModelId, model_spec};
 #[cfg(not(target_arch = "wasm32"))]
 use leocard_client::open_url;
 use leocard_game_common::PlayerId;
+use leocard_platform::is_mobile;
 use leocard_protocol::ClientCommand;
 
 #[derive(SystemParam)]
@@ -170,10 +171,12 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                 }
             }
             SettingsUiAction::ToggleMahjongRightClickDrawDiscard => {
-                appearance.controls.mahjong_right_click_draw_discard =
-                    !appearance.controls.mahjong_right_click_draw_discard;
-                if let Err(error) = save_appearance_preferences(appearance) {
-                    warn!("{error}");
+                if !is_mobile() {
+                    appearance.controls.mahjong_right_click_draw_discard =
+                        !appearance.controls.mahjong_right_click_draw_discard;
+                    if let Err(error) = save_appearance_preferences(appearance) {
+                        warn!("{error}");
+                    }
                 }
             }
             SettingsUiAction::ToggleSpectatorInteractions => {

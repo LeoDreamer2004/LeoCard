@@ -76,7 +76,7 @@ impl<'a> AiSettings<'a> {
             "settings.ai.download-proxy-port",
             &self.form.ai.download_proxy_port,
         );
-        input.placeholder = "留空使用系统代理";
+        input.placeholder = "留空使用 VPN/环境代理";
         input.max_characters = 5;
         input.filter = |character| character.is_ascii_digit();
         let editor = input.spawn(

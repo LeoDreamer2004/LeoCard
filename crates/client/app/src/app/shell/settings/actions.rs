@@ -1,5 +1,7 @@
 use super::{SettingsTab, start_table_felt_picker};
 use crate::app::achievements::LocalAchievementTrigger;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::app::runtime::AiModels;
 use crate::app::runtime::{
     AppearancePreferences, ClientResource, GlobalPreferences, TableAppearance, TableFeltPicker,
     TableSurfaceKind, ToggleFullscreen, save_appearance_preferences,
@@ -11,6 +13,10 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
+#[cfg(not(target_arch = "wasm32"))]
+use leocard_ai::{DevicePreference, ModelId, model_spec};
+#[cfg(not(target_arch = "wasm32"))]
+use leocard_client::open_url;
 use leocard_game_common::PlayerId;
 use leocard_protocol::ClientCommand;
 
@@ -22,14 +28,31 @@ struct AppearanceUiResources<'w> {
 
 #[derive(Clone)]
 pub(crate) enum SettingsUiAction {
+    #[cfg(not(target_arch = "wasm32"))]
+    OpenAiModelSource(ModelId),
+    #[cfg(not(target_arch = "wasm32"))]
+    DownloadAiModel(ModelId),
+    #[cfg(not(target_arch = "wasm32"))]
+    RemoveAiModel(ModelId),
+    #[cfg(not(target_arch = "wasm32"))]
+    ToggleStrongAi(ModelId),
+    #[cfg(not(target_arch = "wasm32"))]
+    SetAiDevice(DevicePreference),
+    #[cfg(not(target_arch = "wasm32"))]
+    ToggleAiDeviceMenu,
+    #[cfg(not(target_arch = "wasm32"))]
+    CloseAiDeviceMenu,
     SelectTab(SettingsTab),
     ToggleFullscreen,
     TogglePowerSaving,
+    ToggleMahjongRightClickDrawDiscard,
     ToggleSpectatorInteractions,
     RequestKickPlayer(PlayerId),
     KickPlayer(PlayerId),
     #[cfg(feature = "desktop")]
     ToggleTurnNotifications,
+    ToggleOwnAchievementNotifications,
+    ToggleOtherAchievementNotifications,
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
     ToggleMahjongTileVoices,
@@ -53,6 +76,8 @@ impl DomainUiAction for SettingsUiAction {
 
 #[derive(SystemParam)]
 pub(super) struct SettingsUiActionContext<'w> {
+    #[cfg(not(target_arch = "wasm32"))]
+    ai: ResMut<'w, AiModels>,
     ui: ResMut<'w, UiState>,
     appearance: ResMut<'w, AppearancePreferences>,
     local: AppearanceUiResources<'w>,
@@ -75,7 +100,64 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
         let appearance = &mut *context.appearance;
         let local = &mut context.local;
         match self {
-            SettingsUiAction::SelectTab(tab) => ui.settings.tab = *tab,
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::OpenAiModelSource(id) => {
+                if let Err(error) = open_url(model_spec(*id).source) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::SelectTab(tab) => {
+                ui.settings.tab = *tab;
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    ui.settings.ai_device_menu_open = false;
+                    if *tab == SettingsTab::Ai {
+                        context.ai.probe_device();
+                    }
+                }
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::DownloadAiModel(id) => {
+                context.ai.download(*id, &appearance.ai.download_proxy_port)
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::RemoveAiModel(id) => {
+                if let Err(error) = context.ai.remove(*id) {
+                    warn!("{error}");
+                } else {
+                    appearance.ai.enabled.remove(id);
+                    if let Err(error) = save_appearance_preferences(appearance) {
+                        warn!("{error}");
+                    }
+                }
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::ToggleStrongAi(id) => {
+                if context.ai.status(*id).ready() {
+                    if !appearance.ai.enabled.remove(id) {
+                        appearance.ai.enabled.insert(*id);
+                    }
+                    if let Err(error) = save_appearance_preferences(appearance) {
+                        warn!("{error}");
+                    }
+                }
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::SetAiDevice(device) => {
+                ui.settings.ai_device_menu_open = false;
+                if *device != DevicePreference::Gpu || context.ai.gpu_available() {
+                    appearance.ai.device = *device;
+                    if let Err(error) = save_appearance_preferences(appearance) {
+                        warn!("{error}");
+                    }
+                }
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::ToggleAiDeviceMenu => {
+                ui.settings.ai_device_menu_open = !ui.settings.ai_device_menu_open;
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsUiAction::CloseAiDeviceMenu => ui.settings.ai_device_menu_open = false,
             SettingsUiAction::ToggleFullscreen => {
                 if appearance.fullscreen_supported {
                     context.fullscreen.write(ToggleFullscreen);
@@ -83,6 +165,13 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
             }
             SettingsUiAction::TogglePowerSaving => {
                 appearance.power_saving = !appearance.power_saving;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleMahjongRightClickDrawDiscard => {
+                appearance.controls.mahjong_right_click_draw_discard =
+                    !appearance.controls.mahjong_right_click_draw_discard;
                 if let Err(error) = save_appearance_preferences(appearance) {
                     warn!("{error}");
                 }
@@ -127,6 +216,20 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
             #[cfg(feature = "desktop")]
             SettingsUiAction::ToggleTurnNotifications => {
                 appearance.turn_notifications = !appearance.turn_notifications;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleOwnAchievementNotifications => {
+                appearance.own_achievement_notifications =
+                    !appearance.own_achievement_notifications;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleOtherAchievementNotifications => {
+                appearance.other_achievement_notifications =
+                    !appearance.other_achievement_notifications;
                 if let Err(error) = save_appearance_preferences(appearance) {
                     warn!("{error}");
                 }

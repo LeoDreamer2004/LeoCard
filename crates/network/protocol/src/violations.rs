@@ -102,6 +102,7 @@ pub enum RoomViolation {
     OnlyHostCanKick,
     CannotKickPlayer,
     SpectatorInteractionsBlocked,
+    AiModelUnavailable,
 }
 
 impl fmt::Display for RoomViolation {
@@ -126,6 +127,7 @@ impl fmt::Display for RoomViolation {
             Self::OnlyHostCanKick => "只有房主可以踢出玩家",
             Self::CannotKickPlayer => "只能踢出其他真人玩家",
             Self::SpectatorInteractionsBlocked => "房主已禁止旁观玩家互动",
+            Self::AiModelUnavailable => "强 AI 模型尚未就绪或不支持当前玩法",
         })
     }
 }

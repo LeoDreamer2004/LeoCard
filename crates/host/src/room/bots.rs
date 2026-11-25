@@ -51,7 +51,7 @@ impl RoomSession {
 
         let ordinal = (1..=self.seat_count)
             .find(|ordinal| {
-                let name = format!("机器人{ordinal}");
+                let name = self.bot_name(*ordinal);
                 self.players
                     .iter()
                     .all(|player| player.left || player.name != name)
@@ -63,7 +63,7 @@ impl RoomSession {
             id,
             profile_id: ProfileId([0; 32]),
             connection: ConnectionId(u64::MAX - u64::from(seat.0)),
-            name: format!("机器人{ordinal}"),
+            name: self.bot_name(ordinal),
             avatar: None,
             avatar_png: None,
             reconnect_token: ReconnectToken(u64::MAX - u64::from(seat.0)),

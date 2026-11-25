@@ -1,5 +1,5 @@
 mod game;
-#[cfg(feature = "android")]
+#[cfg(any(feature = "android", feature = "web"))]
 mod input;
 mod motion;
 mod page;

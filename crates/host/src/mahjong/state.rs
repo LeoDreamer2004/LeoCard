@@ -1,8 +1,9 @@
 use super::MahjongWinFeedback;
+use super::automation::MahjongBotInput;
 use crate::automation::BotDecision;
 use crate::{AutomaticActionDelayState, RoomSession};
 use leocard_mahjong::{
-    MahjongBotAction, MahjongBotObservation, MahjongGameState, MahjongRuleSet, MahjongTile,
+    MahjongBotAction, MahjongGameState, MahjongModelHistory, MahjongRuleSet, MahjongTile,
     MahjongWallBreak,
 };
 use leocard_protocol::{MatchId, PlayerReferenceChange};
@@ -14,7 +15,8 @@ pub(super) const MAHJONG_DICE_INTERVAL: Duration = Duration::from_millis(2_000);
 
 #[derive(Clone, Debug)]
 pub struct MahjongSession {
-    pub(super) bot_decision: BotDecision<MahjongBotObservation, MahjongBotAction>,
+    pub(super) bot_decision: BotDecision<MahjongBotInput, MahjongBotAction>,
+    pub(super) bot_history: MahjongModelHistory,
     pub(super) win_feedback: MahjongWinFeedback,
     pub(super) room: RoomSession,
     pub(super) rules: MahjongRuleSet,

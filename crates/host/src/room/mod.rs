@@ -1,4 +1,5 @@
 mod activity;
+mod ai;
 mod bots;
 mod economy;
 mod entrance;

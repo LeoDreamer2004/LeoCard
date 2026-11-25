@@ -1,79 +1,37 @@
-//! CPU implementation of DouZero's published LSTM/MLP architecture.
-//! Weights are stored as f16 and expanded to f32 once per used role.
+//! DouZero LSTM history encoding. Dense layers use the shared CPU/GPU backend.
+use leocard_ai::{DevicePreference, Network, NetworkBuilder, TensorMap};
+use ndarray::{Array1, ArrayView2};
 
-use half::f16;
-use ndarray::{Array1, Array2, ArrayView2};
-use std::sync::OnceLock;
-
-static MODELS: [OnceLock<Model>; 3] = [const { OnceLock::new() }; 3];
-
-pub(crate) struct Model {
-    input: Array2<f32>,
-    recurrent: Array2<f32>,
-    bias: Array1<f32>,
-    dense: Vec<Linear>,
-}
-
-struct Linear {
-    weight: Array2<f32>,
+pub(crate) struct Model<'a> {
+    input: ArrayView2<'a, f32>,
+    recurrent: ArrayView2<'a, f32>,
     bias: Array1<f32>,
 }
 
-impl Model {
-    pub(crate) fn for_role(role: usize) -> &'static Self {
-        MODELS[role].get_or_init(|| {
-            let bytes: &[u8] = match role {
-                0 => include_bytes!("../../models/douzero/landlord.f16"),
-                1 => include_bytes!("../../models/douzero/landlord_down.f16"),
-                _ => include_bytes!("../../models/douzero/landlord_up.f16"),
-            };
-            Self::read(bytes, if role == 0 { 373 } else { 484 })
-        })
-    }
-
-    fn read(bytes: &[u8], width: usize) -> Self {
-        assert_eq!(&bytes[..8], b"DZERO01\0");
-        let mut values = bytes[8..]
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|bytes| f16::from_le_bytes([bytes[0], bytes[1]]).to_f32());
-        let mut matrix = |rows, columns| {
-            Array2::from_shape_vec(
-                (rows, columns),
-                values.by_ref().take(rows * columns).collect(),
-            )
-            .expect("bundled matrix dimensions")
+impl<'a> Model<'a> {
+    pub(crate) fn read(tensors: &'a TensorMap) -> Result<Self, String> {
+        let matrix = |name: &str, rows, columns| {
+            let values = tensors
+                .get(name)
+                .ok_or_else(|| format!("DouZero 缺少 {name}"))?
+                .expect_shape(&[rows, columns])?;
+            ArrayView2::from_shape((rows, columns), values).map_err(|e| e.to_string())
         };
-        let input = matrix(512, 162);
-        let recurrent = matrix(512, 128);
-        let bias = Array1::from_iter(values.by_ref().take(512))
-            + Array1::from_iter(values.by_ref().take(512));
-        let mut dense = Vec::new();
-        for (inputs, outputs) in [
-            (width + 128, 512),
-            (512, 512),
-            (512, 512),
-            (512, 512),
-            (512, 512),
-            (512, 1),
-        ] {
-            let weight = Array2::from_shape_vec(
-                (outputs, inputs),
-                values.by_ref().take(outputs * inputs).collect(),
-            )
-            .expect("bundled dense dimensions");
-            let bias = Array1::from_iter(values.by_ref().take(outputs));
-            assert_eq!(bias.len(), outputs);
-            dense.push(Linear { weight, bias });
-        }
-        assert!(values.next().is_none(), "unexpected bundled weights");
-        Self {
+        let input = matrix("lstm.weight_ih_l0", 512, 162)?;
+        let recurrent = matrix("lstm.weight_hh_l0", 512, 128)?;
+        let bias = |name: &str| -> Result<Array1<f32>, String> {
+            let values = tensors
+                .get(name)
+                .ok_or_else(|| format!("DouZero 缺少 {name}"))?
+                .expect_shape(&[512])?;
+            Ok(Array1::from_iter(values.iter().copied()))
+        };
+        let bias = bias("lstm.bias_ih_l0")? + bias("lstm.bias_hh_l0")?;
+        Ok(Self {
             input,
             recurrent,
             bias,
-            dense,
-        }
+        })
     }
 
     pub(crate) fn encode_history(&self, history: &[f32]) -> Array1<f32> {
@@ -94,26 +52,23 @@ impl Model {
         }
         hidden
     }
+}
 
-    pub(crate) fn scores(&self, hidden: &Array1<f32>, features: &[Vec<f32>]) -> Vec<f32> {
-        let mut batch = Array2::from_shape_fn(
-            (features.len(), hidden.len() + features[0].len()),
-            |(row, column)| {
-                if column < hidden.len() {
-                    hidden[column]
-                } else {
-                    features[row][column - hidden.len()]
-                }
-            },
-        );
-        for (index, layer) in self.dense.iter().enumerate() {
-            batch = batch.dot(&layer.weight.t()) + &layer.bias;
-            if index + 1 < self.dense.len() {
-                batch.mapv_inplace(|value| value.max(0.0));
-            }
-        }
-        batch.column(0).to_vec()
+pub(super) fn build_head(
+    tensors: &TensorMap,
+    width: usize,
+    device: DevicePreference,
+) -> Result<Network, String> {
+    tensors
+        .get("dense6.weight")
+        .ok_or("DouZero 缺少评分层")?
+        .expect_shape(&[1, 512])?;
+    let mut builder = NetworkBuilder::new(vec![width + 128]);
+    let mut x = 0;
+    for layer in 1..=6 {
+        x = builder.linear(x, tensors, &format!("dense{layer}"), layer < 6)?;
     }
+    builder.finish(x, device)
 }
 
 fn sigmoid(value: f32) -> f32 {

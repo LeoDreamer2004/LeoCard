@@ -230,11 +230,17 @@ fn undecodable_legacy_rules_still_migrate_avatar_and_global_settings() {
 
 #[test]
 fn global_fields_default_independently_without_touching_existing_values() {
-    let saved: GlobalPreferences =
-        serde_json::from_str(r#"{"player_name":"原玩家","avatar_png":[1,2]}"#).unwrap();
+    let saved: GlobalPreferences = serde_json::from_str(
+        r#"{"player_name":"原玩家","avatar_png":[1,2],"turn_notifications":false}"#,
+    )
+    .unwrap();
     assert_eq!(saved.player_name, "原玩家");
     assert_eq!(saved.avatar_png, Some(vec![1, 2]));
+    assert!(!saved.turn_notifications);
     assert!(saved.mahjong_tile_voices);
+    assert!(saved.own_achievement_notifications);
+    assert!(saved.other_achievement_notifications);
+    assert!(!saved.controls.mahjong_right_click_draw_discard);
     assert_eq!(
         saved.audio_volume,
         GlobalPreferences::default().audio_volume

@@ -17,9 +17,13 @@ use leocard_protocol::{
 use leocard_tcp::ServerTls;
 use std::collections::VecDeque;
 use std::io;
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 const GAME_COMMAND_REPEAT_WINDOW: Duration = Duration::from_millis(500);
+#[cfg(not(target_arch = "wasm32"))]
+static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
 
 struct RecentGameCommand {
     command: GameCommand,
@@ -37,6 +41,8 @@ impl RecentGameCommand {
 
 /// 共用的联机客户端，平台后端负责非阻塞传输和重连。
 pub struct GameClient {
+    #[cfg(not(target_arch = "wasm32"))]
+    session_id: u64,
     model: ClientModel,
     commands: CommandSender,
     events: EventQueue,
@@ -163,6 +169,8 @@ impl GameClient {
         let (command_tx, worker) = spawn_worker(launch, Arc::clone(&events), reconnect_join)?;
 
         let client = Self {
+            #[cfg(not(target_arch = "wasm32"))]
+            session_id: NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed),
             model,
             commands: command_tx,
             events,
@@ -177,6 +185,11 @@ impl GameClient {
 
     pub fn model(&self) -> &ClientModel {
         &self.model
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn session_id(&self) -> u64 {
+        self.session_id
     }
 
     pub fn model_mut(&mut self) -> &mut ClientModel {

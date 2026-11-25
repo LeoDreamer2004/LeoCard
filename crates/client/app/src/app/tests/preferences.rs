@@ -1,5 +1,5 @@
 use super::prelude::*;
-use leocard_client::GlobalPreferences;
+use leocard_client::{ControlPreferences, GlobalPreferences};
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::{PlayerGender, TABLE_SEAT_COUNT};
 use leocard_qigui523::{QiGuiRuleSet, QiGuiTimeControl};
@@ -12,6 +12,11 @@ use std::path::PathBuf;
 fn preferences_round_trip_including_avatar() {
     let saved = SavedPreferences {
         global: GlobalPreferences {
+            #[cfg(not(target_arch = "wasm32"))]
+            ai: Default::default(),
+            controls: ControlPreferences {
+                mahjong_right_click_draw_discard: true,
+            },
             player_name: "测试玩家".to_owned(),
             avatar_png: Some(vec![1, 2, 3]),
             host_port: "52301".to_owned(),
@@ -23,6 +28,8 @@ fn preferences_round_trip_including_avatar() {
             mahjong_table_brightness: 0.6,
             audio_volume: 0.63,
             turn_notifications: false,
+            own_achievement_notifications: false,
+            other_achievement_notifications: true,
             power_saving: true,
             gender: PlayerGender::Female,
             mahjong_action_voices: false,
@@ -107,7 +114,10 @@ fn preferences_round_trip_including_avatar() {
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
     assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
     assert!(!decoded.global.turn_notifications);
+    assert!(!decoded.global.own_achievement_notifications);
+    assert!(decoded.global.other_achievement_notifications);
     assert!(decoded.global.power_saving);
+    assert!(decoded.global.controls.mahjong_right_click_draw_discard);
     assert!(!decoded.global.guandan_action_voices);
     assert_eq!(decoded.global.gender, PlayerGender::Female);
     assert_eq!(

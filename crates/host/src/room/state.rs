@@ -2,6 +2,7 @@ use super::{RoomActivity, RoomEntrance};
 use crate::achievements::RoomAchievements;
 use crate::action_timing::ActionTimingState;
 use crate::{ConnectionId, Delivery};
+use leocard_ai::LoadedModel;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientCommand, ClientMessage, GameEvent, GameEventContext,
@@ -41,6 +42,7 @@ pub(crate) struct Participant {
 /// 这里保存一份。具体游戏仍决定何时允许加入、何时广播大厅或私有牌局快照。
 #[derive(Clone, Debug)]
 pub struct RoomSession {
+    pub(crate) bot_ai: Option<LoadedModel>,
     pub(crate) achievements: RoomAchievements,
     pub(crate) action_timing: ActionTimingState,
     activity: RoomActivity,
@@ -81,6 +83,7 @@ impl RoomSession {
     ) -> Self {
         assert!(seat_count > 0 && capacity <= seat_count);
         Self {
+            bot_ai: None,
             achievements: RoomAchievements::default(),
             action_timing: ActionTimingState::default(),
             activity: RoomActivity::default(),

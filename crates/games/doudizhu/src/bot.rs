@@ -4,7 +4,7 @@ use crate::{
 };
 use std::collections::HashSet;
 
-/// Uses only the player's hand, public table and public team membership.
+/// Default rule-based robot. Uses only its hand, public table and team membership.
 pub fn bot_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
     let hand = game.hand(game.current)?;
     match game.phase {
@@ -44,7 +44,7 @@ pub fn bot_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
 }
 
 /// Conservative policy for human auto-play and disconnected-player takeover.
-/// The host selects DouZero or the four-player simulation policy only for room robots.
+/// Downloaded strong models are selected separately by the room host.
 pub fn auto_play_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
     bot_action(game)
 }

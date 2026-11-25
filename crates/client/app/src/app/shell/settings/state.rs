@@ -5,6 +5,10 @@ pub(crate) enum SettingsTab {
     #[default]
     Appearance,
     Sound,
+    Notifications,
+    Controls,
+    #[cfg(not(target_arch = "wasm32"))]
+    Ai,
     Room,
     About,
 }
@@ -13,4 +17,6 @@ pub(crate) enum SettingsTab {
 pub(crate) struct SettingsUiState {
     pub open: bool,
     pub tab: SettingsTab,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub ai_device_menu_open: bool,
 }

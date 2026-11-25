@@ -1,6 +1,7 @@
 pub mod achievements;
 mod bot;
 mod card;
+#[cfg(not(target_arch = "wasm32"))]
 mod douzero;
 mod four_player;
 mod game;
@@ -11,6 +12,7 @@ mod rules;
 
 pub use bot::{auto_play_action, bot_action, hint, hint_options};
 pub use card::{DoudizhuCard, build_deck, rank_label};
+#[cfg(not(target_arch = "wasm32"))]
 pub use douzero::{DouzeroBot, DouzeroObservation};
 pub use four_player::{FourPlayerBot, FourPlayerObservation};
 pub use game::{

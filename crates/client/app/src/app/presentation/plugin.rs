@@ -19,8 +19,8 @@ use bevy::prelude::*;
 use bevy::ui::UiSystems;
 use bevy::ui_render::UiMaterialPlugin;
 use leocard_ui::{
-    CardDragSelection, PointerInputPlugin, ScrollbarDrag, TextInputPlugin, UiSceneProperties,
-    UiSceneRegistry, animate_bubbles, animate_button_presses, animate_drawers,
+    CardDragSelection, PointerInputPlugin, ScrollbarDrag, SwitchAnimation, TextInputPlugin,
+    UiSceneProperties, UiSceneRegistry, animate_bubbles, animate_button_presses, animate_drawers,
     animate_progress_bars, drag_scrollbar, image_node_eq, position_anchored_popups,
     update_button_highlights, update_button_tints, update_ellipsized_labels, update_scrollbar,
 };
@@ -40,6 +40,7 @@ impl Plugin for PresentationPlugin {
         properties.preserve::<TextColor>();
         properties.preserve::<TextShadow>();
         properties.preserve::<TableStatusAnimation>();
+        properties.preserve_with::<SwitchAnimation>(SwitchAnimation::same_owner);
         properties.preserve::<BackgroundColor>();
         properties.preserve::<BorderColor>();
         properties.preserve::<Outline>();

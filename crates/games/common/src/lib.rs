@@ -2,6 +2,7 @@
 //!
 //! 游戏提供合法牌堆和积分档位，并自行解释规则及校验错误。
 
+mod ai;
 mod cards;
 pub mod mahjong;
 mod persona;
@@ -10,6 +11,7 @@ mod profile;
 mod ranking;
 mod search;
 
+pub use ai::{DevicePreference, ModelId};
 pub use cards::{DeckError, contains_unique_cards, has_unique_cards, validate_deck};
 pub use persona::PlayerPersona;
 pub use player::PlayerId;

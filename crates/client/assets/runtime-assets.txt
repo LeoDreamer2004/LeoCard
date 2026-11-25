@@ -10,6 +10,7 @@ cards/uno-extension/
 fonts/
 icons/chat-emoji-white.png
 icons/github-mark.png
+icons/hugging-face.png
 icons/settings.png
 icons/network.png
 icons/achievement-trophy.png

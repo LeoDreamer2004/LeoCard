@@ -34,12 +34,21 @@ pub fn add_help_tooltip(
                 position_type: PositionType::Relative,
                 ..default()
             },
-            style.icon,
+            style.icon.clone(),
         ),
     );
 
+    attach_help_tooltip(commands, question, help, style)
+}
+
+pub fn attach_help_tooltip(
+    commands: &mut UiComposer,
+    target: Entity,
+    help: &str,
+    style: HelpTooltipStyle,
+) -> Entity {
     let tooltip = commands.child(
-        question,
+        target,
         (
             Node {
                 position_type: PositionType::Absolute,
@@ -56,17 +65,17 @@ pub fn add_help_tooltip(
         .entity(tooltip)
         .insert((Visibility::Hidden, GlobalZIndex(1000), OverrideClip));
     add_label(commands, tooltip, help, 12.0, style.text, style.font);
-    commands.entity(question).insert(HelpTooltip { tooltip });
+    commands.entity(target).insert(HelpTooltip { tooltip });
     tooltip
 }
 
 pub fn update_help_tooltips(
-    helps: Query<(&PickingInteraction, &HelpTooltip), Changed<PickingInteraction>>,
+    helps: Query<(&PickingInteraction, &HelpTooltip)>,
     mut tooltips: Query<&mut Visibility>,
 ) {
     for (interaction, help) in &helps {
         if let Ok(mut visibility) = tooltips.get_mut(help.tooltip) {
-            *visibility = if matches!(
+            let desired = if matches!(
                 interaction,
                 PickingInteraction::Hovered | PickingInteraction::Pressed
             ) {
@@ -74,6 +83,9 @@ pub fn update_help_tooltips(
             } else {
                 Visibility::Hidden
             };
+            if *visibility != desired {
+                *visibility = desired;
+            }
         }
     }
 }

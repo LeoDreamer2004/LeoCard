@@ -45,6 +45,11 @@ pub enum AvatarFrameId {
     Horse,
     Host,
     WhaleGirl,
+    Riichi,
+    Programmer,
+    Strong,
+    Table,
+    Chemistry,
 }
 
 /// 可随玩家身份公开的各游戏长期档案。`None` 表示旧版本没有采集过该游戏的

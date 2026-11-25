@@ -96,7 +96,7 @@ fn mode_dropdown(selected: DoudizhuMode) -> CozyDropdown {
             .map(|mode| CozyDropdownOption {
                 label: mode.label(),
                 selected: mode == selected,
-                action: UiAction::Doudizhu(DoudizhuUiAction::SelectMode(mode)),
+                action: Some(UiAction::Doudizhu(DoudizhuUiAction::SelectMode(mode))),
             })
             .collect(),
     }

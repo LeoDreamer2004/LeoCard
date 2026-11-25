@@ -6,8 +6,10 @@ license.workspace = true
 description = "Three and four player Dou Dizhu rules"
 
 [dependencies]
-half.workspace = true
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
-ndarray.workspace = true
 serde.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+leocard-ai = { path = "../ai" }
+ndarray.workspace = true

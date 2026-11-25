@@ -43,6 +43,7 @@ impl MahjongSession {
             match_id: None,
             automatic_action_delay: None,
             bot_decision: Default::default(),
+            bot_history: Default::default(),
             deal_delay: Duration::ZERO,
             finished_reference_changes: None,
         })
@@ -79,6 +80,7 @@ impl MahjongSession {
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         self.room.action_timing.advance(elapsed);
         let deliveries = self.advance_game_time(elapsed);
+        self.refresh_model_history();
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
     }
@@ -133,7 +135,19 @@ impl MahjongSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        self.dispatch_with_action_timing(connection, message)
+        let deliveries = self.dispatch_with_action_timing(connection, message);
+        self.refresh_model_history();
+        deliveries
+    }
+
+    fn refresh_model_history(&mut self) {
+        if let Some(game) = &self.game
+            && self.room.bot_ai.is_some()
+        {
+            self.bot_history.refresh(game);
+        } else {
+            self.bot_history = Default::default();
+        }
     }
 }
 

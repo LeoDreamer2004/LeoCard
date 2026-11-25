@@ -62,6 +62,11 @@ fn frame_layout(id: AvatarFrameId) -> AvatarFrameLayout {
         AvatarFrameId::Horse => ([10, 15, 116, 122], [16, 21, 109, 116]),
         AvatarFrameId::Host => ([16, 13, 113, 112], [23, 21, 106, 104]),
         AvatarFrameId::WhaleGirl => ([8, 10, 114, 117], [14, 16, 108, 111]),
+        AvatarFrameId::Riichi => ([18, 23, 137, 144], [27, 34, 127, 134]),
+        AvatarFrameId::Programmer => ([19, 19, 141, 141], [30, 32, 129, 128]),
+        AvatarFrameId::Strong => ([18, 20, 142, 142], [29, 31, 131, 131]),
+        AvatarFrameId::Table => ([20, 16, 139, 137], [31, 35, 128, 129]),
+        AvatarFrameId::Chemistry => ([15, 18, 145, 146], [24, 27, 135, 136]),
     };
     let [left, top, right, bottom] = rails.map(f32::from);
     let [inner_left, inner_top, inner_right, inner_bottom] = opening.map(f32::from);
@@ -69,15 +74,26 @@ fn frame_layout(id: AvatarFrameId) -> AvatarFrameLayout {
     let scale = Vec2::splat(RAIL_SIZE) / (Vec2::new(right, bottom) - source_origin);
     let place = |point| (point - source_origin) * scale + Vec2::splat(RAIL_INSET);
     let overlap = Vec2::splat(PORTRAIT_OVERLAP);
-    AvatarFrameLayout {
-        // The high-resolution originals are downsampled directly onto a 160px canvas.
-        // A 16px surround gives the ornaments room beyond the 128px frame area.
-        artwork: Rect::new(
+    let artwork = match id {
+        // These exports use measured 160px bounds, leaving room for ornaments beyond the rails.
+        AvatarFrameId::Riichi
+        | AvatarFrameId::Programmer
+        | AvatarFrameId::Strong
+        | AvatarFrameId::Table
+        | AvatarFrameId::Chemistry => Rect {
+            min: place(Vec2::ZERO) / TEXTURE_SIZE,
+            max: place(Vec2::splat(160.0)) / TEXTURE_SIZE,
+        },
+        // Existing exports reserve a 16px surround beyond the logical 128px frame.
+        _ => Rect::new(
             -EXPORT_PADDING,
             -EXPORT_PADDING,
             1.0 + EXPORT_PADDING,
             1.0 + EXPORT_PADDING,
         ),
+    };
+    AvatarFrameLayout {
+        artwork,
         portrait: Rect {
             min: (place(Vec2::new(inner_left, inner_top)) - overlap) / TEXTURE_SIZE,
             max: (place(Vec2::new(inner_right, inner_bottom)) + overlap) / TEXTURE_SIZE,

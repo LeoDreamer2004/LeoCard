@@ -1,12 +1,13 @@
 use super::statistics::GuandanStatistics;
 use crate::action_timing::attach_action_timing;
+use crate::automation::BotDecision;
 use crate::features::{GameAutomation, MatchSettlement};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
 use leocard_guandan::{
-    GuandanAction, GuandanCard, GuandanGameState, GuandanMatchState, GuandanPhase, GuandanRuleSet,
-    auto_play_action, build_deck,
+    GuandanAction, GuandanCard, GuandanGameState, GuandanMatchState, GuandanModelHistory,
+    GuandanModelObservation, GuandanPhase, GuandanRuleSet, build_deck,
 };
 use leocard_protocol::{
     ClientMessage, GuandanEvent, GuandanPublicAction, MatchId, PlayerReferenceChange, RejectReason,
@@ -16,6 +17,8 @@ use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct GuandanSession {
+    pub(super) bot_decision: BotDecision<GuandanModelObservation, GuandanAction>,
+    pub(super) bot_history: GuandanModelHistory,
     pub(super) room: RoomSession,
     pub(super) rules: GuandanRuleSet,
     pub(super) deck: Option<Vec<GuandanCard>>,
@@ -36,6 +39,8 @@ impl GuandanSession {
     ) -> Result<Self, HostError> {
         GuandanGameState::new(rules, deck.clone(), PlayerId(0))?;
         Ok(Self {
+            bot_decision: BotDecision::default(),
+            bot_history: GuandanModelHistory::default(),
             room: RoomSession::new_with_seat_count(room_id, host_port, 4, 4),
             rules,
             deck: Some(deck),
@@ -139,6 +144,8 @@ impl GuandanSession {
     }
 
     fn deal_hand(&mut self, deck: Vec<GuandanCard>) {
+        self.bot_decision.clear();
+        self.bot_history = GuandanModelHistory::default();
         let state = self.match_state.as_ref().expect("active match");
         let rules = GuandanRuleSet {
             starting_level: state.current_level(),
@@ -178,6 +185,9 @@ impl GuandanSession {
                     .reject(connection, request, RejectReason::Game(error.into()))
             });
         }
+        self.bot_history
+            .record(player, &action, game.current_player());
+        self.bot_decision.clear();
         self.automatic_elapsed = Duration::ZERO;
         if matches!(action, GuandanAction::Play(_)) {
             self.statistics
@@ -264,7 +274,7 @@ impl GameAutomation for GuandanSession {
         if self.automatic_elapsed < Duration::from_millis(800) {
             return Vec::new();
         }
-        let Some(action) = auto_play_action(game, player) else {
+        let Some(action) = self.automatic_action(player) else {
             return Vec::new();
         };
         self.apply_action(player, action, None)

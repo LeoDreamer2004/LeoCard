@@ -1,16 +1,18 @@
-#[cfg(feature = "android")]
+#[cfg(any(feature = "android", feature = "web"))]
 use super::input::handle_header_taps;
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "web"))]
 use super::state::GameHeaderAvatar;
 use super::state::{GameHeaderItem, GameHeaderMotion};
 use crate::app::runtime::ClientUpdateSet;
-#[cfg(feature = "android")]
+#[cfg(any(feature = "android", feature = "web"))]
 use crate::app::shell::UiActionSet;
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "web"))]
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "web"))]
 use bevy::window::PrimaryWindow;
+#[cfg(any(feature = "desktop", feature = "web"))]
+use leocard_platform::is_mobile;
 use leocard_ui::{TransitionVisuals, UiComposer, fade_panel, update_button_highlights};
 
 pub(in crate::app::shell::ui) struct GameHeaderPlugin;
@@ -24,14 +26,14 @@ impl Plugin for GameHeaderPlugin {
                 .after(update_button_highlights)
                 .in_set(ClientUpdateSet::Animate),
         );
-        #[cfg(feature = "desktop")]
+        #[cfg(any(feature = "desktop", feature = "web"))]
         app.add_systems(
             Update,
             track_header_hover
                 .before(advance_header)
                 .in_set(ClientUpdateSet::Animate),
         );
-        #[cfg(feature = "android")]
+        #[cfg(any(feature = "android", feature = "web"))]
         app.add_systems(
             Update,
             handle_header_taps
@@ -41,16 +43,20 @@ impl Plugin for GameHeaderPlugin {
     }
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "web"))]
 fn track_header_hover(
     windows: Query<&Window, With<PrimaryWindow>>,
     avatars: Query<&PickingInteraction, With<GameHeaderAvatar>>,
     mut headers: Query<(&mut GameHeaderMotion, &ComputedNode, &UiGlobalTransform)>,
 ) {
+    if is_mobile() {
+        return;
+    }
     let cursor = windows
         .single()
         .ok()
-        .filter(|window| window.focused)
+        // Browser text editors can own keyboard focus while the canvas is still hovered.
+        .filter(|window| cfg!(feature = "web") || window.focused)
         .and_then(Window::physical_cursor_position);
     let hovered = cursor.is_some()
         && avatars

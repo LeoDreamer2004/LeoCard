@@ -1,18 +1,46 @@
 use super::DouzeroObservation;
-use super::model::Model;
+use super::model::{Model, build_head};
 use super::observation::encode_cards;
 use crate::DoudizhuAction;
+use leocard_ai::{DevicePreference, LoadedModel, ModelId, TensorMap};
 use leocard_game_common::SearchBudget;
 
 pub struct DouzeroBot;
 
 impl DouzeroBot {
+    pub fn validate(tensors: &[TensorMap]) -> Result<(), String> {
+        if tensors.len() != 3 {
+            return Err("DouZero 需要三个角色模型".into());
+        }
+        for (role, weights) in tensors.iter().enumerate() {
+            Model::read(weights)?;
+            build_head(
+                weights,
+                if role == 0 { 373 } else { 484 },
+                DevicePreference::Cpu,
+            )?;
+        }
+        Ok(())
+    }
+
     pub fn choose_with_progress(
         input: &DouzeroObservation,
+        loaded: &LoadedModel,
         budget: &SearchBudget,
         report: &mut dyn FnMut(DoudizhuAction),
-    ) -> DoudizhuAction {
-        let model = Model::for_role(input.role);
+    ) -> Result<DoudizhuAction, String> {
+        if loaded.id != ModelId::Douzero {
+            return Err("斗地主模型类型错误".into());
+        }
+        let weights = loaded.tensors(input.role)?;
+        let model = Model::read(weights)?;
+        let network = loaded.network(&format!("role{}", input.role), || {
+            build_head(
+                weights,
+                if input.role == 0 { 373 } else { 484 },
+                loaded.device,
+            )
+        })?;
         let hidden = model.encode_history(&input.history);
         let mut best = input
             .actions
@@ -36,7 +64,11 @@ impl DouzeroBot {
                     row
                 })
                 .collect();
-            for (action, score) in actions.iter().zip(model.scores(&hidden, &features)) {
+            let batch: Vec<_> = features
+                .iter()
+                .flat_map(|row| hidden.iter().chain(row).copied())
+                .collect();
+            for (action, score) in actions.iter().zip(network.run(&batch, features.len())?) {
                 if score.is_finite() && score > best_score {
                     best_score = score;
                     best = action.clone();
@@ -44,6 +76,6 @@ impl DouzeroBot {
             }
             report(best.clone());
         }
-        best
+        Ok(best)
     }
 }

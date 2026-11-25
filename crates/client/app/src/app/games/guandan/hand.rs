@@ -160,21 +160,5 @@ pub(super) fn render_hand(
                 Pickable::IGNORE,
             ),
         );
-        if placement.arranged {
-            commands.child(
-                slot,
-                (
-                    Node {
-                        position_type: PositionType::Absolute,
-                        top: px(placement.position.y - hit.min.y + placement.size.y + 3.0),
-                        width: px(placement.size.x),
-                        height: px(2),
-                        ..default()
-                    },
-                    BackgroundColor(ACCENT.with_alpha(0.65)),
-                    Pickable::IGNORE,
-                ),
-            );
-        }
     }
 }

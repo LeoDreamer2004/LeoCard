@@ -4,11 +4,13 @@ use super::{TableSurfaceKind, normalize_avatar_bytes};
 use crate::app::presentation::{MAX_TABLE_BRIGHTNESS, MIN_TABLE_BRIGHTNESS};
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use leocard_client::AiPreferences;
 use leocard_client::PlayerEconomy;
 pub(crate) use leocard_client::{
-    DoudizhuPreferences, GameAppearancePreferences, GamePreferences, GlobalPreferences,
-    GuandanPreferences, MahjongPreferences, McGuessPreferences, QiGui523Preferences,
-    SavedPreferences, ShengjiPreferences, TexasPreferences, UnoPreferences,
+    ControlPreferences, DoudizhuPreferences, GameAppearancePreferences, GamePreferences,
+    GlobalPreferences, GuandanPreferences, MahjongPreferences, McGuessPreferences,
+    QiGui523Preferences, SavedPreferences, ShengjiPreferences, TexasPreferences, UnoPreferences,
     load_player_preferences, save_game_preferences, save_global_preferences,
 };
 use leocard_doudizhu::DoudizhuRuleSet;
@@ -37,6 +39,9 @@ pub(crate) struct ConnectionDraft {
 
 #[derive(Resource)]
 pub(crate) struct AppearancePreferences {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub ai: AiPreferences,
+    pub controls: ControlPreferences,
     pub fullscreen: bool,
     pub fullscreen_supported: bool,
     pub power_saving: bool,
@@ -48,6 +53,8 @@ pub(crate) struct AppearancePreferences {
     pub mahjong_table_brightness: f32,
     pub audio_volume: f32,
     pub turn_notifications: bool,
+    pub own_achievement_notifications: bool,
+    pub other_achievement_notifications: bool,
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
     pub mahjong_tile_voices: bool,
@@ -171,6 +178,9 @@ impl PreferenceResources {
                 },
             },
             appearance: AppearancePreferences {
+                #[cfg(not(target_arch = "wasm32"))]
+                ai: saved.global.ai,
+                controls: saved.global.controls,
                 fullscreen: false,
                 fullscreen_supported: cfg!(feature = "desktop"),
                 power_saving: saved.global.power_saving,
@@ -195,6 +205,8 @@ impl PreferenceResources {
                     DEFAULT_AUDIO_VOLUME,
                 ),
                 turn_notifications: saved.global.turn_notifications,
+                own_achievement_notifications: saved.global.own_achievement_notifications,
+                other_achievement_notifications: saved.global.other_achievement_notifications,
                 mahjong_action_voices: saved.global.mahjong_action_voices,
                 mahjong_fan_voices: saved.global.mahjong_fan_voices,
                 mahjong_tile_voices: saved.global.mahjong_tile_voices,
@@ -394,6 +406,9 @@ pub(crate) fn save_appearance_preferences(
 ) -> Result<(), String> {
     let mut saved = load_player_preferences()?;
     saved.global.avatar_png.clone_from(&appearance.avatar_png);
+    #[cfg(not(target_arch = "wasm32"))]
+    saved.global.ai.clone_from(&appearance.ai);
+    saved.global.controls = appearance.controls;
     saved
         .global
         .table_felt_path
@@ -406,6 +421,8 @@ pub(crate) fn save_appearance_preferences(
     saved.global.mahjong_table_brightness = appearance.mahjong_table_brightness;
     saved.global.audio_volume = appearance.audio_volume;
     saved.global.turn_notifications = appearance.turn_notifications;
+    saved.global.own_achievement_notifications = appearance.own_achievement_notifications;
+    saved.global.other_achievement_notifications = appearance.other_achievement_notifications;
     saved.global.power_saving = appearance.power_saving;
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;

@@ -14,6 +14,7 @@ ed25519-dalek.workspace = true
 fastrand.workspace = true
 image.workspace = true
 leocard-achievements = { path = "../games/achievements" }
+leocard-ai = { path = "../games/ai" }
 leocard-blackjack = { path = "../games/blackjack" }
 leocard-doudizhu = { path = "../games/doudizhu" }
 leocard-draw-guess = { path = "../games/draw-guess" }

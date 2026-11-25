@@ -1,11 +1,18 @@
 //! 全局设置窗口与页签组合。
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::app::runtime::AiModels;
+
 #[cfg(not(feature = "web"))]
 use crate::app::shell::UpdateManager;
 
 use super::super::{SelectedSettingsTab, SettingsMotion, SettingsTabButton};
 use super::about::AboutSettings;
+#[cfg(not(target_arch = "wasm32"))]
+use super::ai::AiSettings;
 use super::appearance::TableAppearanceSettings;
+use super::controls::render_control_settings;
+use super::notifications::render_notification_settings;
 use super::room::render_room_settings;
 use super::sound::render_sound_settings;
 use crate::app::presentation::{
@@ -14,7 +21,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{
     CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab, SettingsUiAction,
-    ShellOverlayLayer, UiAction, add_centered_modal, add_configuration_scroll,
+    SettingsUiState, ShellOverlayLayer, UiAction, add_centered_modal, add_configuration_scroll,
     add_cozy_close_button, cozy_panel_transform,
 };
 use bevy::prelude::*;
@@ -23,6 +30,8 @@ use leocard_client::ClientModel;
 use leocard_ui::{PageFrame, UiComposer, decorate_panel, sliced_image, spawn_node};
 
 pub(crate) struct SettingsModal<'a> {
+    #[cfg(not(target_arch = "wasm32"))]
+    ai: &'a AiModels,
     form: &'a AppearancePreferences,
     #[cfg(not(feature = "web"))]
     updater: &'a UpdateManager,
@@ -32,12 +41,15 @@ pub(crate) struct SettingsModal<'a> {
 
 impl<'a> SettingsModal<'a> {
     pub(crate) fn new(
+        #[cfg(not(target_arch = "wasm32"))] ai: &'a AiModels,
         form: &'a AppearancePreferences,
         #[cfg(not(feature = "web"))] updater: &'a UpdateManager,
         assets: &'a UiAssets,
         client: Option<&'a ClientModel>,
     ) -> Self {
         Self {
+            #[cfg(not(target_arch = "wasm32"))]
+            ai,
             form,
             #[cfg(not(feature = "web"))]
             updater,
@@ -51,8 +63,9 @@ impl<'a> SettingsModal<'a> {
         commands: &mut UiComposer,
         root: Entity,
         motion: &SettingsMotion,
-        selected_tab: SettingsTab,
+        settings: &SettingsUiState,
     ) {
+        let selected_tab = settings.tab;
         let selected_tab = if selected_tab == SettingsTab::Room
             && self.client.and_then(ClientModel::room_moderation).is_none()
         {
@@ -115,6 +128,8 @@ impl<'a> SettingsModal<'a> {
             Node {
                 width: px(100),
                 min_width: px(100),
+                min_height: px(0),
+                overflow: Overflow::scroll_y(),
                 padding: UiRect::top(px(18)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(6),
@@ -125,6 +140,10 @@ impl<'a> SettingsModal<'a> {
         for (tab, label) in [
             (SettingsTab::Appearance, "外观"),
             (SettingsTab::Sound, "声音"),
+            (SettingsTab::Notifications, "通知"),
+            (SettingsTab::Controls, "控制"),
+            #[cfg(not(target_arch = "wasm32"))]
+            (SettingsTab::Ai, "AI"),
             (SettingsTab::Room, "房间"),
             (SettingsTab::About, "关于"),
         ] {
@@ -175,6 +194,15 @@ impl<'a> SettingsModal<'a> {
             SettingsTab::Sound => {
                 render_sound_settings(commands, content, form, assets);
             }
+            SettingsTab::Notifications => {
+                render_notification_settings(commands, content, form, assets);
+            }
+            SettingsTab::Controls => {
+                render_control_settings(commands, content, form, assets);
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            SettingsTab::Ai => AiSettings::new(form, self.ai, settings.ai_device_menu_open, assets)
+                .render(commands, overlay, content),
             SettingsTab::Room => render_room_settings(commands, content, self.client, assets),
             SettingsTab::About => {
                 AboutSettings::new(
@@ -213,6 +241,7 @@ fn add_settings_tab(
             Node {
                 width: percent(100),
                 height: px(48),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 ..default()

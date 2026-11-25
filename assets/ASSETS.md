@@ -155,6 +155,13 @@ OFL 关于保留名称与再分发的条件。
 GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其用于指向对应仓库的识别性
 链接。
 
+### Hugging Face 品牌图标
+
+- 运行时文件：`icons/hugging-face.png`，由官方 SVG 栅格化为 64 × 64 透明 PNG
+- 原始素材：`icons/hugging-face.svg`
+- 来源：[官方品牌素材页](https://huggingface.co/brand)，[官方 SVG](https://huggingface.co/datasets/huggingface/brand-assets/blob/main/hf-logo.svg)
+- 用途：AI 设置中指向 Hugging Face 模型发布页的识别性链接
+
 ### 无名杀互动与快捷语音（GPL-3.0）
 
 - 来源：<https://github.com/libnoname/noname>

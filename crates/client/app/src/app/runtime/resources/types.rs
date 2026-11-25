@@ -124,6 +124,8 @@ pub(crate) struct ControlAssets {
     pub robot_icon: Handle<Image>,
     pub host_crown: Handle<Image>,
     pub github_mark: Handle<Image>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub hugging_face_mark: Handle<Image>,
 }
 
 #[derive(Default)]

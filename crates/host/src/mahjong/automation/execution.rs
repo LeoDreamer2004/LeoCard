@@ -10,7 +10,13 @@ impl MahjongSession {
         player: PlayerId,
     ) -> Option<(Vec<MahjongEvent>, MahjongActionOutcome)> {
         let action = if self.room.players.get(usize::from(player.0))?.is_bot {
-            bot::Policy::choose(self.game.as_ref()?, player, &mut self.bot_decision)?
+            bot::Policy::choose(
+                self.game.as_ref()?,
+                player,
+                &mut self.bot_decision,
+                self.room.bot_ai.clone(),
+                &mut self.bot_history,
+            )?
         } else {
             self.bot_decision.clear();
             auto_play::Policy::choose(self.game.as_ref()?, player)?

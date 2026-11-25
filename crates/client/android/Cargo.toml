@@ -15,4 +15,6 @@ developer = ["leocard-client/developer"]
 [target.'cfg(target_os = "android")'.dependencies]
 bevy = { workspace = true, features = ["android-game-activity"] }
 jni.workspace = true
-leocard-client = { path = "../app", default-features = false, features = ["android"] }
+leocard-client = { path = "../app", default-features = false, features = [
+    "android",
+] }

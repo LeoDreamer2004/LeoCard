@@ -45,7 +45,7 @@ impl SakuraPage<'_> {
             .map(|kind| CozyDropdownOption {
                 label: kind.label(),
                 selected: self.state.kind == kind,
-                action: UiAction::Sakura(SakuraUiAction::SelectKind(kind)),
+                action: Some(UiAction::Sakura(SakuraUiAction::SelectKind(kind))),
             })
             .collect(),
         }

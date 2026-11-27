@@ -160,6 +160,8 @@ impl TexasSession {
     }
 
     pub(super) fn create_tournament(&mut self) -> Result<(), AdapterError> {
+        self.bot_memory = Default::default();
+        self.bot_decision.clear();
         let deck = self.shuffled_deck.take().unwrap_or_else(|| {
             let mut deck = build_deck(self.rules.short_deck);
             fastrand::shuffle(&mut deck);

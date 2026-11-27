@@ -3,6 +3,7 @@ use crate::app::presentation::{TEXT, add_title, rule_help_style};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{SettingsUiAction, ShellOverlayLayer};
 use bevy::prelude::*;
+use leocard_platform::is_mobile;
 use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
 
 pub(super) fn render_control_settings(
@@ -27,8 +28,8 @@ pub(super) fn render_control_settings(
         commands,
         row,
         "右键摸打",
-        form.controls.mahjong_right_click_draw_discard,
-        SettingsUiAction::ToggleMahjongRightClickDrawDiscard,
+        !is_mobile() && form.controls.mahjong_right_click_draw_discard,
+        (!is_mobile()).then_some(SettingsUiAction::ToggleMahjongRightClickDrawDiscard),
         assets,
     );
     commands

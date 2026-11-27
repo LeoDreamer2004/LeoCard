@@ -34,6 +34,7 @@ impl BlackjackSession {
     }
 
     fn reset_round(&mut self) {
+        self.bot_decision.clear();
         self.elapsed = Duration::ZERO;
         for player in &mut self.room.players {
             player.ready = false;

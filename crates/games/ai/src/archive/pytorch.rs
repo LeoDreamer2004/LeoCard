@@ -12,6 +12,10 @@ impl TensorArchive {
     /// Reads tensor storage from torch.save ZIP files without a Python interpreter.
     /// Pickle globals are inspected as data and are never called.
     pub fn from_pytorch(bytes: &[u8]) -> Result<TensorMap, String> {
+        Self::from_pytorch_group(bytes, None)
+    }
+
+    pub fn from_pytorch_group(bytes: &[u8], group: Option<&str>) -> Result<TensorMap, String> {
         let mut archive = ZipArchive::new(Cursor::new(bytes)).map_err(|e| e.to_string())?;
         let path = archive
             .file_names()
@@ -26,7 +30,7 @@ impl TensorArchive {
         let (values, _) = evaluate(&ops, true).map_err(|e| e.to_string())?;
         let mut tensors = TensorMap::new();
         for value in &values {
-            read_values(value, &prefix, &mut archive, &mut tensors, 0)?;
+            read_values(value, &prefix, &mut archive, &mut tensors, 0, group)?;
         }
         if tensors.is_empty() {
             return Err("模型不含支持的 PyTorch 权重".into());
@@ -41,30 +45,36 @@ fn read_values(
     archive: &mut ZipArchive<Cursor<&[u8]>>,
     tensors: &mut TensorMap,
     depth: usize,
+    group: Option<&str>,
 ) -> Result<(), String> {
     if depth > 64 {
         return Err("模型元数据嵌套过深".into());
     }
     match value {
         Value::Seq(_, items) => {
-            if let [Value::String(name), tensor] = items.as_slice()
-                && let Some(tensor) = read_tensor(tensor, prefix, archive)?
-            {
-                tensors.insert((*name).to_owned(), tensor);
-                return Ok(());
+            if let [Value::String(name), value] = items.as_slice() {
+                if group == Some(*name) {
+                    return read_values(value, prefix, archive, tensors, depth + 1, None);
+                }
+                if group.is_none()
+                    && let Some(tensor) = read_tensor(value, prefix, archive)?
+                {
+                    tensors.insert((*name).to_owned(), tensor);
+                    return Ok(());
+                }
             }
             for item in items {
-                read_values(item, prefix, archive, tensors, depth + 1)?;
+                read_values(item, prefix, archive, tensors, depth + 1, group)?;
             }
         }
         Value::Global(_, items) | Value::App(_, items) | Value::Object(_, items) => {
             for item in items {
-                read_values(item, prefix, archive, tensors, depth + 1)?;
+                read_values(item, prefix, archive, tensors, depth + 1, group)?;
             }
         }
         Value::Build(object, state) => {
-            read_values(object, prefix, archive, tensors, depth + 1)?;
-            read_values(state, prefix, archive, tensors, depth + 1)?;
+            read_values(object, prefix, archive, tensors, depth + 1, group)?;
+            read_values(state, prefix, archive, tensors, depth + 1, group)?;
         }
         _ => {}
     }

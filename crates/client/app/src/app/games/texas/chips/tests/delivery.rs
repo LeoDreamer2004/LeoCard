@@ -29,7 +29,7 @@ fn action_refund_runout_and_finish_keep_network_order_at_every_frame_boundary() 
     raised.players[2].committed_street += 2;
     raised.players[2].committed_total += 2;
     raised.pot += 2;
-    let messages = vec![
+    let messages = [
         event(TexasEvent::ActionApplied {
             player: PlayerId(2),
             action: TexasAction::RaiseTo(12),

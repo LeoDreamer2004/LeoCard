@@ -7,6 +7,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use leocard_protocol::{GameSnapshot, MahjongPhaseView, MahjongSnapshot};
 
 #[derive(SystemParam)]
@@ -26,7 +27,8 @@ pub(super) fn handle_right_click_draw_discard(
     client: Option<Res<ClientResource>>,
     mut actions: MessageWriter<PressedUiAction>,
 ) {
-    if !input.preferences.controls.mahjong_right_click_draw_discard
+    if is_mobile()
+        || !input.preferences.controls.mahjong_right_click_draw_discard
         || !input.mouse.just_pressed(MouseButton::Right)
         || input.page.active()
         || input.confirmation.is_busy()

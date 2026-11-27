@@ -14,9 +14,9 @@ use super::{
     animate_mahjong_win_showcases, animate_mahjong_win_tile_shakes, animate_mahjong_winning_hands,
     animate_own_discard, animate_remote_discard, apply_automatic_mahjong_action, assets,
     capture_remote_discard_source, play_mahjong_action_prompt, play_mahjong_fan_voices,
-    play_mahjong_showcase_sounds, play_mahjong_tile_sounds, sync_mahjong_claim_presentation,
-    sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints,
-    sync_mahjong_ready_hand_peek,
+    play_mahjong_hand_selection_sounds, play_mahjong_showcase_sounds, play_mahjong_tile_sounds,
+    sync_mahjong_claim_presentation, sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials,
+    sync_mahjong_hover_hints, sync_mahjong_ready_hand_peek,
 };
 use crate::app::presentation::mahjong::MahjongAssetsSet;
 use crate::app::presentation::start_game_intro_finished;
@@ -63,6 +63,13 @@ impl Plugin for MahjongPlugin {
             .add_systems(
                 Update,
                 handle_right_click_draw_discard
+                    .in_set(ClientUpdateSet::Input)
+                    .before(UiActionSet)
+                    .run_if(start_game_intro_finished),
+            )
+            .add_systems(
+                Update,
+                play_mahjong_hand_selection_sounds
                     .in_set(ClientUpdateSet::Input)
                     .before(UiActionSet)
                     .run_if(start_game_intro_finished),

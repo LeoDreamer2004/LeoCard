@@ -31,8 +31,16 @@ pub enum ModelId {
     Douzero,
     Kdens3,
     GuandanActor,
+    BlackjackTransformer,
+    TexasPpo,
 }
 
 impl ModelId {
-    pub const ALL: [Self; 3] = [Self::Douzero, Self::Kdens3, Self::GuandanActor];
+    pub const ALL: [Self; 5] = [
+        Self::Douzero,
+        Self::Kdens3,
+        Self::GuandanActor,
+        Self::BlackjackTransformer,
+        Self::TexasPpo,
+    ];
 }

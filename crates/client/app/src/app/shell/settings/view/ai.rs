@@ -42,6 +42,8 @@ impl<'a> AiSettings<'a> {
             (ModelId::Douzero, "三人斗地主"),
             (ModelId::Kdens3, "国标麻将"),
             (ModelId::GuandanActor, "掼蛋"),
+            (ModelId::BlackjackTransformer, "21 点"),
+            (ModelId::TexasPpo, "六人德州"),
         ] {
             self.model_settings(commands, parent, id, title);
         }
@@ -76,7 +78,7 @@ impl<'a> AiSettings<'a> {
             "settings.ai.download-proxy-port",
             &self.form.ai.download_proxy_port,
         );
-        input.placeholder = "留空使用系统代理";
+        input.placeholder = "留空使用环境代理";
         input.max_characters = 5;
         input.filter = |character| character.is_ascii_digit();
         let editor = input.spawn(
@@ -99,7 +101,19 @@ impl<'a> AiSettings<'a> {
         let bytes: u64 = spec.files.iter().map(|file| file.bytes).sum();
         let status = self.models.status(id);
         let heading = settings_row(commands, parent);
-        add_title(commands, heading, title, 20.0, TEXT, self.assets);
+        let title = add_title(commands, heading, title, 20.0, TEXT, self.assets);
+        let help = match id {
+            ModelId::TexasPpo => Some(
+                "仅适用于六人标准无限注德州，需要开启边池。短牌、奥马哈、固定限注、忽略踢脚牌、鱿鱼、翻两次及淘汰后不足六人时，自动使用普通机器人。",
+            ),
+            ModelId::BlackjackTransformer => {
+                Some("庄家软 17 继续要牌。模型负责要牌、停牌、加倍与分牌，下注沿用最小下注。")
+            }
+            _ => None,
+        };
+        if let Some(help) = help {
+            attach_help_tooltip(commands, title, help, rule_help_style(self.assets));
+        }
         let controls = spawn_node(
             commands,
             heading,

@@ -7,6 +7,7 @@ use leocard_ai::{DevicePreference, ModelId};
 use leocard_client::ClientPhaseRef;
 use leocard_doudizhu::DoudizhuMode;
 use leocard_protocol::{ClientCommand, GameRules};
+use leocard_texas_holdem::TexasPpoBot;
 use std::thread;
 
 pub(crate) fn initialize_ai_models(
@@ -61,6 +62,8 @@ pub(crate) fn ai_model_for_rules(rules: &GameRules) -> Option<ModelId> {
         GameRules::Doudizhu(rules) if rules.mode == DoudizhuMode::Three => Some(ModelId::Douzero),
         GameRules::Mahjong(_) => Some(ModelId::Kdens3),
         GameRules::Guandan(_) => Some(ModelId::GuandanActor),
+        GameRules::Blackjack(_) => Some(ModelId::BlackjackTransformer),
+        GameRules::Texas(rules) if TexasPpoBot::supports_rules(rules) => Some(ModelId::TexasPpo),
         _ => None,
     }
 }
@@ -70,9 +73,11 @@ impl AiModels {
         &self,
         preferences: &AiPreferences,
         rules: &GameRules,
+        players: usize,
     ) -> Option<ModelId> {
         ai_model_for_rules(rules).filter(|id| {
-            preferences.enabled.contains(id)
+            (*id != ModelId::TexasPpo || players == 6)
+                && preferences.enabled.contains(id)
                 && self.status(*id).ready()
                 && (preferences.device != DevicePreference::Gpu || self.gpu_available())
         })
@@ -89,15 +94,18 @@ pub(crate) fn sync_lobby_ai(
         *previous = None;
         return;
     };
-    if !client.0.model().is_host() || !matches!(client.0.model().phase(), ClientPhaseRef::Lobby(_))
-    {
+    let ClientPhaseRef::Lobby(lobby) = client.0.model().phase() else {
+        *previous = None;
+        return;
+    };
+    if !client.0.model().is_host() {
         *previous = None;
         return;
     }
     let Some(rules) = client.0.model().game_rules() else {
         return;
     };
-    let model = models.configured_model(&preferences.ai, rules);
+    let model = models.configured_model(&preferences.ai, rules, lobby.players.len());
     let stamp = (client.0.session_id(), model, preferences.ai.device);
     if previous.as_ref() != Some(&stamp)
         && client.0.send(ClientCommand::ConfigureBotAi {

@@ -2,9 +2,13 @@
 
 mod card;
 mod game;
+#[cfg(not(target_arch = "wasm32"))]
+mod neural;
 mod profile;
 mod rules;
 mod strategy;
+#[cfg(not(target_arch = "wasm32"))]
+pub use neural::BlackjackTransformerBot;
 
 pub use card::{BlackjackCard, BlackjackHandValue, BlackjackRank, BlackjackSuit, build_shoe};
 pub use game::{

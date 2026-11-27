@@ -1,9 +1,11 @@
 use crate::player::config_file;
 use leocard_ai::{ModelId, ModelRegistry, TensorArchive, TensorMap, model_spec};
+use leocard_blackjack::BlackjackTransformerBot;
 use leocard_doudizhu::DouzeroBot;
 use leocard_guandan::GuandanActorBot;
 use leocard_mahjong::KdensBot;
 use leocard_platform::storage as fs;
+use leocard_texas_holdem::TexasPpoBot;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::ErrorKind;
@@ -34,6 +36,8 @@ pub(super) fn validate(id: ModelId, tensors: &[TensorMap]) -> Result<(), String>
         ModelId::Douzero => DouzeroBot::validate(tensors),
         ModelId::Kdens3 => KdensBot::validate(tensors),
         ModelId::GuandanActor => GuandanActorBot::validate(tensors),
+        ModelId::BlackjackTransformer => BlackjackTransformerBot::validate(tensors),
+        ModelId::TexasPpo => TexasPpoBot::validate(tensors),
     }
 }
 

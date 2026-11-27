@@ -9,11 +9,15 @@ mod bot;
 mod card;
 mod game;
 mod hand;
+#[cfg(not(target_arch = "wasm32"))]
+mod neural;
 mod profile;
 mod rating;
 mod rules;
 mod squid;
 mod statistics;
+#[cfg(not(target_arch = "wasm32"))]
+pub use neural::{TexasPpoBot, TexasPpoMemory, TexasPpoObservation};
 
 pub use auto_play::{TexasPassiveAutoPlay, TexasPassiveAutoPlayRequest};
 pub use bot::{TexasBot, TexasBotObservation};

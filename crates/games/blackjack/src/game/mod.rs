@@ -3,6 +3,8 @@ mod error;
 mod flow;
 mod settlement;
 mod state;
+#[cfg(test)]
+mod tests;
 
 pub use error::BlackjackGameError;
 pub use state::{

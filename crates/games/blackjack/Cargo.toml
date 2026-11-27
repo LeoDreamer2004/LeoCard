@@ -8,3 +8,6 @@ description = "Pure blackjack rules for LeoCard"
 [dependencies]
 leocard-game-common = { path = "../common" }
 serde.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+leocard-ai = { path = "../ai" }

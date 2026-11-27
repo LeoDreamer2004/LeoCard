@@ -1,9 +1,11 @@
-use super::state::{Network, Operation, Step};
-use crate::{DevicePreference, TensorMap};
+use super::operation::{Add, Conv3x3, Linear, Operation};
+use super::state::{Network, Step};
+use crate::{DevicePreference, Tensor, TensorMap};
+use std::sync::Arc;
 
 pub struct NetworkBuilder {
-    input_shape: Vec<usize>,
-    steps: Vec<Step>,
+    pub(super) input_shape: Vec<usize>,
+    pub(super) steps: Vec<Step>,
 }
 
 impl NetworkBuilder {
@@ -21,13 +23,29 @@ impl NetworkBuilder {
         name: &str,
         relu: bool,
     ) -> Result<usize, String> {
+        self.linear_layer(input, tensors, name, relu, true)
+    }
+
+    pub fn linear_no_bias(
+        &mut self,
+        input: usize,
+        tensors: &TensorMap,
+        name: &str,
+    ) -> Result<usize, String> {
+        self.linear_layer(input, tensors, name, false, false)
+    }
+
+    fn linear_layer(
+        &mut self,
+        input: usize,
+        tensors: &TensorMap,
+        name: &str,
+        relu: bool,
+        with_bias: bool,
+    ) -> Result<usize, String> {
         let weight = tensors
             .get(&format!("{name}.weight"))
             .ok_or_else(|| format!("模型缺少 {name}.weight"))?
-            .clone();
-        let bias = tensors
-            .get(&format!("{name}.bias"))
-            .ok_or_else(|| format!("模型缺少 {name}.bias"))?
             .clone();
         let inputs = self.shape(input)?.iter().product::<usize>();
         let [outputs, width] = weight.shape.as_slice() else {
@@ -36,12 +54,16 @@ impl NetworkBuilder {
         if inputs != *width {
             return Err(format!("全连接 {name} 的输入尺寸错误"));
         }
+        let bias = if with_bias {
+            tensors
+                .get(&format!("{name}.bias"))
+                .ok_or_else(|| format!("模型缺少 {name}.bias"))?
+                .clone()
+        } else {
+            Tensor::new(vec![*outputs], vec![0.0; *outputs])?
+        };
         bias.expect_shape(&[*outputs])?;
-        self.push(
-            input,
-            vec![*outputs],
-            Operation::Linear { weight, bias, relu },
-        )
+        self.push(input, vec![*outputs], Linear { weight, bias, relu })
     }
 
     pub fn conv3x3(
@@ -72,16 +94,20 @@ impl NetworkBuilder {
         self.push(
             input,
             vec![*outputs, *height, *width],
-            Operation::Conv3x3 { weight, bias, relu },
+            Conv3x3 { weight, bias, relu },
         )
     }
 
     pub fn add_relu(&mut self, input: usize, other: usize) -> Result<usize, String> {
+        self.add(input, other, true)
+    }
+
+    pub fn add(&mut self, input: usize, other: usize, relu: bool) -> Result<usize, String> {
         let shape = self.shape(input)?.to_vec();
         if shape != self.shape(other)? {
             return Err("残差分支尺寸不一致".into());
         }
-        self.push(input, shape, Operation::AddRelu { other })
+        self.push(input, shape, Add { other, relu })
     }
 
     pub fn finish(self, output: usize, preference: DevicePreference) -> Result<Network, String> {
@@ -97,7 +123,7 @@ impl NetworkBuilder {
         ))
     }
 
-    fn shape(&self, slot: usize) -> Result<&[usize], String> {
+    pub(super) fn shape(&self, slot: usize) -> Result<&[usize], String> {
         if slot == 0 {
             Ok(&self.input_shape)
         } else {
@@ -108,16 +134,16 @@ impl NetworkBuilder {
         }
     }
 
-    fn push(
+    pub(super) fn push(
         &mut self,
         input: usize,
         shape: Vec<usize>,
-        operation: Operation,
+        operation: impl Operation + 'static,
     ) -> Result<usize, String> {
         self.steps.push(Step {
             input,
             shape,
-            operation,
+            operation: Arc::new(operation),
         });
         Ok(self.steps.len())
     }

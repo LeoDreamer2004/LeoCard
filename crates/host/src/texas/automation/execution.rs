@@ -6,6 +6,7 @@ use leocard_texas_holdem::{TexasAction, TexasPhase};
 
 impl TexasSession {
     pub(in super::super) fn play_automatic_action(&mut self) -> Option<Vec<TexasEvent>> {
+        self.refresh_bot_model();
         let game = self.game.as_ref()?;
         let player = game.current_player()?;
         let core_player = game.game().current_player()?;
@@ -24,6 +25,8 @@ impl TexasSession {
                 game.game(),
                 core_player,
                 &mut self.bot_decision,
+                self.room.bot_ai.clone(),
+                &self.bot_memory,
             )?)
         } else {
             self.bot_decision.clear();

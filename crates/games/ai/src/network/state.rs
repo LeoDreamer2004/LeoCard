@@ -1,30 +1,14 @@
 use super::cpu;
 use super::gpu::{GpuContext, GpuNetwork};
-use crate::{DevicePreference, InferenceDevice, Tensor};
-use std::sync::Mutex;
-
-#[derive(Clone, Debug)]
-pub(super) enum Operation {
-    Linear {
-        weight: Tensor,
-        bias: Tensor,
-        relu: bool,
-    },
-    Conv3x3 {
-        weight: Tensor,
-        bias: Tensor,
-        relu: bool,
-    },
-    AddRelu {
-        other: usize,
-    },
-}
+use super::operation::Operation;
+use crate::{DevicePreference, InferenceDevice};
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
 pub(super) struct Step {
     pub input: usize,
     pub shape: Vec<usize>,
-    pub operation: Operation,
+    pub operation: Arc<dyn Operation>,
 }
 
 pub struct Network {
@@ -59,6 +43,9 @@ impl Network {
             .checked_mul(batch);
         if batch == 0 || expected != Some(input.len()) || input.iter().any(|n| !n.is_finite()) {
             return Err("模型输入尺寸错误或包含非有限数值".into());
+        }
+        for step in &self.steps {
+            step.operation.validate_input(input, batch)?;
         }
         if self.preference != DevicePreference::Cpu {
             let mut gpu = self.gpu.lock().map_err(|e| e.to_string())?;

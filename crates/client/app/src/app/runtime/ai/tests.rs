@@ -1,5 +1,5 @@
 use super::{download, storage};
-use leocard_ai::{DevicePreference, ModelId, ModelRegistry};
+use leocard_ai::{DevicePreference, ModelId, ModelRegistry, model_spec};
 use std::env;
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -13,7 +13,12 @@ fn downloaded_models_convert_save_and_reload() {
         "use a dedicated ai-validation directory"
     );
     let (sender, _receiver) = mpsc::channel();
-    for id in ModelId::ALL {
+    let selected = env::var("LEOCARD_AI_TEST_MODEL").ok();
+    for id in ModelId::ALL.into_iter().filter(|id| {
+        selected
+            .as_deref()
+            .is_none_or(|key| key == model_spec(*id).key)
+    }) {
         download::download(id, "", &sender).unwrap();
         ModelRegistry::remove(id);
         assert!(storage::load(id).unwrap());

@@ -3,7 +3,9 @@ use crate::Delivery;
 use crate::action_timing::attach_action_timing;
 use crate::features::GameAutomation;
 use crate::lifecycle::HostedGameLifecycle;
-use leocard_blackjack::{BlackjackAutoPlay, BlackjackBot, BlackjackObservation, BlackjackPhase};
+use leocard_blackjack::{
+    BlackjackAutoPlay, BlackjackBot, BlackjackObservation, BlackjackPhase, BlackjackTransformerBot,
+};
 use std::time::Duration;
 
 impl BlackjackSession {
@@ -78,7 +80,22 @@ impl GameAutomation for BlackjackSession {
             let action = if !automatic {
                 BlackjackAutoPlay::timeout(game.phase(), self.rules.minimum_bet)
             } else if is_bot {
-                BlackjackBot::choose(&observation)
+                let fallback = BlackjackBot::choose(&observation);
+                if let Some(model) = self.room.bot_ai.clone() {
+                    let Some(action) =
+                        self.bot_decision
+                            .poll(observation, fallback, move |input, _| {
+                                BlackjackTransformerBot::choose(input, &model)
+                                    .unwrap_or_else(|_| BlackjackBot::choose(input))
+                            })
+                    else {
+                        return Vec::new();
+                    };
+                    action
+                } else {
+                    self.bot_decision.clear();
+                    fallback
+                }
             } else {
                 BlackjackAutoPlay::choose(&observation)
             };

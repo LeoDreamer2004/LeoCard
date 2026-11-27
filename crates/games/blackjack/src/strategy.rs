@@ -4,12 +4,13 @@ use crate::{
 };
 use leocard_game_common::PlayerId;
 
-/// 仅含行动者自己的牌及庄家明牌，策略不能读取庄家暗牌或牌堆。
-#[derive(Clone, Debug)]
+/// Only exposed player cards and the dealer upcard, never the hole card or shoe.
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlackjackObservation {
     pub cards: Vec<BlackjackCard>,
     pub dealer: Option<BlackjackCard>,
     pub available: BlackjackAvailableActions,
+    pub exposed: Vec<BlackjackCard>,
 }
 
 impl BlackjackObservation {
@@ -23,6 +24,21 @@ impl BlackjackObservation {
             }),
             dealer: game.visible_dealer().first().copied(),
             available: game.available_actions(player),
+            exposed: game
+                .players()
+                .iter()
+                .enumerate()
+                .flat_map(|(index, state)| {
+                    state
+                        .hands
+                        .iter()
+                        .enumerate()
+                        .filter(move |(hand, _)| {
+                            index != player.index() || Some(*hand) != game.current_hand()
+                        })
+                        .flat_map(|(_, hand)| hand.cards.iter().copied())
+                })
+                .collect(),
         })
     }
 }
@@ -65,14 +81,16 @@ impl BlackjackBot {
             match value.total {
                 13 | 14 => matches!(dealer, 5 | 6),
                 15 | 16 => (4..=6).contains(&dealer),
-                17 | 18 => (3..=6).contains(&dealer),
+                17 => (3..=6).contains(&dealer),
+                18 => (2..=6).contains(&dealer),
+                19 => dealer == 6,
                 _ => false,
             }
         } else {
             match value.total {
                 9 => (3..=6).contains(&dealer),
                 10 => dealer <= 9,
-                11 => dealer <= 10,
+                11 => true,
                 _ => false,
             }
         };

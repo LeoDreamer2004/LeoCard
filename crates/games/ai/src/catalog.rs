@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 pub enum SourceFormat {
     Pytorch,
     Numpy,
+    Json,
 }
 
 #[derive(Serialize)]
@@ -15,14 +16,16 @@ pub struct ModelFile {
     pub bytes: u64,
     pub sha256: &'static str,
     pub format: SourceFormat,
+    pub group: Option<&'static str>,
 }
 
 impl ModelFile {
     pub fn convert(&self, bytes: &[u8]) -> Result<(Vec<u8>, TensorMap), String> {
         self.verify(bytes)?;
         let tensors = match self.format {
-            SourceFormat::Pytorch => TensorArchive::from_pytorch(bytes)?,
+            SourceFormat::Pytorch => TensorArchive::from_pytorch_group(bytes, self.group)?,
             SourceFormat::Numpy => TensorArchive::from_npz(bytes)?,
+            SourceFormat::Json => TensorArchive::from_json(bytes)?,
         };
         let encoded = TensorArchive::encode(&tensors)?;
         let tensors = TensorArchive::decode(&encoded)?;
@@ -54,18 +57,62 @@ pub struct ModelSpec {
 
 macro_rules! checkpoint {
     ($name:literal, $url:expr, $bytes:literal, $sha:literal, $format:ident) => {
+        checkpoint!($name, $url, $bytes, $sha, $format, None)
+    };
+    ($name:literal, $url:expr, $bytes:literal, $sha:literal, $format:ident, $group:expr) => {
         ModelFile {
             name: $name,
             url: $url,
             bytes: $bytes,
             sha256: $sha,
             format: SourceFormat::$format,
+            group: $group,
         }
     };
 }
 
 pub const fn model_spec(id: ModelId) -> &'static ModelSpec {
     match id {
+        ModelId::BlackjackTransformer => &ModelSpec {
+            id: ModelId::BlackjackTransformer,
+            key: "blackjack-transformer",
+            name: "Blackjack v6",
+            version: "6cbe94b-f16-v1",
+            license: "上游未声明许可证",
+            source: "https://github.com/itsPat/blackjack-ai",
+            files: &[checkpoint!(
+                "transformer",
+                "https://raw.githubusercontent.com/itsPat/blackjack-ai/6cbe94be3611b5fa85e59c1256b105f95ed09964/models/blackjack-v6-full/model.pt",
+                3343042,
+                "e49cd4db6a327842cfc0185021ee0b92a722878c3ede930c603fbdb8836dc091",
+                Pytorch
+            )],
+        },
+        ModelId::TexasPpo => &ModelSpec {
+            id: ModelId::TexasPpo,
+            key: "texas-ppo",
+            name: "六人 PPO",
+            version: "d58223f-f16-v1",
+            license: "上游未声明许可证",
+            source: "https://github.com/kailiu0712/Multi-Agent-Reinforcement-Learning-6-player-Texas-Poker",
+            files: &[
+                checkpoint!(
+                    "policy",
+                    "https://raw.githubusercontent.com/kailiu0712/Multi-Agent-Reinforcement-Learning-6-player-Texas-Poker/d58223f0e054dd60f04c98e1a64e71578cf94e2d/outputs/best_hero.pt",
+                    234011,
+                    "103d98411b324df13941613dd25454d232ed93211153dd61cac14a9a9b867565",
+                    Pytorch,
+                    Some("policy_state_dict")
+                ),
+                checkpoint!(
+                    "strength",
+                    "https://raw.githubusercontent.com/kailiu0712/Multi-Agent-Reinforcement-Learning-6-player-Texas-Poker/d58223f0e054dd60f04c98e1a64e71578cf94e2d/strength_chart.json",
+                    1012423,
+                    "b1e0cab1670cf56fab48af6736fc44d1dd031f0112fc6d07e6b865a088057a3d",
+                    Json
+                ),
+            ],
+        },
         ModelId::Douzero => &ModelSpec {
             id: ModelId::Douzero,
             key: "douzero",

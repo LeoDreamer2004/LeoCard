@@ -13,6 +13,8 @@ use crate::app::runtime::AppearancePreferences;
 use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
+use leocard_client::ClientPhaseRef;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{ClientCommand, SeatId};
 
@@ -77,7 +79,13 @@ impl UiActionHandler<LobbyActionContext<'_, '_>> for LobbyUiAction {
                     && client.0.model().is_host()
                     && let Some(rules) = client.0.model().game_rules()
                 {
-                    let model = context.ai.configured_model(&context.appearance.ai, rules);
+                    let count = match client.0.model().phase() {
+                        ClientPhaseRef::Lobby(lobby) => lobby.players.len(),
+                        _ => 0,
+                    };
+                    let model = context
+                        .ai
+                        .configured_model(&context.appearance.ai, rules, count);
                     client.0.send(ClientCommand::ConfigureBotAi {
                         model,
                         device: context.appearance.ai.device,

@@ -135,7 +135,10 @@ impl BlackjackGameState {
             .flat_map(|player| &player.hands)
             .any(|hand| hand.status == BlackjackHandStatus::Standing);
         if needs_comparison {
-            while BlackjackHandValue::of(&self.dealer).total < 17 {
+            while {
+                let value = BlackjackHandValue::of(&self.dealer);
+                value.total < 17 || (value.total == 17 && value.soft)
+            } {
                 let card = self.draw();
                 self.dealer.push(card);
             }

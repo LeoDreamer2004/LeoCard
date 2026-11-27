@@ -63,7 +63,7 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "jpeg",
 ] }
-jni = { version = "0.22.4", default-features = false }
+jni = { version = "0.22", default-features = false }
 js-sys = "0.3"
 mac-usernotifications = "0.3"
 md-5 = "0.11"
@@ -73,7 +73,7 @@ nom = "7.1"
 notify-rust = { version = "4.19", default-features = false, features = ["z"] }
 pollster = "1.0"
 postcard = { version = "1.1", features = ["alloc"] }
-repugnant-pickle = "0.0.1"
+repugnant-pickle = "0.0"
 reqwest = { version = "0.13", default-features = false, features = [
     "blocking",
     "form",

@@ -76,6 +76,12 @@ impl HandSettlement for TexasSession {
             return;
         }
         self.record_completed_hand();
+        if let Some(game) = &self.game
+            && let Some(model) = &self.room.bot_ai
+            && let Ok(chart) = model.tensors(1)
+        {
+            self.bot_memory.observe_completed(game.game(), chart);
+        }
         self.room.prepare_rematch();
         self.automatic_action_delay = None;
         if self.tournament_complete() {

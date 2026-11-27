@@ -1,14 +1,20 @@
 use super::discard::DISCARD_DURATION;
+use super::{MahjongAssets, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile};
 use crate::app::runtime::ClientResource;
 use bevy::audio::Volume;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui::InteractionDisabled;
+use leocard_mahjong::MahjongTile;
+use leocard_platform::is_mobile;
 use leocard_protocol::{GameSnapshot, MahjongEvent, MahjongSnapshot, MatchId};
-use leocard_ui::UiComposer;
+use leocard_ui::{UiComposer, UiPress};
 
 pub(super) struct MahjongTableSounds {
     deal: Handle<AudioSource>,
     draw: Handle<AudioSource>,
     discard: Handle<AudioSource>,
+    select: Handle<AudioSource>,
 }
 
 #[derive(Component)]
@@ -25,6 +31,7 @@ impl MahjongTableSounds {
             deal: server.load("audio/mahjong/table/deal.ogg"),
             draw: server.load("audio/mahjong/table/draw.ogg"),
             discard: server.load("audio/mahjong/table/discard.ogg"),
+            select: server.load("vendor/kenney/interface-sounds/Audio/glass_002.ogg"),
         }
     }
 
@@ -76,6 +83,54 @@ impl MahjongTableSounds {
             remaining,
             volume,
         });
+    }
+}
+
+#[expect(
+    clippy::type_complexity,
+    reason = "the Bevy query limits selection feedback to enabled, stationary hand tiles"
+)]
+pub(super) fn play_mahjong_hand_selection_sounds(
+    mut presses: MessageReader<UiPress>,
+    hands: Query<
+        (&MahjongHandTile, &PickingInteraction),
+        (
+            Without<InteractionDisabled>,
+            Without<MahjongDealTile>,
+            Without<MahjongDiscardHandShift>,
+        ),
+    >,
+    assets: Res<MahjongAssets>,
+    mut previous_hover: Local<Option<MahjongTile>>,
+    mut commands: Commands,
+) {
+    let mobile = is_mobile();
+    let mut selected = false;
+    for press in presses.read() {
+        selected |= mobile && hands.contains(press.0);
+    }
+    let hovered = if mobile {
+        None
+    } else {
+        hands.iter().find_map(|(tile, interaction)| {
+            matches!(
+                interaction,
+                PickingInteraction::Hovered | PickingInteraction::Pressed
+            )
+            .then_some(tile.tile)
+        })
+    };
+    selected |= hovered.is_some() && hovered != *previous_hover;
+    *previous_hover = hovered;
+    if selected {
+        commands.spawn((
+            AudioPlayer::new(assets.table_sounds.select.clone()),
+            PlaybackSettings {
+                volume: Volume::Linear(0.24),
+                speed: 1.1,
+                ..PlaybackSettings::DESPAWN
+            },
+        ));
     }
 }
 

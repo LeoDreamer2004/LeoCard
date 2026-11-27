@@ -38,6 +38,7 @@ impl TexasSession {
             finished_reference_changes: None,
             automatic_action_delay: None,
             bot_decision: Default::default(),
+            bot_memory: Default::default(),
         })
     }
 
@@ -406,6 +407,7 @@ impl HostedGameLifecycle for TexasSession {
                     RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
+            self.refresh_bot_model();
             let events = self.resolve_disconnected_turns();
             self.record_hand_started();
             self.record_profile_events(&events);

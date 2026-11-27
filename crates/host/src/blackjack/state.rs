@@ -1,6 +1,10 @@
+use crate::automation::BotDecision;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
-use leocard_blackjack::{BlackjackCard, BlackjackGameState, BlackjackPhase, BlackjackRuleSet};
+use leocard_blackjack::{
+    BlackjackAction, BlackjackCard, BlackjackGameState, BlackjackObservation, BlackjackPhase,
+    BlackjackRuleSet,
+};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ClientMessage, GameViolation, MatchId, PlayerReferenceChange, PlayerViolation, RejectReason,
@@ -10,6 +14,7 @@ use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct BlackjackSession {
+    pub(super) bot_decision: BotDecision<BlackjackObservation, BlackjackAction>,
     pub(super) room: RoomSession,
     pub(super) rules: BlackjackRuleSet,
     pub(super) game: Option<BlackjackGameState>,
@@ -29,6 +34,7 @@ impl BlackjackSession {
     ) -> Result<Self, HostError> {
         BlackjackGameState::new(rules, 1, shoe.clone())?;
         Ok(Self {
+            bot_decision: Default::default(),
             room: RoomSession::new(room_id, host_port, BlackjackRuleSet::MAX_PLAYERS),
             rules,
             game: None,

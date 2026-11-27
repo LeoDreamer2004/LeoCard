@@ -31,7 +31,7 @@ fn game(prefix: &[BlackjackRank]) -> BlackjackGameState {
 }
 
 #[test]
-fn aces_change_value_and_dealer_stands_on_soft_seventeen() {
+fn aces_change_value_and_dealer_hits_soft_seventeen() {
     let cards = [Ace, Ace, Nine].map(|rank| BlackjackCard {
         suit: BlackjackSuit::Club,
         rank,
@@ -47,7 +47,7 @@ fn aces_change_value_and_dealer_stands_on_soft_seventeen() {
     assert_eq!(game.visible_dealer().len(), 1);
     assert!(game.dealer_has_hidden_card());
     game.act(PlayerId(0), Stand).unwrap();
-    assert_eq!(game.visible_dealer().len(), 2);
+    assert_eq!(game.visible_dealer().len(), 3);
     assert_eq!(game.players()[0].stack, 202);
 }
 
